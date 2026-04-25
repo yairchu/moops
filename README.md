@@ -17,11 +17,9 @@ Now your notebook doubles as a CLI script
 
 ## Missing features
 
-Support for additional Marimo ui elements:
-
-* File input
+* File inputs
+* text_area with support for inputting from stdin/pipe
 * Embedded notebooks and option groups
 * More interfaces
   * Exposing a Marimo notebook as simple callable functions?
   * HTTP services, OpenAPI?
-* What else?
