@@ -8,8 +8,8 @@ app = marimo.App(width="full")
 
 
 @app.cell
-def _(args, name_text, polite_switch, times_number):
-    args.help(polite_switch, name_text, times_number)
+def _(args, name_text, polite_switch, style_dropdown, times_number):
+    args.help(polite_switch, name_text, times_number, style_dropdown)
     return
 
 
@@ -64,8 +64,29 @@ def _(args):
 
 
 @app.cell
-def _(args, name_text, polite_switch, times_number):
-    greeting = "Hello Milady" if polite_switch.value else "You sneaky bastard!"
+def _(args):
+    style_dropdown = args.dropdown(
+        ["casual", "formal", "pirate"],
+        label="Style",
+        help_text="Greeting style",
+        allow_select_none=False,
+    )
+    style_dropdown
+    return (style_dropdown,)
+
+
+@app.cell
+def _(args, name_text, polite_switch, style_dropdown, times_number):
+    _greetings = {
+        "casual": "Hey there!" if not polite_switch.value else "Good day!",
+        "formal": "Hello Milady"
+        if not polite_switch.value
+        else "Good evening, esteemed guest.",
+        "pirate": "Ahoy, matey!"
+        if not polite_switch.value
+        else "Ahoy, noble seafarer!",
+    }
+    greeting = _greetings[style_dropdown.value]
     parts = [
         *([name_text.value] if name_text.value else []),
         *([greeting] * times_number.value),

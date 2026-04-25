@@ -3,6 +3,7 @@ import dataclasses
 import math
 import marimo as mo
 import sys
+import typing
 
 help_flags = ["--help", "-h"]
 
@@ -183,6 +184,47 @@ class Group:
         opt, value, desc = self._numeric_option(start, value, option, help_text, label)
         result = mo.ui.slider(
             start=start, stop=stop, step=step, value=value, label=opt.label, **kwargs
+        )
+        self._control_meta[id(result)] = _ControlMeta(opt=opt, info=desc)
+        return result
+
+    def dropdown(
+        self,
+        options: list[str] | dict[str, typing.Any],
+        value: str | None = None,
+        option: str | None = None,
+        *,
+        help_text: str,
+        label: str | None = None,
+        allow_select_none: bool = True,
+        **kwargs,
+    ) -> mo.ui.dropdown:
+        """Create a dropdown UI element that maps to a CLI option."""
+
+        assert len(options) > 0, "Dropdown options cannot be empty"
+        opt = _OptionLabel.make(label=label, option=option)
+        keys = list(options)
+        if value is None and not allow_select_none:
+            value, *_ = keys
+        desc = _OptionDesc(
+            default=value,
+            metavar="{" + "|".join(keys) + "}",
+            help_text=help_text,
+        )
+        raw = self._parsed_args.get(opt.option)
+        if raw is not None:
+            if raw not in keys:
+                self._validation_errors[opt.option] = (
+                    f"Option {opt.option} must be one of {keys!r}, got: {raw!r}"
+                )
+            else:
+                value = raw
+        result = mo.ui.dropdown(
+            options=options,
+            value=value,
+            label=opt.label,
+            allow_select_none=allow_select_none,
+            **kwargs,
         )
         self._control_meta[id(result)] = _ControlMeta(opt=opt, info=desc)
         return result
