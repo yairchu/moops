@@ -15,33 +15,34 @@ class Group:
 
         if cli_args is None:
             cli_args = sys.argv
-        [self.command, *args] = cli_args
-        if not self.command:
-            self.command = "script"
+        [self._command, *args] = cli_args
+        if not self._command:
+            self._command = "script"
 
         self._parse_args(args)
-        self.is_help = any(x in self.parsed_args for x in help_flags)
-        self.validation_errors: dict[str, str] = {}
-        self._control_meta: dict[int, tuple] = {}
+        self.is_help = any(x in self._parsed_args for x in help_flags)
+
+        self._validation_errors: dict[str, str] = {}
+        self._control_meta: dict[int, _ControlMeta] = {}
 
     def _parse_args(self, args: list[str]) -> None:
         """Parse command line arguments into flags and options."""
 
-        self.parsed_args = {}
-        self.unexpected_args = []
+        self._parsed_args: dict[str, str | None] = {}
+        self._unexpected_args: list[str] = []
         prev = None
         for arg in args:
             if arg.startswith("-"):
                 if "=" in arg:
                     prefix, value = arg.split("=", 1)
-                    self.parsed_args[prefix] = value
+                    self._parsed_args[prefix] = value
                     prev = None
                 else:
-                    self.parsed_args[arg] = None
+                    self._parsed_args[arg] = None
             elif prev is not None and prev.startswith("-"):
-                self.parsed_args[prev] = arg
+                self._parsed_args[prev] = arg
             else:
-                self.unexpected_args.append(arg)
+                self._unexpected_args.append(arg)
             prev = arg
 
     def help(self, *controls) -> mo.Html | None:
@@ -54,60 +55,33 @@ class Group:
         sync with what is actually live (handles cell reruns and deletions).
         """
 
-        # Rebuild registry from the controls that are currently live
-        flags: dict[str, str] = {}
-        str_options: dict[str, OptionDesc] = {}
-        seen: set[str] = set()
-        for ctrl in controls:
-            meta = self._control_meta.get(id(ctrl))
-            if meta is None:
-                raise ValueError(f"Control {ctrl!r} was not created by this Group")
-            kind, opt, *rest = meta
-            if opt.option in seen:
-                raise ValueError(
-                    f"Option {opt.option!r} passed to help() more than once"
-                )
-            seen.add(opt.option)
-            if kind == "flag":
-                flags[opt.option] = rest[0]
-            else:
-                str_options[opt.option] = rest[0]
+        registry = _ControlRegistry(controls, self._control_meta)
 
         show_help = self.is_help
         if not mo.running_in_notebook():
-            issues = list(self._validate_args(flags, str_options))
+            issues = list(self._validate_args(registry))
             if issues:
                 print("Argument errors:\n" + "\n".join(f"- {x}" for x in issues))
                 print()
                 show_help = True
 
-        segments = [
-            f"Usage: {self.command} {' '.join(f'[{x}]' for x in [*flags.keys(), '-h/--help'])}"
-        ]
-        opts_help = [f"  {k}: {v}" for k, v in flags.items()]
-        for k, v in str_options.items():
-            opts_help.append(
-                f"  {k} {v.metavar}: {v.help_text}{f' (default: {v.default})' if v.default else ''}"
-            )
-        if opts_help:
-            segments.append("\n".join(opts_help))
-        help_text = "\n\n".join(segments)
+        help_text = registry.format_help(self._command)
         if mo.running_in_notebook():
             return mo.md(f"```\n{help_text}\n```")
         elif show_help:
             print(help_text)
             sys.exit(1)
 
-    def _validate_args(self, flags: dict, str_options: dict) -> abc.Iterator[str]:
-        yield from self.validation_errors.values()
+    def _validate_args(self, registry: "_ControlRegistry") -> abc.Iterator[str]:
+        yield from self._validation_errors.values()
         unexp_text = "Unexpected argument: "
-        for x in self.unexpected_args:
+        for x in self._unexpected_args:
             yield f"{unexp_text}{x}"
-        for k, v in self.parsed_args.items():
-            if k in flags:
+        for k, v in self._parsed_args.items():
+            if k in registry.flags:
                 if v is not None:
                     yield f"{unexp_text}{v}"
-            elif k in str_options:
+            elif k in registry.str_options:
                 if v is None:
                     yield f"Option {k} requires a value"
             elif k not in help_flags:
@@ -138,13 +112,13 @@ class Group:
     ) -> mo.ui.switch:
         """Create a switch UI element that maps to a CLI flag."""
 
-        opt = OptionLabel.make(
+        opt = _OptionLabel.make(
             label=label, option=flag, prefix="no-" if value else None
         )
-        if opt.option in self.parsed_args:
+        if opt.option in self._parsed_args:
             value = not value
         result = mo.ui.switch(value=value, label=opt.label, **kwargs)
-        self._control_meta[id(result)] = ("flag", opt, help_text)
+        self._control_meta[id(result)] = _ControlMeta(opt=opt, info=help_text)
         return result
 
     def text(
@@ -159,16 +133,16 @@ class Group:
     ) -> mo.ui.text:
         """Create a text input UI element that maps to a CLI option."""
 
-        opt = OptionLabel.make(label=label, option=option)
-        desc = OptionDesc(
+        opt = _OptionLabel.make(label=label, option=option)
+        desc = _OptionDesc(
             default=value,
             metavar=placeholder or opt.label.upper().replace(" ", "_"),
             help_text=help_text,
         )
         result = mo.ui.text(
-            value=self.parsed_args.get(opt.option, ""), label=opt.label, **kwargs
+            value=self._parsed_args.get(opt.option) or "", label=opt.label, **kwargs
         )
-        self._control_meta[id(result)] = ("opt", opt, desc)
+        self._control_meta[id(result)] = _ControlMeta(opt=opt, info=desc)
         return result
 
     def number(
@@ -189,7 +163,7 @@ class Group:
         result = mo.ui.number(
             start=start, stop=stop, step=step, value=value, label=opt.label, **kwargs
         )
-        self._control_meta[id(result)] = ("opt", opt, desc)
+        self._control_meta[id(result)] = _ControlMeta(opt=opt, info=desc)
         return result
 
     def slider(
@@ -210,7 +184,7 @@ class Group:
         result = mo.ui.slider(
             start=start, stop=stop, step=step, value=value, label=opt.label, **kwargs
         )
-        self._control_meta[id(result)] = ("opt", opt, desc)
+        self._control_meta[id(result)] = _ControlMeta(opt=opt, info=desc)
         return result
 
     def _numeric_option(
@@ -220,23 +194,23 @@ class Group:
         option: str | None,
         help_text: str,
         label: str | None,
-    ) -> tuple["OptionLabel", float, "OptionDesc"]:
+    ) -> tuple["_OptionLabel", float, "_OptionDesc"]:
         """Parse a numeric CLI option, returning (opt, resolved_value, desc)."""
 
         if value is None:
             value = start
-        opt = OptionLabel.make(label=label, option=option)
-        desc = OptionDesc(
+        opt = _OptionLabel.make(label=label, option=option)
+        desc = _OptionDesc(
             default=str(value),
             metavar=opt.label.upper().replace(" ", "_"),
             help_text=help_text,
         )
-        raw = self.parsed_args.get(opt.option)
+        raw = self._parsed_args.get(opt.option)
         if raw is not None:
             try:
                 value = float(raw)
             except ValueError:
-                self.validation_errors[opt.option] = (
+                self._validation_errors[opt.option] = (
                     f"Option {opt.option} expects a number, got: {raw!r}"
                 )
             else:
@@ -246,7 +220,7 @@ class Group:
 
 
 @dataclasses.dataclass
-class OptionDesc:
+class _OptionDesc:
     """Metadata for CLI options with defaults and help text."""
 
     default: str | None
@@ -255,7 +229,7 @@ class OptionDesc:
 
 
 @dataclasses.dataclass
-class OptionLabel:
+class _OptionLabel:
     """Maps between UI labels and CLI option names."""
 
     label: str
@@ -264,7 +238,7 @@ class OptionLabel:
     @staticmethod
     def make(
         label: str | None, option: str | None, prefix: str | None = None
-    ) -> "OptionLabel":
+    ) -> "_OptionLabel":
         """Generate OptionLabel from label or option name."""
 
         if option is None:
@@ -274,4 +248,45 @@ class OptionLabel:
             assert prefix is None
             if label is None:
                 label = option.replace("-", " ")
-        return OptionLabel(label=label, option=option)
+        return _OptionLabel(label=label, option=option)
+
+
+@dataclasses.dataclass
+class _ControlMeta:
+    opt: _OptionLabel
+    info: str | _OptionDesc
+
+
+class _ControlRegistry:
+    """Resolved set of flags and options built from a group's live controls."""
+
+    def __init__(self, controls: tuple, control_meta: dict[int, _ControlMeta]) -> None:
+        self.flags: dict[str, str] = {}
+        self.str_options: dict[str, _OptionDesc] = {}
+        seen: set[str] = set()
+        for ctrl in controls:
+            meta = control_meta.get(id(ctrl))
+            if meta is None:
+                raise ValueError(f"Control {ctrl!r} was not created by this Group")
+            if meta.opt.option in seen:
+                raise ValueError(
+                    f"Option {meta.opt.option!r} passed to help() more than once"
+                )
+            seen.add(meta.opt.option)
+            if isinstance(meta.info, str):
+                self.flags[meta.opt.option] = meta.info
+            else:
+                self.str_options[meta.opt.option] = meta.info
+
+    def format_help(self, command: str) -> str:
+        segments = [
+            f"Usage: {command} {' '.join(f'[{x}]' for x in [*self.flags.keys(), '-h/--help'])}"
+        ]
+        opts_help = [f"  {k}: {v}" for k, v in self.flags.items()]
+        for k, v in self.str_options.items():
+            opts_help.append(
+                f"  {k} {v.metavar}: {v.help_text}{f' (default: {v.default})' if v.default else ''}"
+            )
+        if opts_help:
+            segments.append("\n".join(opts_help))
+        return "\n\n".join(segments)
