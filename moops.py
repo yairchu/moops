@@ -144,6 +144,37 @@ class Group:
             value=self.parsed_args.get(opt.option, ""), label=opt.label, **kwargs
         )
 
+    def number(
+        self,
+        start: float = 0,
+        stop: float = 100,
+        step: float = 1,
+        value: float | None = None,
+        option: str | None = None,
+        *,
+        help_text: str,
+        label: str | None = None,
+        **kwargs,
+    ) -> mo.ui.number:
+        """Create a number input UI element that maps to a CLI option."""
+
+        if value is None:
+            value = start
+        opt = OptionLabel.make(label=label, option=option)
+        self.str_options[opt.option] = OptionDesc(
+            default=str(value),
+            metavar=opt.label.upper().replace(" ", "_"),
+            help_text=help_text,
+        )
+        raw = self.parsed_args.get(opt.option)
+        if raw is not None:
+            value = float(raw)
+            if value == int(value):
+                value = int(value)
+        return mo.ui.number(
+            start=start, stop=stop, step=step, value=value, label=opt.label, **kwargs
+        )
+
 
 @dataclasses.dataclass
 class OptionDesc:

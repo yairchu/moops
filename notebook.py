@@ -8,8 +8,8 @@ app = marimo.App(width="full")
 
 
 @app.cell
-def _(args, name_text, polite_switch):
-    _ = polite_switch, name_text
+def _(args, name_text, polite_switch, times_number):
+    _ = polite_switch, name_text, times_number
 
     args.help()
     return
@@ -52,15 +52,27 @@ def _(args):
 
 
 @app.cell
-def _(args, name_text, polite_switch):
-    args.md(
-        "... ".join(
-            [
-                *([name_text.value] if name_text.value else []),
-                *["Hello Milady" if polite_switch.value else "You sneaky bastard!"],
-            ]
-        )
+def _(args):
+    times_number = args.number(
+        start=1,
+        stop=10,
+        step=1,
+        value=1,
+        label="Times",
+        help_text="How many times to repeat the greeting",
     )
+    times_number
+    return (times_number,)
+
+
+@app.cell
+def _(args, name_text, polite_switch, times_number):
+    greeting = "Hello Milady" if polite_switch.value else "You sneaky bastard!"
+    parts = [
+        *([name_text.value] if name_text.value else []),
+        *([greeting] * times_number.value),
+    ]
+    args.md("... ".join(parts))
     return
 
 
