@@ -1,5 +1,6 @@
 import collections.abc as abc
 import dataclasses
+import math
 import marimo as mo
 import sys
 
@@ -22,6 +23,7 @@ class Group:
         self.is_help = any(x in self.parsed_args for x in help_flags)
         self.flags = {}
         self.str_options = {}
+        self.validation_errors: dict[str, str] = {}
 
     def _parse_args(self, args: list[str]) -> None:
         """Parse command line arguments into flags and options."""
@@ -76,6 +78,7 @@ class Group:
             sys.exit(1)
 
     def _validate_args(self) -> abc.Iterator[str]:
+        yield from self.validation_errors.values()
         unexp_text = "Unexpected argument: "
         for x in self.unexpected_args:
             yield f"{unexp_text}{x}"
@@ -168,9 +171,15 @@ class Group:
         )
         raw = self.parsed_args.get(opt.option)
         if raw is not None:
-            value = float(raw)
-            if value == int(value):
-                value = int(value)
+            try:
+                value = float(raw)
+            except ValueError:
+                self.validation_errors[opt.option] = (
+                    f"Option {opt.option} expects a number, got: {raw!r}"
+                )
+            else:
+                if math.isfinite(value) and value == int(value):
+                    value = int(value)
         return mo.ui.number(
             start=start, stop=stop, step=step, value=value, label=opt.label, **kwargs
         )
