@@ -161,6 +161,40 @@ class Group:
     ) -> mo.ui.number:
         """Create a number input UI element that maps to a CLI option."""
 
+        opt, value = self._numeric_option(start, value, option, help_text, label)
+        return mo.ui.number(
+            start=start, stop=stop, step=step, value=value, label=opt.label, **kwargs
+        )
+
+    def slider(
+        self,
+        start: float = 0,
+        stop: float = 100,
+        step: float = 1,
+        value: float | None = None,
+        option: str | None = None,
+        *,
+        help_text: str,
+        label: str | None = None,
+        **kwargs,
+    ) -> mo.ui.slider:
+        """Create a slider UI element that maps to a CLI option."""
+
+        opt, value = self._numeric_option(start, value, option, help_text, label)
+        return mo.ui.slider(
+            start=start, stop=stop, step=step, value=value, label=opt.label, **kwargs
+        )
+
+    def _numeric_option(
+        self,
+        start: float,
+        value: float | None,
+        option: str | None,
+        help_text: str,
+        label: str | None,
+    ) -> tuple["OptionLabel", float]:
+        """Parse and register a numeric CLI option, returning (opt, resolved_value)."""
+
         if value is None:
             value = start
         opt = OptionLabel.make(label=label, option=option)
@@ -180,9 +214,7 @@ class Group:
             else:
                 if math.isfinite(value) and value == int(value):
                     value = int(value)
-        return mo.ui.number(
-            start=start, stop=stop, step=step, value=value, label=opt.label, **kwargs
-        )
+        return opt, value
 
 
 @dataclasses.dataclass

@@ -21,7 +21,6 @@ Now your notebook doubles as a CLI script
 Support for additional Marimo ui elements:
 
 * Dropdowns
-* Sliders
 * File input
 * Embedded notebooks and option groups
 * What else?
