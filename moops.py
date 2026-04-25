@@ -322,7 +322,10 @@ class _ControlRegistry:
 
     def format_help(self, command: str) -> str:
         segments = [
-            f"Usage: {command} {' '.join(f'[{x}]' for x in [*self.flags.keys(), '-h/--help'])}"
+            f"Usage: {command} "
+            f"{' '.join(f'[{x}]' for x in self.flags.keys())} "
+            f"{' '.join(f'[{k} {v.metavar}]' for k, v in self.str_options.items())} "
+            f"[-h/--help]",
         ]
         opts_help = [f"  {k}: {v}" for k, v in self.flags.items()]
         for k, v in self.str_options.items():
