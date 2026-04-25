@@ -21,9 +21,8 @@ class Group:
 
         self._parse_args(args)
         self.is_help = any(x in self.parsed_args for x in help_flags)
-        self.flags = {}
-        self.str_options = {}
         self.validation_errors: dict[str, str] = {}
+        self._control_meta: dict[int, tuple] = {}
 
     def _parse_args(self, args: list[str]) -> None:
         """Parse command line arguments into flags and options."""
@@ -45,26 +44,48 @@ class Group:
                 self.unexpected_args.append(arg)
             prev = arg
 
-    def help(self) -> mo.Html | None:
+    def help(self, *controls) -> mo.Html | None:
         """
         group.help() serves two purposes:
         * Display help text based on the defined flags and options.
         * Verify the arguments passed to the script.
+
+        Pass all controls created by this group so that the registry stays in
+        sync with what is actually live (handles cell reruns and deletions).
         """
+
+        # Rebuild registry from the controls that are currently live
+        flags: dict[str, str] = {}
+        str_options: dict[str, OptionDesc] = {}
+        seen: set[str] = set()
+        for ctrl in controls:
+            meta = self._control_meta.get(id(ctrl))
+            if meta is None:
+                raise ValueError(f"Control {ctrl!r} was not created by this Group")
+            kind, opt, *rest = meta
+            if opt.option in seen:
+                raise ValueError(
+                    f"Option {opt.option!r} passed to help() more than once"
+                )
+            seen.add(opt.option)
+            if kind == "flag":
+                flags[opt.option] = rest[0]
+            else:
+                str_options[opt.option] = rest[0]
 
         show_help = self.is_help
         if not mo.running_in_notebook():
-            issues = list(self._validate_args())
+            issues = list(self._validate_args(flags, str_options))
             if issues:
                 print("Argument errors:\n" + "\n".join(f"- {x}" for x in issues))
                 print()
                 show_help = True
 
         segments = [
-            f"Usage: {self.command} {' '.join(f'[{x}]' for x in [*self.flags.keys(), '-h/--help'])}"
+            f"Usage: {self.command} {' '.join(f'[{x}]' for x in [*flags.keys(), '-h/--help'])}"
         ]
-        opts_help = [f"  {k}: {v}" for k, v in self.flags.items()]
-        for k, v in self.str_options.items():
+        opts_help = [f"  {k}: {v}" for k, v in flags.items()]
+        for k, v in str_options.items():
             opts_help.append(
                 f"  {k} {v.metavar}: {v.help_text}{f' (default: {v.default})' if v.default else ''}"
             )
@@ -77,16 +98,16 @@ class Group:
             print(help_text)
             sys.exit(1)
 
-    def _validate_args(self) -> abc.Iterator[str]:
+    def _validate_args(self, flags: dict, str_options: dict) -> abc.Iterator[str]:
         yield from self.validation_errors.values()
         unexp_text = "Unexpected argument: "
         for x in self.unexpected_args:
             yield f"{unexp_text}{x}"
         for k, v in self.parsed_args.items():
-            if k in self.flags:
+            if k in flags:
                 if v is not None:
                     yield f"{unexp_text}{v}"
-            elif k in self.str_options:
+            elif k in str_options:
                 if v is None:
                     yield f"Option {k} requires a value"
             elif k not in help_flags:
@@ -120,10 +141,11 @@ class Group:
         opt = OptionLabel.make(
             label=label, option=flag, prefix="no-" if value else None
         )
-        self.flags[opt.option] = help_text
         if opt.option in self.parsed_args:
             value = not value
-        return mo.ui.switch(value=value, label=opt.label, **kwargs)
+        result = mo.ui.switch(value=value, label=opt.label, **kwargs)
+        self._control_meta[id(result)] = ("flag", opt, help_text)
+        return result
 
     def text(
         self,
@@ -138,14 +160,16 @@ class Group:
         """Create a text input UI element that maps to a CLI option."""
 
         opt = OptionLabel.make(label=label, option=option)
-        self.str_options[opt.option] = OptionDesc(
+        desc = OptionDesc(
             default=value,
             metavar=placeholder or opt.label.upper().replace(" ", "_"),
             help_text=help_text,
         )
-        return mo.ui.text(
+        result = mo.ui.text(
             value=self.parsed_args.get(opt.option, ""), label=opt.label, **kwargs
         )
+        self._control_meta[id(result)] = ("opt", opt, desc)
+        return result
 
     def number(
         self,
@@ -161,10 +185,12 @@ class Group:
     ) -> mo.ui.number:
         """Create a number input UI element that maps to a CLI option."""
 
-        opt, value = self._numeric_option(start, value, option, help_text, label)
-        return mo.ui.number(
+        opt, value, desc = self._numeric_option(start, value, option, help_text, label)
+        result = mo.ui.number(
             start=start, stop=stop, step=step, value=value, label=opt.label, **kwargs
         )
+        self._control_meta[id(result)] = ("opt", opt, desc)
+        return result
 
     def slider(
         self,
@@ -180,10 +206,12 @@ class Group:
     ) -> mo.ui.slider:
         """Create a slider UI element that maps to a CLI option."""
 
-        opt, value = self._numeric_option(start, value, option, help_text, label)
-        return mo.ui.slider(
+        opt, value, desc = self._numeric_option(start, value, option, help_text, label)
+        result = mo.ui.slider(
             start=start, stop=stop, step=step, value=value, label=opt.label, **kwargs
         )
+        self._control_meta[id(result)] = ("opt", opt, desc)
+        return result
 
     def _numeric_option(
         self,
@@ -192,13 +220,13 @@ class Group:
         option: str | None,
         help_text: str,
         label: str | None,
-    ) -> tuple["OptionLabel", float]:
-        """Parse and register a numeric CLI option, returning (opt, resolved_value)."""
+    ) -> tuple["OptionLabel", float, "OptionDesc"]:
+        """Parse a numeric CLI option, returning (opt, resolved_value, desc)."""
 
         if value is None:
             value = start
         opt = OptionLabel.make(label=label, option=option)
-        self.str_options[opt.option] = OptionDesc(
+        desc = OptionDesc(
             default=str(value),
             metavar=opt.label.upper().replace(" ", "_"),
             help_text=help_text,
@@ -214,7 +242,7 @@ class Group:
             else:
                 if math.isfinite(value) and value == int(value):
                     value = int(value)
-        return opt, value
+        return opt, value, desc
 
 
 @dataclasses.dataclass

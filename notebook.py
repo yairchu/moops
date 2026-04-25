@@ -9,9 +9,7 @@ app = marimo.App(width="full")
 
 @app.cell
 def _(args, name_text, polite_switch, times_number):
-    _ = polite_switch, name_text, times_number
-
-    args.help()
+    args.help(polite_switch, name_text, times_number)
     return
 
 

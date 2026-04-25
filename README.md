@@ -11,8 +11,7 @@ Using `moops`, both implementations are merged into one.
 
 * Create your argument group: `args = moops.Group()`
 * Replace your `mo.ui` usages with using methods of `args`
-* Add a help cell, preferably at the top: `args.help()`
-  * Tell marimo that the help cell depends on the ui elements: `_ = ui_elem_a, ui_elem_b`
+* Add a help cell, preferably at the top, usung `args.help` and proving it with the UI elements.
 
 Now your notebook doubles as a CLI script
 
