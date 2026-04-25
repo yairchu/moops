@@ -23,4 +23,7 @@ Support for additional Marimo ui elements:
 * Dropdowns
 * File input
 * Embedded notebooks and option groups
+* More interfaces
+  * Exposing a Marimo notebook as simple callable functions?
+  * HTTP services, OpenAPI?
 * What else?
