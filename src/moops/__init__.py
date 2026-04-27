@@ -134,17 +134,49 @@ class Group:
     ) -> mo.ui.text:
         """Create a text input UI element that maps to a CLI option."""
 
+        opt, value, desc = self._text_option(
+            value, placeholder, option, help_text, label
+        )
+        result = mo.ui.text(value=value, label=opt.label, **kwargs)
+        self._control_meta[id(result)] = _ControlMeta(opt=opt, info=desc)
+        return result
+
+    def text_area(
+        self,
+        value: str = "",
+        placeholder: str = "",
+        option: str | None = None,
+        *,
+        help_text: str,
+        label: str | None = None,
+        **kwargs,
+    ) -> mo.ui.text_area:
+        """Create a text area UI element that maps to a CLI option."""
+
+        opt, value, desc = self._text_option(
+            value, placeholder, option, help_text, label
+        )
+        result = mo.ui.text_area(value=value, label=opt.label, **kwargs)
+        self._control_meta[id(result)] = _ControlMeta(opt=opt, info=desc)
+        return result
+
+    def _text_option(
+        self,
+        value: str,
+        placeholder: str,
+        option: str | None,
+        help_text: str,
+        label: str | None,
+    ) -> tuple["_OptionLabel", str, "_OptionDesc"]:
+        """Parse a string CLI option, returning (opt, resolved_value, desc)."""
+
         opt = _OptionLabel.make(label=label, option=option)
         desc = _OptionDesc(
             default=value,
             metavar=placeholder or opt.label.upper().replace(" ", "_"),
             help_text=help_text,
         )
-        result = mo.ui.text(
-            value=self._parsed_args.get(opt.option) or value, label=opt.label, **kwargs
-        )
-        self._control_meta[id(result)] = _ControlMeta(opt=opt, info=desc)
-        return result
+        return opt, self._parsed_args.get(opt.option) or value, desc
 
     def number(
         self,

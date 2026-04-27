@@ -73,7 +73,7 @@ def _(args, name_casings):
 
 @app.cell
 def _(args):
-    input_text = args.text(
+    input_text = args.text_area(
         value="Lorem Ipsum",
         label="Input text",
         option="--text",
