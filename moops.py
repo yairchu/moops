@@ -141,7 +141,7 @@ class Group:
             help_text=help_text,
         )
         result = mo.ui.text(
-            value=self._parsed_args.get(opt.option) or "", label=opt.label, **kwargs
+            value=self._parsed_args.get(opt.option) or value, label=opt.label, **kwargs
         )
         self._control_meta[id(result)] = _ControlMeta(opt=opt, info=desc)
         return result
@@ -284,9 +284,10 @@ class _OptionLabel:
         """Generate OptionLabel from label or option name."""
 
         if option is None:
-            assert label is not None
+            assert label is not None, "Either label or option must be provided"
             option = f"--{prefix or ''}{label.lower().replace(' ', '-')}"
         else:
+            assert option.startswith("-"), f"Option must start with dash: {option}"
             assert prefix is None
             if label is None:
                 label = option.replace("-", " ")
