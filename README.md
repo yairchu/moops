@@ -28,7 +28,6 @@ Or `uv run marimo edit` to run as notebooks.
 ## Missing features
 
 * File inputs
-* text_area with support for inputting from stdin/pipe
 * Embedded notebooks and option groups
 * More interfaces
   * Exposing a Marimo notebook as simple callable functions?

@@ -156,8 +156,19 @@ class Group:
         opt, value, desc = self._text_option(
             value, placeholder, option, help_text, label
         )
+        stdin_flag = opt.option + "-from-stdin"
+        if not mo.running_in_notebook() and stdin_flag in self._parsed_args:
+            assert self._parsed_args[stdin_flag] is None, (
+                f"{stdin_flag} does not take a value"
+            )
+            assert opt.option not in self._parsed_args, (
+                f"Cannot use both {opt.option} and {stdin_flag}"
+            )
+            value = sys.stdin.read()
         result = mo.ui.text_area(value=value, label=opt.label, **kwargs)
-        self._control_meta[id(result)] = _ControlMeta(opt=opt, info=desc)
+        self._control_meta[id(result)] = _ControlMeta(
+            opt=opt, info=desc, stdin_flag=stdin_flag
+        )
         return result
 
     def _text_option(
@@ -330,6 +341,7 @@ class _OptionLabel:
 class _ControlMeta:
     opt: _OptionLabel
     info: str | _OptionDesc
+    stdin_flag: str | None = None
 
 
 class _ControlRegistry:
@@ -352,6 +364,8 @@ class _ControlRegistry:
                 self.flags[meta.opt.option] = meta.info
             else:
                 self.str_options[meta.opt.option] = meta.info
+            if meta.stdin_flag:
+                self.flags[meta.stdin_flag] = f"Read {meta.opt.label} from stdin"
 
     def format_help(self, command: str) -> str:
         segments = [
