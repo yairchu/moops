@@ -3,7 +3,7 @@
 
 import marimo
 
-__generated_with = "0.23.1"
+__generated_with = "0.23.3"
 app = marimo.App(width="full")
 
 
@@ -41,12 +41,12 @@ def _():
         name_casings[func.__name__] = func
 
     @_add
-    def freestyle(text):
-        return text
-
-    @_add
     def snake_case(text):
         return "_".join(x.lower() for x in text.split())
+
+    @_add
+    def freestyle(text):
+        return text
 
     @_add
     def camel_case(text):

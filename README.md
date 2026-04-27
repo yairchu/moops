@@ -7,6 +7,14 @@ but until now this required maintaining matching input handling implementations.
 
 Using `moops`, both implementations are merged into one.
 
+## Transition guide
+
+* Create your argument group: `args = moops.Group()`
+* Replace your `mo.ui` usages with using methods of `args`
+* Add a help cell, preferably at the top, usung `args.help` and proving it with the UI elements.
+
+Now your notebook doubles as a CLI script
+
 ## Running the examples
 
 From the project root:
@@ -15,13 +23,7 @@ From the project root:
 uv run examples/notebook.py
 ```
 
-## Transition guide
-
-* Create your argument group: `args = moops.Group()`
-* Replace your `mo.ui` usages with using methods of `args`
-* Add a help cell, preferably at the top, usung `args.help` and proving it with the UI elements.
-
-Now your notebook doubles as a CLI script
+Or `uv run marimo edit` to run as notebooks.
 
 ## Missing features
 
