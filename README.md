@@ -7,6 +7,14 @@ but until now this required maintaining matching input handling implementations.
 
 Using `moops`, both implementations are merged into one.
 
+## Running the examples
+
+From the project root:
+
+```sh
+uv run examples/notebook.py
+```
+
 ## Transition guide
 
 * Create your argument group: `args = moops.Group()`

@@ -1,3 +1,7 @@
+[build-system]
+requires = ["uv_build>=0.6"]
+build-backend = "uv_build"
+
 [project]
 name = "moops"
 version = "0.1.0"
@@ -13,3 +17,6 @@ dev-dependencies = [
     "ruff>=0.1.0",
     "pyright>=1.1.409",
 ]
+
+[tool.uv.sources]
+moops = { workspace = true }
