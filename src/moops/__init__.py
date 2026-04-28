@@ -231,6 +231,37 @@ class Group:
         self._control_meta[id(result)] = _ControlMeta(opt=opt, info=desc)
         return result
 
+    def _numeric_option(
+        self,
+        start: float,
+        value: float | None,
+        option: str | None,
+        help_text: str,
+        label: str | None,
+    ) -> tuple["_OptionLabel", float, "_OptionDesc"]:
+        """Parse a numeric CLI option, returning (opt, resolved_value, desc)."""
+
+        if value is None:
+            value = start
+        opt = _OptionLabel.make(label=label, option=option)
+        desc = _OptionDesc(
+            default=str(value),
+            metavar=opt.label.upper().replace(" ", "_"),
+            help_text=help_text,
+        )
+        raw = self._parsed_args.get(opt.option)
+        if raw is not None:
+            try:
+                value = float(raw)
+            except ValueError:
+                self._validation_errors[opt.option] = (
+                    f"Option {opt.option} expects a number, got: {raw!r}"
+                )
+            else:
+                if math.isfinite(value) and value == int(value):
+                    value = int(value)
+        return opt, value, desc
+
     def dropdown(
         self,
         options: list[str] | dict[str, typing.Any],
@@ -271,37 +302,6 @@ class Group:
         )
         self._control_meta[id(result)] = _ControlMeta(opt=opt, info=desc)
         return result
-
-    def _numeric_option(
-        self,
-        start: float,
-        value: float | None,
-        option: str | None,
-        help_text: str,
-        label: str | None,
-    ) -> tuple["_OptionLabel", float, "_OptionDesc"]:
-        """Parse a numeric CLI option, returning (opt, resolved_value, desc)."""
-
-        if value is None:
-            value = start
-        opt = _OptionLabel.make(label=label, option=option)
-        desc = _OptionDesc(
-            default=str(value),
-            metavar=opt.label.upper().replace(" ", "_"),
-            help_text=help_text,
-        )
-        raw = self._parsed_args.get(opt.option)
-        if raw is not None:
-            try:
-                value = float(raw)
-            except ValueError:
-                self._validation_errors[opt.option] = (
-                    f"Option {opt.option} expects a number, got: {raw!r}"
-                )
-            else:
-                if math.isfinite(value) and value == int(value):
-                    value = int(value)
-        return opt, value, desc
 
 
 @dataclasses.dataclass
