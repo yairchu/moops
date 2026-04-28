@@ -1,0 +1,98 @@
+import collections.abc as abc
+import dataclasses
+
+from . import _cli
+
+
+@dataclasses.dataclass
+class _OptionDesc:
+    """Metadata for CLI options with defaults and help text."""
+
+    default: str | None
+    metavar: str
+    help_text: str | None
+
+
+@dataclasses.dataclass
+class _OptionLabel:
+    """Maps between UI labels and CLI option names."""
+
+    label: str
+    option: str
+
+    @staticmethod
+    def make(
+        label: str | None, option: str | None, prefix: str | None = None
+    ) -> "_OptionLabel":
+        """Generate OptionLabel from label or option name."""
+
+        if option is None:
+            assert label is not None, "Either label or option must be provided"
+            option = f"--{prefix or ''}{label.lower().replace(' ', '-')}"
+        else:
+            assert option.startswith("-"), f"Option must start with dash: {option}"
+            assert prefix is None
+            if label is None:
+                label = option.replace("-", " ")
+        return _OptionLabel(label=label, option=option)
+
+
+@dataclasses.dataclass
+class _ControlMeta:
+    opt: _OptionLabel
+    info: str | _OptionDesc
+    stdin_flag: str | None = None
+
+
+class _ControlRegistry:
+    """Resolved set of flags and options built from a group's live controls."""
+
+    def __init__(self, controls: tuple, control_meta: dict[int, _ControlMeta]) -> None:
+        self.flags: dict[str, str] = {}
+        self.str_options: dict[str, _OptionDesc] = {}
+        seen: set[str] = set()
+        for ctrl in controls:
+            meta = control_meta.get(id(ctrl))
+            if meta is None:
+                raise ValueError(f"Control {ctrl!r} was not created by this Group")
+            if meta.opt.option in seen:
+                raise ValueError(
+                    f"Option {meta.opt.option!r} passed to help() more than once"
+                )
+            seen.add(meta.opt.option)
+            if isinstance(meta.info, str):
+                self.flags[meta.opt.option] = meta.info
+            else:
+                self.str_options[meta.opt.option] = meta.info
+            if meta.stdin_flag:
+                self.flags[meta.stdin_flag] = f"Read {meta.opt.label} from stdin"
+
+    def format_help(self, command: str) -> str:
+        segments = [
+            f"Usage: {command} "
+            f"{' '.join(f'[{x}]' for x in self.flags.keys())} "
+            f"{' '.join(f'[{k} {v.metavar}]' for k, v in self.str_options.items())} "
+            f"[-h/--help]",
+        ]
+        opts_help = [f"  {k}: {v}" for k, v in self.flags.items()]
+        for k, v in self.str_options.items():
+            opts_help.append(
+                f"  {k} {v.metavar}: {v.help_text}{f' (default: {v.default})' if v.default else ''}"
+            )
+        if opts_help:
+            segments.append("\n".join(opts_help))
+        return "\n\n".join(segments)
+
+    def validate(self, args: _cli._ParsedArgs) -> abc.Iterator[str]:
+        unexp_text = "Unexpected argument: "
+        for x in args.unexpected:
+            yield f"{unexp_text}{x}"
+        for k, v in args.options.items():
+            if k in self.flags:
+                if v is not None:
+                    yield f"{unexp_text}{v}"
+            elif k in self.str_options:
+                if v is None:
+                    yield f"Option {k} requires a value"
+            elif k not in _cli.help_flags:
+                yield f"{unexp_text}{k}"

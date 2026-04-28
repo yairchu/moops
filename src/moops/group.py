@@ -1,0 +1,259 @@
+import math
+import marimo as mo
+import sys
+import typing
+
+from . import _cli, _options
+
+
+class Group:
+    """Unified CLI argument parser and marimo UI element generator."""
+
+    def __init__(self, cli_args: list[str] | None = None) -> None:
+        """Initialize with command line arguments (defaults to sys.argv)."""
+
+        self._args = _cli._ParsedArgs.parse(sys.argv if cli_args is None else cli_args)
+        self._validation_errors: dict[str, str] = {}
+        self._control_meta: dict[int, _options._ControlMeta] = {}
+
+    def help(self, *controls) -> mo.Html | None:
+        """
+        group.help() serves two purposes:
+        * Display help text based on the defined flags and options.
+        * Verify the arguments passed to the script.
+
+        Pass all controls created by this group so that the registry stays in
+        sync with what is actually live (handles cell reruns and deletions).
+        """
+
+        registry = _options._ControlRegistry(controls, self._control_meta)
+
+        show_help = self._args.is_help
+        if not mo.running_in_notebook():
+            issues = [*self._validation_errors, *registry.validate(self._args)]
+            if issues:
+                print("Argument errors:\n" + "\n".join(f"- {x}" for x in issues))
+                print()
+                show_help = True
+
+        help_text = registry.format_help(self._args.command)
+        if mo.running_in_notebook():
+            return mo.md(f"```\n{help_text}\n```")
+        elif show_help:
+            print(help_text)
+            sys.exit(1)
+
+    def md(self, text: str) -> mo.Html | None:
+        """Display markdown in notebooks or plain text in CLI."""
+
+        if self._args.is_help:
+            return
+        if mo.running_in_notebook():
+            return mo.md(text)
+        text = text.strip()
+        if text.startswith("```\n") and text.endswith("\n```"):
+            text = text[4:-4]
+        elif text.startswith("`") and text.endswith("`"):
+            text = text[1:-1]
+        print(f"{text}\n")
+
+    def switch(
+        self,
+        value: bool = False,
+        flag: str | None = None,
+        *,
+        help_text: str,
+        label: str | None = None,
+        **kwargs,
+    ) -> mo.ui.switch:
+        """Create a switch UI element that maps to a CLI flag."""
+
+        opt = _options._OptionLabel.make(
+            label=label, option=flag, prefix="no-" if value else None
+        )
+        if opt.option in self._args.options:
+            value = not value
+        result = mo.ui.switch(value=value, label=opt.label, **kwargs)
+        self._control_meta[id(result)] = _options._ControlMeta(opt=opt, info=help_text)
+        return result
+
+    def text(
+        self,
+        value: str = "",
+        placeholder: str = "",
+        option: str | None = None,
+        *,
+        help_text: str,
+        label: str | None = None,
+        **kwargs,
+    ) -> mo.ui.text:
+        """Create a text input UI element that maps to a CLI option."""
+
+        opt, value, desc = self._text_option(
+            value, placeholder, option, help_text, label
+        )
+        result = mo.ui.text(value=value, label=opt.label, **kwargs)
+        self._control_meta[id(result)] = _options._ControlMeta(opt=opt, info=desc)
+        return result
+
+    def text_area(
+        self,
+        value: str = "",
+        placeholder: str = "",
+        option: str | None = None,
+        *,
+        help_text: str,
+        label: str | None = None,
+        **kwargs,
+    ) -> mo.ui.text_area:
+        """Create a text area UI element that maps to a CLI option."""
+
+        opt, value, desc = self._text_option(
+            value, placeholder, option, help_text, label
+        )
+        stdin_flag = opt.option + "-from-stdin"
+        if not mo.running_in_notebook() and stdin_flag in self._args.options:
+            assert self._args.options[stdin_flag] is None, (
+                f"{stdin_flag} does not take a value"
+            )
+            assert opt.option not in self._args.options, (
+                f"Cannot use both {opt.option} and {stdin_flag}"
+            )
+            value = sys.stdin.read()
+        result = mo.ui.text_area(value=value, label=opt.label, **kwargs)
+        self._control_meta[id(result)] = _options._ControlMeta(
+            opt=opt, info=desc, stdin_flag=stdin_flag
+        )
+        return result
+
+    def _text_option(
+        self,
+        value: str,
+        placeholder: str,
+        option: str | None,
+        help_text: str,
+        label: str | None,
+    ) -> tuple[_options._OptionLabel, str, _options._OptionDesc]:
+        """Parse a string CLI option, returning (opt, resolved_value, desc)."""
+
+        opt = _options._OptionLabel.make(label=label, option=option)
+        desc = _options._OptionDesc(
+            default=value,
+            metavar=placeholder or opt.label.upper().replace(" ", "_"),
+            help_text=help_text,
+        )
+        return opt, self._args.options.get(opt.option) or value, desc
+
+    def number(
+        self,
+        start: float = 0,
+        stop: float = 100,
+        step: float = 1,
+        value: float | None = None,
+        option: str | None = None,
+        *,
+        help_text: str,
+        label: str | None = None,
+        **kwargs,
+    ) -> mo.ui.number:
+        """Create a number input UI element that maps to a CLI option."""
+
+        opt, value, desc = self._numeric_option(start, value, option, help_text, label)
+        result = mo.ui.number(
+            start=start, stop=stop, step=step, value=value, label=opt.label, **kwargs
+        )
+        self._control_meta[id(result)] = _options._ControlMeta(opt=opt, info=desc)
+        return result
+
+    def slider(
+        self,
+        start: float = 0,
+        stop: float = 100,
+        step: float = 1,
+        value: float | None = None,
+        option: str | None = None,
+        *,
+        help_text: str,
+        label: str | None = None,
+        **kwargs,
+    ) -> mo.ui.slider:
+        """Create a slider UI element that maps to a CLI option."""
+
+        opt, value, desc = self._numeric_option(start, value, option, help_text, label)
+        result = mo.ui.slider(
+            start=start, stop=stop, step=step, value=value, label=opt.label, **kwargs
+        )
+        self._control_meta[id(result)] = _options._ControlMeta(opt=opt, info=desc)
+        return result
+
+    def _numeric_option(
+        self,
+        start: float,
+        value: float | None,
+        option: str | None,
+        help_text: str,
+        label: str | None,
+    ) -> tuple[_options._OptionLabel, float, _options._OptionDesc]:
+        """Parse a numeric CLI option, returning (opt, resolved_value, desc)."""
+
+        if value is None:
+            value = start
+        opt = _options._OptionLabel.make(label=label, option=option)
+        desc = _options._OptionDesc(
+            default=str(value),
+            metavar=opt.label.upper().replace(" ", "_"),
+            help_text=help_text,
+        )
+        raw = self._args.options.get(opt.option)
+        if raw is not None:
+            try:
+                value = float(raw)
+            except ValueError:
+                self._validation_errors[opt.option] = (
+                    f"Option {opt.option} expects a number, got: {raw!r}"
+                )
+            else:
+                if math.isfinite(value) and value == int(value):
+                    value = int(value)
+        return opt, value, desc
+
+    def dropdown(
+        self,
+        options: list[str] | dict[str, typing.Any],
+        value: str | None = None,
+        option: str | None = None,
+        *,
+        help_text: str,
+        label: str | None = None,
+        allow_select_none: bool = True,
+        **kwargs,
+    ) -> mo.ui.dropdown:
+        """Create a dropdown UI element that maps to a CLI option."""
+
+        assert len(options) > 0, "Dropdown options cannot be empty"
+        opt = _options._OptionLabel.make(label=label, option=option)
+        keys = list(options)
+        if value is None and not allow_select_none:
+            value, *_ = keys
+        desc = _options._OptionDesc(
+            default=value,
+            metavar="{" + "|".join(keys) + "}",
+            help_text=help_text,
+        )
+        raw = self._args.options.get(opt.option)
+        if raw is not None:
+            if raw not in keys:
+                self._validation_errors[opt.option] = (
+                    f"Option {opt.option} must be one of {keys!r}, got: {raw!r}"
+                )
+            else:
+                value = raw
+        result = mo.ui.dropdown(
+            options=options,
+            value=value,
+            label=opt.label,
+            allow_select_none=allow_select_none,
+            **kwargs,
+        )
+        self._control_meta[id(result)] = _options._ControlMeta(opt=opt, info=desc)
+        return result
