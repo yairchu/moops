@@ -2,7 +2,7 @@ import marimo as mo
 import sys
 import typing
 
-from . import _cli, _options
+from . import _cli, _options, _output
 
 
 class Group:
@@ -45,16 +45,7 @@ class Group:
     def md(self, text: str) -> mo.Html | None:
         """Display markdown in notebooks or plain text in CLI."""
 
-        if self._args.is_help:
-            return
-        if mo.running_in_notebook():
-            return mo.md(text)
-        text = text.strip()
-        if text.startswith("```\n") and text.endswith("\n```"):
-            text = text[4:-4]
-        elif text.startswith("`") and text.endswith("`"):
-            text = text[1:-1]
-        print(f"{text}\n")
+        return None if self._args.is_help else _output._md(text)
 
     def switch(
         self,
@@ -138,7 +129,7 @@ class Group:
         help_text: str,
         label: str | None,
     ) -> tuple[_options._OptionLabel, str, _options._OptionDesc]:
-        """Parse a string CLI option, returning (opt, resolved_value, desc)."""
+        """Parse a string CLI option."""
 
         opt = _options._OptionLabel.make(label=label, option=option)
         desc = _options._OptionDesc(
@@ -163,7 +154,7 @@ class Group:
     ) -> mo.ui.number:
         """Create a number input UI element that maps to a CLI option."""
 
-        opt, value, desc = self._numeric_option(start, value, option, help_text, label)
+        opt, value, meta = self._numeric_option(start, value, option, help_text, label)
         return self._register(
             mo.ui.number(
                 start=start,
@@ -173,7 +164,7 @@ class Group:
                 label=opt.label,
                 **kwargs,
             ),
-            _options._ControlMeta(opt=opt, info=desc),
+            meta,
         )
 
     def slider(
@@ -190,7 +181,7 @@ class Group:
     ) -> mo.ui.slider:
         """Create a slider UI element that maps to a CLI option."""
 
-        opt, value, desc = self._numeric_option(start, value, option, help_text, label)
+        opt, value, meta = self._numeric_option(start, value, option, help_text, label)
         return self._register(
             mo.ui.slider(
                 start=start,
@@ -200,7 +191,7 @@ class Group:
                 label=opt.label,
                 **kwargs,
             ),
-            _options._ControlMeta(opt=opt, info=desc),
+            meta,
         )
 
     def _numeric_option(
@@ -210,8 +201,8 @@ class Group:
         option: str | None,
         help_text: str,
         label: str | None,
-    ) -> tuple[_options._OptionLabel, float, _options._OptionDesc]:
-        """Parse a numeric CLI option, returning (opt, resolved_value, desc)."""
+    ) -> tuple[_options._OptionLabel, float, _options._ControlMeta]:
+        """Parse a numeric CLI option."""
 
         if value is None:
             value = start
@@ -226,7 +217,7 @@ class Group:
             self._validation_errors[opt.option] = parsed
         elif parsed is not None:
             value = parsed
-        return opt, value, desc
+        return opt, value, _options._ControlMeta(opt=opt, info=desc)
 
     def dropdown(
         self,
