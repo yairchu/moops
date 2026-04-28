@@ -1,4 +1,3 @@
-import math
 import marimo as mo
 import sys
 import typing
@@ -30,7 +29,7 @@ class Group:
 
         show_help = self._args.is_help
         if not mo.running_in_notebook():
-            issues = [*self._validation_errors, *registry.validate(self._args)]
+            issues = [*self._validation_errors.values(), *registry.validate(self._args)]
             if issues:
                 print("Argument errors:\n" + "\n".join(f"- {x}" for x in issues))
                 print()
@@ -221,17 +220,11 @@ class Group:
             metavar=opt.label.upper().replace(" ", "_"),
             help_text=help_text,
         )
-        raw = self._args.options.get(opt.option)
-        if raw is not None:
-            try:
-                value = float(raw)
-            except ValueError:
-                self._validation_errors[opt.option] = (
-                    f"Option {opt.option} expects a number, got: {raw!r}"
-                )
-            else:
-                if math.isfinite(value) and value == int(value):
-                    value = int(value)
+        parsed = self._args.get_num(opt.option)
+        if isinstance(parsed, str):
+            self._validation_errors[opt.option] = parsed
+        elif parsed is not None:
+            value = parsed
         return opt, value, desc
 
     def dropdown(

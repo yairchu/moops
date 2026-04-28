@@ -1,4 +1,5 @@
 import dataclasses
+import math
 
 help_flags = ["--help", "-h"]
 
@@ -34,3 +35,16 @@ class _ParsedArgs:
                 result.unexpected.append(arg)
             prev = arg
         return result
+
+    def get_num(self, key: str) -> float | int | None | str:
+        """Parse number or return error message on failure."""
+        value = self.options.get(key)
+        if value is None:
+            return None
+        try:
+            value = float(value)
+        except ValueError:
+            return f"Option {key} expects a number, got: {value!r}"
+        if math.isfinite(value) and value == int(value):
+            return int(value)
+        return value
