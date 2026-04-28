@@ -73,9 +73,14 @@ class Group:
         )
         if opt.option in self._args.options:
             value = not value
-        result = mo.ui.switch(value=value, label=opt.label, **kwargs)
-        self._control_meta[id(result)] = _options._ControlMeta(opt=opt, info=help_text)
-        return result
+        return self._register(
+            mo.ui.switch(value=value, label=opt.label, **kwargs),
+            _options._ControlMeta(opt=opt, info=help_text),
+        )
+
+    def _register(self, control, meta: _options._ControlMeta):
+        self._control_meta[id(control)] = meta
+        return control
 
     def text(
         self,
@@ -92,9 +97,10 @@ class Group:
         opt, value, desc = self._text_option(
             value, placeholder, option, help_text, label
         )
-        result = mo.ui.text(value=value, label=opt.label, **kwargs)
-        self._control_meta[id(result)] = _options._ControlMeta(opt=opt, info=desc)
-        return result
+        return self._register(
+            mo.ui.text(value=value, label=opt.label, **kwargs),
+            _options._ControlMeta(opt=opt, info=desc),
+        )
 
     def text_area(
         self,
@@ -120,11 +126,10 @@ class Group:
                 f"Cannot use both {opt.option} and {stdin_flag}"
             )
             value = sys.stdin.read()
-        result = mo.ui.text_area(value=value, label=opt.label, **kwargs)
-        self._control_meta[id(result)] = _options._ControlMeta(
-            opt=opt, info=desc, stdin_flag=stdin_flag
+        return self._register(
+            mo.ui.text_area(value=value, label=opt.label, **kwargs),
+            _options._ControlMeta(opt=opt, info=desc, stdin_flag=stdin_flag),
         )
-        return result
 
     def _text_option(
         self,
@@ -159,11 +164,17 @@ class Group:
         """Create a number input UI element that maps to a CLI option."""
 
         opt, value, desc = self._numeric_option(start, value, option, help_text, label)
-        result = mo.ui.number(
-            start=start, stop=stop, step=step, value=value, label=opt.label, **kwargs
+        return self._register(
+            mo.ui.number(
+                start=start,
+                stop=stop,
+                step=step,
+                value=value,
+                label=opt.label,
+                **kwargs,
+            ),
+            _options._ControlMeta(opt=opt, info=desc),
         )
-        self._control_meta[id(result)] = _options._ControlMeta(opt=opt, info=desc)
-        return result
 
     def slider(
         self,
@@ -180,11 +191,17 @@ class Group:
         """Create a slider UI element that maps to a CLI option."""
 
         opt, value, desc = self._numeric_option(start, value, option, help_text, label)
-        result = mo.ui.slider(
-            start=start, stop=stop, step=step, value=value, label=opt.label, **kwargs
+        return self._register(
+            mo.ui.slider(
+                start=start,
+                stop=stop,
+                step=step,
+                value=value,
+                label=opt.label,
+                **kwargs,
+            ),
+            _options._ControlMeta(opt=opt, info=desc),
         )
-        self._control_meta[id(result)] = _options._ControlMeta(opt=opt, info=desc)
-        return result
 
     def _numeric_option(
         self,
@@ -248,12 +265,13 @@ class Group:
                 )
             else:
                 value = raw
-        result = mo.ui.dropdown(
-            options=options,
-            value=value,
-            label=opt.label,
-            allow_select_none=allow_select_none,
-            **kwargs,
+        return self._register(
+            mo.ui.dropdown(
+                options=options,
+                value=value,
+                label=opt.label,
+                allow_select_none=allow_select_none,
+                **kwargs,
+            ),
+            _options._ControlMeta(opt=opt, info=desc),
         )
-        self._control_meta[id(result)] = _options._ControlMeta(opt=opt, info=desc)
-        return result
