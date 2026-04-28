@@ -146,7 +146,8 @@ class Group:
             metavar=placeholder or opt.label.upper().replace(" ", "_"),
             help_text=help_text,
         )
-        return opt, self._args.options.get(opt.option) or value, desc
+        raw = self._args.options.get(opt.option)
+        return opt, value if raw is None else raw, desc
 
     def number(
         self,
