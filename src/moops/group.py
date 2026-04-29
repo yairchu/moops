@@ -12,7 +12,7 @@ class Group:
         """Initialize with command line arguments (defaults to sys.argv)."""
 
         self._args = _cli._ParsedArgs.parse(sys.argv if cli_args is None else cli_args)
-        self._validation_errors: dict[str, str] = {}
+        self._validation_errors: dict[str, list[str]] = {}
         self._control_meta: dict[int, _options._ControlMeta] = {}
 
     def help(self, *controls) -> mo.Html | None:
@@ -29,7 +29,10 @@ class Group:
 
         show_help = self._args.is_help
         if not mo.running_in_notebook():
-            issues = [*self._validation_errors.values(), *registry.validate(self._args)]
+            issues = [
+                *sum(self._validation_errors.values(), []),
+                *registry.validate(self._args),
+            ]
             if issues:
                 print("Argument errors:\n" + "\n".join(f"- {x}" for x in issues))
                 print()
@@ -214,7 +217,7 @@ class Group:
         )
         parsed = self._args.get_num(opt.option)
         if isinstance(parsed, str):
-            self._validation_errors[opt.option] = parsed
+            self._validation_errors[opt.option] = [parsed]
         elif parsed is not None:
             value = parsed
         return opt, value, _options._ControlMeta(opt=opt, info=desc)
@@ -245,9 +248,9 @@ class Group:
         raw = self._args.options.get(opt.option)
         if raw is not None:
             if raw not in keys:
-                self._validation_errors[opt.option] = (
+                self._validation_errors[opt.option] = [
                     f"Option {opt.option} must be one of {keys!r}, got: {raw!r}"
-                )
+                ]
             else:
                 value = raw
         return self._register(
