@@ -26,14 +26,13 @@ class _ParsedArgs:
                 if "=" in arg:
                     prefix, value = arg.split("=", 1)
                     result.options[prefix] = value
-                    prev = None
                 else:
                     result.options[arg] = None
             elif prev is not None and prev.startswith("-"):
                 result.options[prev] = arg
             else:
                 result.unexpected.append(arg)
-            prev = arg
+            prev = None if "=" in arg else arg
         return result
 
     def get_num(self, key: str) -> float | int | None | str:

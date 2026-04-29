@@ -32,6 +32,23 @@ def test_label_derived_from_option_has_no_leading_spaces():
     assert not label.startswith(" ")
 
 
+def test_duplicate_control_error_mentions_render_cli():
+    g = Group(cli_args=["script.py"])
+    ctrl = g.switch(label="Verbose", help_text="Enable verbose output")
+    method = g.render_cli
+    with pytest.raises(ValueError, match=method.__name__):
+        method(ctrl, ctrl)
+
+
+def test_equals_flag_not_consumed_as_prefix_for_next_arg(capsys):
+    g = Group(cli_args=["script.py", "--name=Alice", "unexpected"])
+    ctrl = g.text(label="Name", help_text="A name")
+    with pytest.raises(SystemExit):
+        g.render_cli(ctrl)
+    # "unexpected" should be reported as the bad argument, not silently consumed
+    assert "unexpected" in capsys.readouterr().out
+
+
 def test_help_usage_line_has_no_double_spaces(capsys):
     g = Group(cli_args=["script.py", "--help"])
     ctrl = g.text(label="Name", help_text="A name")

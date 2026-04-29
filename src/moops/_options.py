@@ -10,7 +10,7 @@ class _OptionDesc:
 
     default: str | None
     metavar: str
-    help_text: str | None
+    help_text: str
 
 
 @dataclasses.dataclass
@@ -59,7 +59,7 @@ class _ControlRegistry:
                 raise ValueError(f"Control {ctrl!r} was not created by this Group")
             if meta.opt.option in seen:
                 raise ValueError(
-                    f"Option {meta.opt.option!r} passed to help() more than once"
+                    f"Option {meta.opt.option!r} passed to render_cli() more than once"
                 )
             seen.add(meta.opt.option)
             if isinstance(meta.info, str):

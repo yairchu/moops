@@ -1,3 +1,4 @@
+import itertools
 import marimo as mo
 import sys
 import typing
@@ -31,7 +32,7 @@ class Group:
         has_errors = False
         if not mo.running_in_notebook():
             issues = [
-                *sum(self._validation_errors.values(), []),
+                *itertools.chain.from_iterable(self._validation_errors.values()),
                 *registry.validate(self._args),
             ]
             if issues:
