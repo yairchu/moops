@@ -107,7 +107,7 @@ class Group:
         opt, value, desc = self._text_option(
             value, placeholder, option, help_text, label
         )
-        stdin_flag = opt.option + "-from-stdin"
+        stdin_flag = f"{opt.option}-from-stdin"
         if not mo.running_in_notebook() and stdin_flag in self._args.options:
             assert self._args.options[stdin_flag] is None, (
                 f"{stdin_flag} does not take a value"

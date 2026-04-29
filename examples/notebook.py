@@ -78,13 +78,11 @@ def _(args):
 @app.cell
 def _(args, name_text, polite_switch, style_dropdown, times_number):
     _greetings = {
-        "casual": "Hey there!" if not polite_switch.value else "Good day!",
-        "formal": "Hello Milady"
-        if not polite_switch.value
-        else "Good evening, esteemed guest.",
-        "pirate": "Ahoy, matey!"
-        if not polite_switch.value
-        else "Ahoy, noble seafarer!",
+        "casual": "Good day!" if polite_switch.value else "Hey there!",
+        "formal": "Good evening, esteemed guest."
+        if polite_switch.value
+        else "Hello Milady",
+        "pirate": "Ahoy, noble seafarer!" if polite_switch.value else "Ahoy, matey!",
     }
     greeting = _greetings[style_dropdown.value]
     parts = [

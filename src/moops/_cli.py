@@ -45,6 +45,4 @@ class _ParsedArgs:
             value = float(value)
         except ValueError:
             return f"Option {key} expects a number, got: {value!r}"
-        if math.isfinite(value) and value == int(value):
-            return int(value)
-        return value
+        return int(value) if math.isfinite(value) and value == int(value) else value

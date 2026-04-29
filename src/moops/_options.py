@@ -75,10 +75,10 @@ class _ControlRegistry:
             f"[-h/--help]",
         ]
         opts_help = [f"  {k}: {v}" for k, v in self.flags.items()]
-        for k, v in self.str_options.items():
-            opts_help.append(
-                f"  {k} {v.metavar}: {v.help_text}{f' (default: {v.default})' if v.default else ''}"
-            )
+        opts_help.extend(
+            f"  {k} {v.metavar}: {v.help_text}{f' (default: {v.default})' if v.default else ''}"
+            for k, v in self.str_options.items()
+        )
         if opts_help:
             segments.append("\n".join(opts_help))
         return "\n\n".join(segments)
