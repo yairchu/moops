@@ -31,9 +31,11 @@ class _OptionLabel:
             option = f"--{prefix or ''}{label.lower().replace(' ', '-')}"
         else:
             assert option.startswith("-"), f"Option must start with dash: {option}"
-            assert prefix is None
+            assert prefix is None or option.startswith(f"--{prefix}"), (
+                f"Option {option} must start with --{prefix}"
+            )
             if label is None:
-                label = option.replace("-", " ")
+                label = option.lstrip("-").replace("-", " ")
         return _OptionLabel(label=label, option=option)
 
 
@@ -68,12 +70,12 @@ class _ControlRegistry:
                 self.flags[meta.stdin_flag] = f"Read {meta.opt.label} from stdin"
 
     def format_help(self, command: str) -> str:
-        segments = [
-            f"Usage: {command.rsplit('/', 1)[-1]} "
-            f"{' '.join(f'[{x}]' for x in self.flags.keys())} "
-            f"{' '.join(f'[{k} {v.metavar}]' for k, v in self.str_options.items())} "
-            f"[-h/--help]",
+        options = [
+            *[f"[{x}]" for x in self.flags.keys()],
+            *[f"[{k} {v.metavar}]" for k, v in self.str_options.items()],
+            "[-h/--help]",
         ]
+        segments = [f"Usage: {command.rsplit('/', 1)[-1]} {' '.join(options)}"]
         opts_help = [f"  {k}: {v}" for k, v in self.flags.items()]
         opts_help.extend(
             f"  {k} {v.metavar}: {v.help_text}{f' (default: {v.default})' if v.default else ''}"

@@ -17,3 +17,25 @@ def test_invalid_arg_exits_nonzero():
     with pytest.raises(SystemExit) as exc_info:
         g.render_cli(ctrl)
     assert exc_info.value.code != 0
+
+
+def test_switch_with_default_true_and_explicit_flag():
+    g = Group(cli_args=["script.py"])
+    ctrl = g.switch(value=True, flag="--no-verbose", help_text="Disable verbose output")
+    assert ctrl.value is True
+
+
+def test_label_derived_from_option_has_no_leading_spaces():
+    g = Group(cli_args=["script.py"])
+    ctrl = g.text(option="--my-option", help_text="Some option")
+    label = g._control_meta[id(ctrl)].opt.label
+    assert not label.startswith(" ")
+
+
+def test_help_usage_line_has_no_double_spaces(capsys):
+    g = Group(cli_args=["script.py", "--help"])
+    ctrl = g.text(label="Name", help_text="A name")
+    with pytest.raises(SystemExit):
+        g.render_cli(ctrl)  # no flags, only an option
+    usage_line = capsys.readouterr().out.splitlines()[0]
+    assert "  " not in usage_line
