@@ -9,7 +9,7 @@ app = marimo.App(width="full")
 
 @app.cell
 def _(args, name_text, polite_switch, style_dropdown, times_number):
-    args.help(polite_switch, name_text, times_number, style_dropdown)
+    args.render_cli(polite_switch, name_text, times_number, style_dropdown)
     return
 
 

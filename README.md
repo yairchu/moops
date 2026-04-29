@@ -11,7 +11,7 @@ Using `moops`, both implementations are merged into one.
 
 * Create your argument group: `args = moops.Group()`
 * Replace your `mo.ui` usages with using methods of `args`
-* Add a help cell, preferably at the top, usung `args.help` and proving it with the UI elements.
+* Add `args.render_cli` call, preferably as the top cell, and provide the UI elements to it. This makes the notebook works as a script and adds info about it in the notebook.
 
 Now your notebook doubles as a CLI script
 

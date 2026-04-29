@@ -15,9 +15,9 @@ class Group:
         self._validation_errors: dict[str, list[str]] = {}
         self._control_meta: dict[int, _options._ControlMeta] = {}
 
-    def help(self, *controls) -> mo.Html | None:
+    def render_cli(self, *controls) -> mo.Html | None:
         """
-        group.help() serves two purposes:
+        group.render_cli() serves two purposes:
         * Display help text based on the defined flags and options.
         * Verify the arguments passed to the script.
 
@@ -40,7 +40,9 @@ class Group:
 
         help_text = registry.format_help(self._args.command)
         if mo.running_in_notebook():
-            return mo.md(f"```\n{help_text}\n```")
+            return mo.md(
+                f"This notebook also works as a script:\n```\n{help_text.strip()}\n```"
+            )
         elif show_help:
             print(help_text)
             sys.exit(1)
