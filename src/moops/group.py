@@ -28,6 +28,7 @@ class Group:
         registry = _options._ControlRegistry(controls, self._control_meta)
 
         show_help = self._args.is_help
+        has_errors = False
         if not mo.running_in_notebook():
             issues = [
                 *sum(self._validation_errors.values(), []),
@@ -37,6 +38,7 @@ class Group:
                 print("Argument errors:\n" + "\n".join(f"- {x}" for x in issues))
                 print()
                 show_help = True
+                has_errors = True
 
         help_text = registry.format_help(self._args.command)
         if mo.running_in_notebook():
@@ -45,7 +47,7 @@ class Group:
             )
         elif show_help:
             print(help_text)
-            sys.exit(1)
+            sys.exit(1 if has_errors else 0)
 
     def md(self, text: str) -> mo.Html | None:
         """Display markdown in notebooks or plain text in CLI."""
