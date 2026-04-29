@@ -90,7 +90,7 @@ class _ControlRegistry:
         for k, v in args.options.items():
             if k in self.flags:
                 if v is not None:
-                    yield f"{unexp_text}{v}"
+                    yield f"{k} does not take a value, but was given: {v}"
             elif k in self.str_options:
                 if v is None:
                     yield f"Option {k} requires a value"

@@ -112,14 +112,11 @@ class Group:
         )
         stdin_flag = f"{opt.option}-from-stdin"
         if not mo.running_in_notebook() and stdin_flag in self._args.options:
-            errors = []
-            if self._args.options[stdin_flag] is not None:
-                errors.append(f"{stdin_flag} does not take a value")
             if opt.option in self._args.options:
-                errors.append(f"Cannot use both {opt.option} and {stdin_flag}")
-            if errors:
-                self._validation_errors[opt.option] = errors
-            else:
+                self._validation_errors[opt.option] = [
+                    f"Cannot use both {opt.option} and {stdin_flag}"
+                ]
+            elif self._args.options[stdin_flag] is None:
                 value = sys.stdin.read()
         return self._register(
             mo.ui.text_area(value=value, label=opt.label, **kwargs),
