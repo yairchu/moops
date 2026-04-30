@@ -28,7 +28,8 @@ Or `uv run marimo edit` to run as notebooks.
 ## Missing features
 
 * File inputs
-* Explore testing: `subgroup` with `overrides` + `app.embed()` may enable driving notebook logic in tests without a browser
+* Testing support: drive notebook logic from tests using moops
+* Notebook inputs presets: allow saving and loading the current settings of an option group
 * More interfaces
   * Exposing a Marimo notebook as simple callable functions?
   * HTTP services, OpenAPI?
