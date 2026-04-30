@@ -1,3 +1,4 @@
+import dataclasses
 import itertools
 import marimo as mo
 import sys
@@ -12,11 +13,23 @@ class Group:
     def __init__(self, cli_args: list[str] | None = None) -> None:
         """Initialize with command line arguments (defaults to sys.argv)."""
 
-        self._args = _cli._ParsedArgs.parse(sys.argv if cli_args is None else cli_args)
-        self._validation_errors: dict[str, list[str]] = {}
-        self._control_meta: dict[int, _options._ControlMeta] = {}
+        self._state = _GroupState(
+            args=_cli._ParsedArgs.parse(sys.argv if cli_args is None else cli_args)
+        )
+        self._overrides: dict[str, typing.Any] = {}
+        self._option_prefix: str = ""
 
-    def render_cli(self, *controls) -> mo.Html | None:
+    def subgroup(
+        self, prefix: str, overrides: dict[str, typing.Any] | None = None
+    ) -> "Group":
+        """Create a child Group that prefixes all its option names with '{prefix}-'."""
+        child = object.__new__(Group)
+        child._state = self._state
+        child._overrides = overrides or {}
+        child._option_prefix = f"{prefix}-"
+        return child
+
+    def render_cli(self, *controls) -> mo.Html | _cli._CliBundle | None:
         """
         group.render_cli() serves two purposes:
         * Display help text based on the defined flags and options.
@@ -26,34 +39,20 @@ class Group:
         sync with what is actually live (handles cell reruns and deletions).
         """
 
-        registry = _options._ControlRegistry(controls, self._control_meta)
-
-        show_help = self._args.is_help
-        has_errors = False
-        if not mo.running_in_notebook():
-            issues = [
-                *itertools.chain.from_iterable(self._validation_errors.values()),
-                *registry.validate(self._args),
-            ]
-            if issues:
-                print("Argument errors:\n" + "\n".join(f"- {x}" for x in issues))
-                print()
-                show_help = True
-                has_errors = True
-
-        help_text = registry.format_help(self._args.command)
-        if mo.running_in_notebook():
-            return mo.md(
-                f"This notebook also works as a script:\n```\n{help_text.strip()}\n```"
+        if self._option_prefix:
+            return _cli._CliBundle(controls)
+        return self._state.render_cli(
+            tuple(
+                c
+                for x in controls
+                for c in (x.controls if isinstance(x, _cli._CliBundle) else (x,))
             )
-        elif show_help:
-            print(help_text)
-            sys.exit(1 if has_errors else 0)
+        )
 
     def md(self, text: str) -> mo.Html | None:
         """Display markdown in notebooks or plain text in CLI."""
 
-        return None if self._args.is_help else _output._md(text)
+        return None if self._state.args.is_help else _output._md(text)
 
     def switch(
         self,
@@ -66,18 +65,18 @@ class Group:
     ) -> mo.ui.switch:
         """Create a switch UI element that maps to a CLI flag."""
 
-        opt = _options._OptionLabel.make(
-            label=label, option=flag, prefix="no-" if value else None
-        )
-        if opt.option in self._args.options:
+        opt = self._make_opt(label=label, option=flag, prefix="no-" if value else None)
+        if opt.option in self._state.args.options:
             value = not value
         return self._register(
-            mo.ui.switch(value=value, label=opt.label, **kwargs),
+            mo.ui.switch(
+                value=self._get_override(opt, value), label=opt.label, **kwargs
+            ),
             _options._ControlMeta(opt=opt, info=help_text),
         )
 
     def _register(self, control, meta: _options._ControlMeta):
-        self._control_meta[id(control)] = meta
+        self._state.control_meta[id(control)] = meta
         return control
 
     def text(
@@ -115,14 +114,17 @@ class Group:
         opt, value, desc = self._text_option(
             value, placeholder, option, help_text, label
         )
-        stdin_flag = f"{opt.option}-from-stdin"
-        if not mo.running_in_notebook() and stdin_flag in self._args.options:
-            if opt.option in self._args.options:
-                self._validation_errors[opt.option] = [
-                    f"Cannot use both {opt.option} and {stdin_flag}"
-                ]
-            elif self._args.options[stdin_flag] is None:
-                value = sys.stdin.read()
+        if self._get_override(opt, None) is not None:
+            stdin_flag = None
+        else:
+            stdin_flag = f"{opt.option}-from-stdin"
+            if not mo.running_in_notebook() and stdin_flag in self._state.args.options:
+                if opt.option in self._state.args.options:
+                    self._state.validation_errors[opt.option] = [
+                        f"Cannot use both {opt.option} and {stdin_flag}"
+                    ]
+                elif self._state.args.options[stdin_flag] is None:
+                    value = sys.stdin.read()
         return self._register(
             mo.ui.text_area(value=value, label=opt.label, **kwargs),
             _options._ControlMeta(opt=opt, info=desc, stdin_flag=stdin_flag),
@@ -138,14 +140,14 @@ class Group:
     ) -> tuple[_options._OptionLabel, str, _options._OptionDesc]:
         """Parse a string CLI option."""
 
-        opt = _options._OptionLabel.make(label=label, option=option)
+        opt = self._make_opt(label=label, option=option)
         desc = _options._OptionDesc(
             default=value,
             metavar=placeholder or opt.label.upper().replace(" ", "_"),
             help_text=help_text,
         )
-        raw = self._args.options.get(opt.option)
-        return opt, value if raw is None else raw, desc
+        raw = self._state.args.options.get(opt.option)
+        return opt, self._get_override(opt, value if raw is None else raw), desc
 
     def number(
         self,
@@ -213,18 +215,23 @@ class Group:
 
         if value is None:
             value = start
-        opt = _options._OptionLabel.make(label=label, option=option)
+        opt = self._make_opt(label=label, option=option)
         desc = _options._OptionDesc(
             default=str(value),
             metavar=opt.label.upper().replace(" ", "_"),
             help_text=help_text,
         )
-        parsed = self._args.get_num(opt.option)
+        parsed = self._state.args.get_num(opt.option)
         if isinstance(parsed, str):
-            self._validation_errors[opt.option] = [parsed]
+            if self._get_override(opt, None) is None:
+                self._state.validation_errors[opt.option] = [parsed]
         elif parsed is not None:
             value = parsed
-        return opt, value, _options._ControlMeta(opt=opt, info=desc)
+        return (
+            opt,
+            self._get_override(opt, value),
+            _options._ControlMeta(opt=opt, info=desc),
+        )
 
     def dropdown(
         self,
@@ -240,7 +247,7 @@ class Group:
         """Create a dropdown UI element that maps to a CLI option."""
 
         assert len(options) > 0, "Dropdown options cannot be empty"
-        opt = _options._OptionLabel.make(label=label, option=option)
+        opt = self._make_opt(label=label, option=option)
         keys = list(options)
         if value is None and not allow_select_none:
             value, *_ = keys
@@ -249,21 +256,73 @@ class Group:
             metavar="{" + "|".join(keys) + "}",
             help_text=help_text,
         )
-        raw = self._args.options.get(opt.option)
-        if raw is not None:
-            if raw not in keys:
-                self._validation_errors[opt.option] = [
-                    f"Option {opt.option} must be one of {keys!r}, got: {raw!r}"
-                ]
-            else:
-                value = raw
+        if self._get_override(opt, None) is None:
+            raw = self._state.args.options.get(opt.option)
+            if raw is not None:
+                if raw not in keys:
+                    self._state.validation_errors[opt.option] = [
+                        f"Option {opt.option} must be one of {keys!r}, got: {raw!r}"
+                    ]
+                else:
+                    value = raw
         return self._register(
             mo.ui.dropdown(
                 options=options,
-                value=value,
+                value=self._get_override(opt, value),
                 label=opt.label,
                 allow_select_none=allow_select_none,
                 **kwargs,
             ),
             _options._ControlMeta(opt=opt, info=desc),
         )
+
+    def _get_override(
+        self, opt: _options._OptionLabel, default: typing.Any
+    ) -> typing.Any:
+        return self._overrides.get(opt.option.lstrip("-").replace("-", "_"), default)
+
+    def _make_opt(
+        self, label: str | None, option: str | None, prefix: str | None = None
+    ) -> _options._OptionLabel:
+        opt = _options._OptionLabel.make(label=label, option=option, prefix=prefix)
+        if self._option_prefix:
+            opt = _options._OptionLabel(
+                label=opt.label,
+                option=f"--{self._option_prefix}{opt.option.lstrip('-')}",
+            )
+        return opt
+
+
+@dataclasses.dataclass
+class _GroupState:
+    args: _cli._ParsedArgs
+    validation_errors: dict[str, list[str]] = dataclasses.field(default_factory=dict)
+    control_meta: dict[int, _options._ControlMeta] = dataclasses.field(
+        default_factory=dict
+    )
+
+    def render_cli(self, controls: tuple) -> mo.Html | None:
+        registry = _options._ControlRegistry(controls, self.control_meta)
+
+        show_help = self.args.is_help
+        has_errors = False
+        if not mo.running_in_notebook():
+            issues = [
+                *itertools.chain.from_iterable(self.validation_errors.values()),
+                *registry.validate(self.args),
+            ]
+            if issues:
+                print("Argument errors:\n" + "\n".join(f"- {x}" for x in issues))
+                print()
+                show_help = True
+                has_errors = True
+
+        help_text = registry.format_help(self.args.command)
+        if mo.running_in_notebook():
+            return mo.md(
+                f"This notebook also works as a script:\n```\n{help_text.strip()}\n```"
+            )
+        elif show_help:
+            print(help_text)
+            sys.exit(1 if has_errors else 0)
+        return None

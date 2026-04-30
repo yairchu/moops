@@ -28,7 +28,7 @@ def test_switch_with_default_true_and_explicit_flag():
 def test_label_derived_from_option_has_no_leading_spaces():
     g = Group(cli_args=["script.py"])
     ctrl = g.text(option="--my-option", help_text="Some option")
-    label = g._control_meta[id(ctrl)].opt.label
+    label = g._state.control_meta[id(ctrl)].opt.label
     assert not label.startswith(" ")
 
 
@@ -38,6 +38,35 @@ def test_duplicate_control_error_mentions_render_cli():
     method = g.render_cli
     with pytest.raises(ValueError, match=method.__name__):
         method(ctrl, ctrl)
+
+
+def test_subgroup_prefixes_options():
+    g = Group(cli_args=["script.py", "--casing-style", "snake_case"])
+    casing = g.subgroup("casing")
+    ctrl = casing.dropdown(
+        ["snake_case", "camel_case"], label="Style", help_text="Text style"
+    )
+    assert ctrl.value == "snake_case"
+
+
+def test_subgroup_render_cli_is_noop():
+    g = Group(cli_args=["script.py"])
+    casing = g.subgroup("casing")
+    ctrl = casing.dropdown(
+        ["snake_case"], label="Style", help_text="...", allow_select_none=False
+    )
+    casing.render_cli(ctrl)  # should not exit
+
+
+def test_subgroup_controls_visible_in_parent_help(capsys):
+    g = Group(cli_args=["script.py", "--help"])
+    casing = g.subgroup("casing")
+    ctrl = casing.dropdown(
+        ["snake_case", "camel_case"], label="Style", help_text="Text style"
+    )
+    with pytest.raises(SystemExit):
+        g.render_cli(ctrl)
+    assert "--casing-style" in capsys.readouterr().out
 
 
 def test_equals_flag_not_consumed_as_prefix_for_next_arg(capsys):

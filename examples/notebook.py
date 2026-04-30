@@ -3,13 +3,19 @@
 
 import marimo
 
-__generated_with = "0.23.1"
+__generated_with = "0.23.4"
 app = marimo.App(width="full")
 
 
 @app.cell
-def _(args, name_text, polite_switch, style_dropdown, times_number):
-    args.render_cli(polite_switch, name_text, times_number, style_dropdown)
+def _(args, casing_result, name_text, polite_switch, style_dropdown, times_number):
+    args.render_cli(
+        polite_switch,
+        name_text,
+        times_number,
+        style_dropdown,
+        casing_result.defs["cli"],
+    )
     return
 
 
@@ -25,6 +31,13 @@ def _():
     import moops
 
     return (moops,)
+
+
+@app.cell
+def _():
+    import name_casing
+
+    return (name_casing,)
 
 
 @app.cell
@@ -76,7 +89,7 @@ def _(args):
 
 
 @app.cell
-def _(args, name_text, polite_switch, style_dropdown, times_number):
+def _(name_text, polite_switch, style_dropdown, times_number):
     _greetings = {
         "casual": "Good day!" if polite_switch.value else "Hey there!",
         "formal": "Good evening, esteemed guest."
@@ -84,12 +97,31 @@ def _(args, name_text, polite_switch, style_dropdown, times_number):
         else "Hello Milady",
         "pirate": "Ahoy, noble seafarer!" if polite_switch.value else "Ahoy, matey!",
     }
-    greeting = _greetings[style_dropdown.value]
-    parts = [
+    _greeting = _greetings[style_dropdown.value]
+    _parts = [
         *([name_text.value] if name_text.value else []),
-        *([greeting] * times_number.value),
+        *([_greeting] * times_number.value),
     ]
-    args.md("... ".join(parts))
+    greeting_text = "... ".join(_parts)
+    return (greeting_text,)
+
+
+@app.cell
+async def _(args, greeting_text, name_casing):
+    casing = args.subgroup("casing", overrides={"input_text": greeting_text})
+    casing_result = await name_casing.app.embed(defs=casing.as_defs())
+    return casing, casing_result
+
+
+@app.cell
+def _(casing):
+    casing.as_defs()
+    return
+
+
+@app.cell
+def _(casing_result):
+    casing_result.output
     return
 
 

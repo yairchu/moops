@@ -5,6 +5,13 @@ help_flags = ["--help", "-h"]
 
 
 @dataclasses.dataclass
+class _CliBundle:
+    """Controls registered by a subgroup's render_cli, for passing to the parent."""
+
+    controls: tuple
+
+
+@dataclasses.dataclass
 class _ParsedArgs:
     command: str
     options: dict[str, str | None]
