@@ -4,7 +4,7 @@ import marimo as mo
 import sys
 import typing
 
-from . import _cli, _options, _output
+from . import _cli, _options
 
 
 class Group:
@@ -45,14 +45,14 @@ class Group:
             tuple(
                 c
                 for x in controls
-                for c in (x.controls if isinstance(x, _cli._CliBundle) else (x,))
+                for c in (x.controls if isinstance(x, _cli._CliBundle) else [x])
             )
         )
 
     def md(self, text: str) -> mo.Html | None:
         """Display markdown in notebooks or plain text in CLI."""
 
-        return None if self._state.args.is_help else _output._md(text)
+        return self._state.md(text)
 
     def switch(
         self,
@@ -326,3 +326,17 @@ class _GroupState:
             print(help_text)
             sys.exit(1 if has_errors else 0)
         return None
+
+    def md(self, text: str) -> mo.Html | None:
+        """Display markdown in notebooks or plain text in CLI."""
+
+        if mo.running_in_notebook():
+            return mo.md(text)
+        if self.args.is_help:
+            return None
+        text = text.strip()
+        if text.startswith("```\n") and text.endswith("\n```"):
+            text = text[4:-4]
+        elif text.startswith("`") and text.endswith("`"):
+            text = text[1:-1]
+        print(f"{text}\n")

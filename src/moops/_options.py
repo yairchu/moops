@@ -71,7 +71,7 @@ class _ControlRegistry:
 
     def format_help(self, command: str) -> str:
         options = [
-            *[f"[{x}]" for x in self.flags.keys()],
+            *[f"[{x}]" for x in self.flags],
             *[f"[{k} {v.metavar}]" for k, v in self.str_options.items()],
             "[-h/--help]",
         ]
