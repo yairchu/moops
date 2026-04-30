@@ -8,7 +8,14 @@ app = marimo.App(width="full")
 
 
 @app.cell
-def _(args, casing_result, name_text, polite_switch, style_dropdown, times_number):
+def _(
+    args,
+    casing_result,
+    name_text,
+    polite_switch,
+    style_dropdown,
+    times_number,
+):
     args.render_cli(
         polite_switch,
         name_text,
@@ -109,14 +116,8 @@ def _(name_text, polite_switch, style_dropdown, times_number):
 @app.cell
 async def _(args, greeting_text, name_casing):
     casing = args.subgroup("casing", overrides={"input_text": greeting_text})
-    casing_result = await name_casing.app.embed(defs=casing.as_defs())
-    return casing, casing_result
-
-
-@app.cell
-def _(casing):
-    casing.as_defs()
-    return
+    casing_result = await name_casing.app.embed(defs={"args": casing})
+    return (casing_result,)
 
 
 @app.cell
