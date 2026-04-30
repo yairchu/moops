@@ -279,7 +279,7 @@ class Group:
     def _get_override(
         self, opt: _options._OptionLabel, default: typing.Any
     ) -> typing.Any:
-        return self._overrides.get(opt.option.lstrip("-").replace("-", "_"), default)
+        return self._overrides.get(opt.label.lower().replace(" ", "_"), default)
 
     def _make_opt(
         self, label: str | None, option: str | None, prefix: str | None = None

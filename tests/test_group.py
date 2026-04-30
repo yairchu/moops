@@ -25,6 +25,13 @@ def test_switch_with_default_true_and_explicit_flag():
     assert ctrl.value is True
 
 
+def test_switch_override_uses_base_option_name():
+    g = Group(cli_args=["script.py"])
+    sub = g.subgroup("x", overrides={"verbose": False})
+    ctrl = sub.switch(value=True, label="Verbose", help_text="Enable verbose")
+    assert ctrl.value is False
+
+
 def test_label_derived_from_option_has_no_leading_spaces():
     g = Group(cli_args=["script.py"])
     ctrl = g.text(option="--my-option", help_text="Some option")
