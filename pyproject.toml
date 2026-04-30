@@ -19,5 +19,8 @@ dev-dependencies = [
     "pytest>=9.0.3",
 ]
 
+[tool.pytest.ini_options]
+pythonpath = ["src", "."]
+
 [tool.uv.sources]
 moops = { workspace = true }
