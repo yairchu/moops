@@ -36,7 +36,7 @@ def _():
 def _():
     import name_casing
 
-    return (name_casing,)
+    return
 
 
 @app.cell
@@ -87,9 +87,22 @@ def _(name_text, polite_switch, times_number):
 
 
 @app.cell
-async def _(args, greeting_text, name_casing):
+def _(args, greeting_text):
     casing = args.subgroup("casing", overrides={"input_text": greeting_text})
-    casing_result = await name_casing.app.embed(defs={"args": casing})
+    return (casing,)
+
+
+app._unparsable_cell(
+    r"""
+    name_casing_instance = .clone()
+    """,
+    name="_",
+)
+
+
+@app.cell
+async def _(casing, name_casing_instance):
+    casing_result = await name_casing_instance.embed(defs={"args": casing})
     return (casing_result,)
 
 
