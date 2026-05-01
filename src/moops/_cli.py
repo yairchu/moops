@@ -7,6 +7,11 @@ help_flags = ["--help", "-h"]
 
 
 @dataclasses.dataclass
+class _ParseError:
+    message: str
+
+
+@dataclasses.dataclass
 class _CliBundle:
     """Controls registered by a subgroup's render_cli, for passing to the parent."""
 
@@ -50,13 +55,13 @@ class _ParsedArgs:
             prev = None if "=" in arg else arg
         return result
 
-    def get_num(self, key: str) -> float | int | None | str:
-        """Parse number or return error message on failure."""
+    def get_num(self, key: str) -> float | int | _ParseError | None:
+        """Parse number or return a parse error."""
         value = self.options.get(key)
         if value is None:
             return None
         try:
             value = float(value)
         except ValueError:
-            return f"Option {key} expects a number, got: {value!r}"
+            return _ParseError(f"Option {key} expects a number, got: {value!r}")
         return int(value) if math.isfinite(value) and value == int(value) else value

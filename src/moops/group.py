@@ -234,9 +234,9 @@ class Group:
             help_text=help_text,
         )
         parsed = self._state.args.get_num(opt.option)
-        if isinstance(parsed, str):
+        if isinstance(parsed, _cli._ParseError):
             if self._get_override(opt, None) is None:
-                self._state.validation_errors[opt.option] = [parsed]
+                self._state.validation_errors[opt.option] = [parsed.message]
         elif parsed is not None:
             value = parsed
         return (
