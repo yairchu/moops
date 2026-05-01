@@ -1,12 +1,12 @@
 import asyncio
 import typing
 
-import marimo as mo
-from examples import name_casing, notebook
 import hypothesis
+import marimo as mo
 
 import moops
 import moops.testing
+from examples import name_casing, notebook
 
 
 def test_run_returns_result():

@@ -1,6 +1,7 @@
 import dataclasses
-import marimo as mo
 import typing
+
+import marimo as mo
 
 
 @dataclasses.dataclass

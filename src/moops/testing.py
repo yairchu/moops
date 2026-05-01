@@ -13,7 +13,7 @@ def _discover(module: types.ModuleType) -> dict[int, _options.ControlMeta]:
 
 
 def from_notebook(module: types.ModuleType) -> st.SearchStrategy[dict[str, typing.Any]]:
-    """Return a hypothesis strategy that generates valid kwargs for moops.run(module)."""
+    "Return a hypothesis strategy that generates valid kwargs for moops.run(module)."
     return _strategies_from_meta(_discover(module))
 
 

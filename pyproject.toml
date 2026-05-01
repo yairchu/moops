@@ -29,3 +29,6 @@ extraPaths = ["src", ".", "examples"]
 
 [tool.uv.sources]
 moops = { workspace = true }
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]

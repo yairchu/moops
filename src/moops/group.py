@@ -1,11 +1,12 @@
 import dataclasses
 import inspect
-import marimo as mo
 import pathlib
 import sys
 import typing
 
-from . import interface, _options, _parse
+import marimo as mo
+
+from . import _options, _parse, interface
 
 
 class Group:

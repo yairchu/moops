@@ -1,7 +1,8 @@
 import dataclasses
-import marimo as mo
 import math
 import sys
+
+import marimo as mo
 
 help_flags = ["--help", "-h"]
 
@@ -33,7 +34,8 @@ class ParsedArgs:
         if args is None:
             args = sys.argv
             if mo.running_in_notebook():
-                # When notebooks embed other notebooks, the outer notebook is the last argument in sys.argv
+                # When notebooks embed other notebooks,
+                # the outer notebook is the last argument in sys.argv
                 args = args[-1:]
 
         cmd, *rest = args

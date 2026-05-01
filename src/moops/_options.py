@@ -1,6 +1,7 @@
 import dataclasses
 import typing
-from . import interface, _parse
+
+from . import _parse, interface
 
 
 @dataclasses.dataclass
@@ -86,7 +87,8 @@ class ControlRegistry:
         segments = [f"Usage: {command.rsplit('/', 1)[-1]} {' '.join(options)}"]
         opts_help = [f"  {k}: {v}" for k, v in self.flags.items()]
         opts_help.extend(
-            f"  {k} {v.metavar}: {v.help_text}{f' (default: {v.default})' if v.default else ''}"
+            f"  {k} {v.metavar}: {v.help_text}"
+            f"{f' (default: {v.default})' if v.default else ''}"
             for k, v in self.str_options.items()
         )
         if opts_help:
