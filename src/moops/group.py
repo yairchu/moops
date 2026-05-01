@@ -3,7 +3,7 @@ import marimo as mo
 import sys
 import typing
 
-from . import _cli, _options
+from . import cli, _options
 
 
 class Group:
@@ -12,7 +12,7 @@ class Group:
     def __init__(self, cli_args: list[str] | None = None) -> None:
         """Initialize with command line arguments (defaults to sys.argv)."""
 
-        self._state = _GroupState(args=_cli._ParsedArgs.parse(cli_args))
+        self._state = _GroupState(args=cli._ParsedArgs.parse(cli_args))
         self._overrides: dict[str, typing.Any] = {}
         self._option_prefix: str = ""
 
@@ -26,7 +26,7 @@ class Group:
         child._option_prefix = f"{prefix}-"
         return child
 
-    def render_cli(self, *controls) -> mo.Html | _cli._CliBundle | None:
+    def render_cli(self, *controls) -> mo.Html | cli.CliBundle | None:
         """
         group.render_cli() serves two purposes:
         * Display help text based on the defined flags and options.
@@ -37,7 +37,7 @@ class Group:
         """
 
         if self._option_prefix:
-            return _cli._CliBundle(controls)
+            return cli.CliBundle(controls)
         return self._state.render_cli(controls)
 
     def md(self, text: str) -> mo.Html | None:
@@ -120,7 +120,7 @@ class Group:
         stdin_flag = None if self._is_overridden(opt) else f"{opt.option}-from-stdin"
         if stdin_flag:
             match self._state.args.get_text_area(opt.option, stdin_flag):
-                case _cli._ParseError(message=msg):
+                case cli._ParseError(message=msg):
                     self._state.validation_errors[opt.option] = msg
                 case str() as v:
                     value = v
@@ -233,7 +233,7 @@ class Group:
             help_text=help_text,
         )
         parsed = self._state.args.get_num(opt.option)
-        if isinstance(parsed, _cli._ParseError):
+        if isinstance(parsed, cli._ParseError):
             if not self._is_overridden(opt):
                 self._state.validation_errors[opt.option] = parsed.message
         elif parsed is not None:
@@ -276,9 +276,9 @@ class Group:
         override = self._get_override(opt, None)
         if override is None:
             match self._state.args.get_dropdown(opt.option, keys, no_flag):
-                case _cli._ParseError(message=msg):
+                case cli._ParseError(message=msg):
                     self._state.validation_errors[opt.option] = msg
-                case _cli._DropdownValue(value=v):
+                case cli._DropdownValue(value=v):
                     value = v
         else:
             # mo.ui.dropdown doesn't support disabled; filter to one option as a
@@ -327,7 +327,7 @@ class Group:
 
 @dataclasses.dataclass
 class _GroupState:
-    args: _cli._ParsedArgs
+    args: cli._ParsedArgs
     validation_errors: dict[str, str] = dataclasses.field(default_factory=dict)
     control_meta: dict[int, _options._ControlMeta] = dataclasses.field(
         default_factory=dict

@@ -17,20 +17,22 @@ class _DropdownValue:
 
 
 @dataclasses.dataclass
-class _CliBundle:
+class CliBundle:
     """Controls registered by a subgroup's render_cli, for passing to the parent."""
 
     controls: tuple
 
     def _flatten(self):
         for ctrl in self.controls:
-            if isinstance(ctrl, _CliBundle):
+            if isinstance(ctrl, CliBundle):
                 yield from ctrl._flatten()
             else:
                 yield ctrl
 
     def _mime_(self):
-        return mo.md("`_CliBundle` with controls: " + ", ".join(repr(c) for c in self._flatten()))._mime_()
+        return mo.md(
+            "`CliBundle` with controls: " + ", ".join(repr(c) for c in self._flatten())
+        )._mime_()
 
 
 @dataclasses.dataclass
