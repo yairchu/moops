@@ -26,7 +26,7 @@ class Group:
         child._option_prefix = f"{prefix}-"
         return child
 
-    def render_cli(self, *controls) -> mo.Html | tuple | None:
+    def render_cli(self, *controls) -> mo.Html | _cli._CliBundle | None:
         """
         group.render_cli() serves two purposes:
         * Display help text based on the defined flags and options.
@@ -37,8 +37,10 @@ class Group:
         """
 
         if self._option_prefix:
-            return controls
-        return self._state.render_cli(controls)
+            return _cli._CliBundle(controls)
+        return self._state.render_cli(
+            controls
+        )
 
     def md(self, text: str) -> mo.Html | None:
         """Display markdown in notebooks or plain text in CLI."""

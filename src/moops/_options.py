@@ -111,7 +111,7 @@ class _ControlRegistry:
 
 def _flatten_cli_controls(controls: tuple) -> typing.Iterator[typing.Any]:
     for control in controls:
-        if isinstance(control, tuple):
-            yield from _flatten_cli_controls(control)
+        if isinstance(control, _cli._CliBundle):
+            yield from _flatten_cli_controls(control.controls)
         else:
             yield control
