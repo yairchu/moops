@@ -2,7 +2,7 @@ import asyncio
 
 import marimo as mo
 from examples import name_casing
-from hypothesis import given
+import hypothesis
 
 import moops
 import moops.testing
@@ -21,7 +21,7 @@ def test_run_default_values():
 _name_casing_defaults = moops.testing.defaults(name_casing)
 
 
-@given(moops.testing.from_notebook(name_casing))
+@hypothesis.given(moops.testing.from_notebook(name_casing))
 def test_name_casing_preserves_alphanumeric_count(kwargs):
     result = moops.run(name_casing, **kwargs)
     input_text = kwargs.get("input_text", _name_casing_defaults["input_text"])

@@ -53,14 +53,11 @@ If no overrides are provided, `moops.run` uses the notebook defaults.
 `moops.testing.from_notebook` generates a [Hypothesis](https://hypothesis.readthedocs.io/) strategy that produces valid `moops.run` kwargs by introspecting the notebook's interface — dropdowns yield their allowed keys, switches yield booleans, and text fields yield arbitrary strings.
 
 ```python
-from hypothesis import given
-import moops
-import moops.testing
 from examples import name_casing
 
 _defaults = moops.testing.defaults(name_casing)
 
-@given(moops.testing.from_notebook(name_casing))
+@hypothesis.given(moops.testing.from_notebook(name_casing))
 def test_name_casing_preserves_alphanumeric_count(kwargs):
     result = moops.run(name_casing, **kwargs)
     input_text = kwargs.get("input_text", _defaults["input_text"])
