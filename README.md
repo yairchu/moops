@@ -1,6 +1,6 @@
 # moops
 
-Easily write Marimo notebooks that work as CLI scripts with minimal boilerplate.
+Easily write Marimo notebooks that work as CLI scripts (and more!) with minimal boilerplate.
 
 Marimo supports notebooks running as CLI scripts,
 but until now this required maintaining matching input handling implementations.
@@ -45,8 +45,29 @@ result = moops.run(
 assert result == "hello_world"
 ```
 
-Keyword arguments override `moops.Group` inputs by their option names.
+Keyword arguments override `moops.Group` inputs by their label names.
 If no overrides are provided, `moops.run` uses the notebook defaults.
+
+## Property-based testing
+
+`moops.testing.from_notebook` generates a [Hypothesis](https://hypothesis.readthedocs.io/) strategy that produces valid `moops.run` kwargs by introspecting the notebook's interface — dropdowns yield their allowed keys, switches yield booleans, and text fields yield arbitrary strings.
+
+```python
+from hypothesis import given
+import moops
+import moops.testing
+from examples import name_casing
+
+_defaults = moops.testing.defaults(name_casing)
+
+@given(moops.testing.from_notebook(name_casing))
+def test_name_casing_preserves_alphanumeric_count(kwargs):
+    result = moops.run(name_casing, **kwargs)
+    input_text = kwargs.get("input_text", _defaults["input_text"])
+    assert sum(c.isalnum() for c in result) == sum(c.isalnum() for c in input_text)
+```
+
+`moops.testing.defaults(module)` returns the default value for each string control, useful for filling in omitted inputs when writing assertions.
 
 ## Running the examples
 
