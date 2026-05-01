@@ -22,6 +22,16 @@ class _CliBundle:
 
     controls: tuple
 
+    def _flatten(self):
+        for ctrl in self.controls:
+            if isinstance(ctrl, _CliBundle):
+                yield from ctrl._flatten()
+            else:
+                yield ctrl
+
+    def _mime_(self):
+        return mo.md("`_CliBundle` with controls: " + ", ".join(repr(c) for c in self._flatten()))._mime_()
+
 
 @dataclasses.dataclass
 class _ParsedArgs:

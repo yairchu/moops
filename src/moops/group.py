@@ -38,9 +38,7 @@ class Group:
 
         if self._option_prefix:
             return _cli._CliBundle(controls)
-        return self._state.render_cli(
-            controls
-        )
+        return self._state.render_cli(controls)
 
     def md(self, text: str) -> mo.Html | None:
         """Display markdown in notebooks or plain text in CLI."""

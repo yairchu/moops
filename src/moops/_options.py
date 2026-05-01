@@ -54,7 +54,7 @@ class _ControlRegistry:
         self.flags: dict[str, str] = {}
         self.str_options: dict[str, _OptionDesc] = {}
         seen: set[str] = set()
-        for ctrl in _flatten_cli_controls(controls):
+        for ctrl in _cli._CliBundle(controls)._flatten():
             meta = control_meta.get(id(ctrl))
             if meta is None:
                 raise ValueError(f"Control {ctrl!r} was not created by this Group")
@@ -107,11 +107,3 @@ class _ControlRegistry:
                     yield f"Option {k} requires a value"
             elif k not in _cli.help_flags:
                 yield f"{unexp_text}{k}"
-
-
-def _flatten_cli_controls(controls: tuple) -> typing.Iterator[typing.Any]:
-    for control in controls:
-        if isinstance(control, _cli._CliBundle):
-            yield from _flatten_cli_controls(control.controls)
-        else:
-            yield control
