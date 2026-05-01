@@ -12,6 +12,11 @@ class _ParseError:
 
 
 @dataclasses.dataclass
+class _DropdownValue:
+    value: str | None
+
+
+@dataclasses.dataclass
 class _CliBundle:
     """Controls registered by a subgroup's render_cli, for passing to the parent."""
 
@@ -54,6 +59,21 @@ class _ParsedArgs:
                 result.unexpected.append(arg)
             prev = None if "=" in arg else arg
         return result
+
+    def get_dropdown(
+        self, option: str, keys: list[str], no_flag: str | None
+    ) -> _DropdownValue | _ParseError | None:
+        """Returns the selected value, a parse error, or None if not provided."""
+        if no_flag and no_flag in self.options:
+            if option in self.options:
+                return _ParseError(f"Cannot use both {option} and {no_flag}")
+            return _DropdownValue(None)
+        raw = self.options.get(option)
+        if raw is None:
+            return None
+        if raw not in keys:
+            return _ParseError(f"Option {option} must be one of {keys!r}, got: {raw!r}")
+        return _DropdownValue(raw)
 
     def get_num(self, key: str) -> float | int | _ParseError | None:
         """Parse number or return a parse error."""

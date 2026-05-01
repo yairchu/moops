@@ -85,6 +85,31 @@ def test_equals_flag_not_consumed_as_prefix_for_next_arg(capsys):
     assert "unexpected" in capsys.readouterr().out
 
 
+def test_dropdown_no_flag_selects_none():
+    g = Group(cli_args=["script.py", "--no-style"])
+    ctrl = g.dropdown(
+        ["snake_case", "camel_case"],
+        value="camel_case",
+        label="Style",
+        help_text="Text style",
+    )
+    assert ctrl.value is None
+
+
+def test_dropdown_no_flag_and_value_is_error(capsys):
+    g = Group(cli_args=["script.py", "--no-style", "--style", "snake_case"])
+    ctrl = g.dropdown(
+        ["snake_case", "camel_case"],
+        value="camel_case",
+        label="Style",
+        help_text="Text style",
+    )
+    with pytest.raises(SystemExit) as exc_info:
+        g.render_cli(ctrl)
+    assert exc_info.value.code != 0
+    assert "--no-style" in capsys.readouterr().out
+
+
 def test_validation_error_not_shown_for_unrendered_control(capsys):
     g = Group(cli_args=["script.py", "--count", "not-a-number"])
     _unrendered = g.number(option="--count", help_text="A count")

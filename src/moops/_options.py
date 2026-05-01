@@ -45,6 +45,7 @@ class _ControlMeta:
     opt: _OptionLabel
     info: str | _OptionDesc
     stdin_flag: str | None = None
+    no_flag: str | None = None
 
 
 class _ControlRegistry:
@@ -69,6 +70,8 @@ class _ControlRegistry:
                 self.str_options[meta.opt.option] = meta.info
             if meta.stdin_flag:
                 self.flags[meta.stdin_flag] = f"Read {meta.opt.label} from stdin"
+            if meta.no_flag:
+                self.flags[meta.no_flag] = f"Set {meta.opt.label} to none"
 
     def format_help(self, command: str) -> str:
         options = [

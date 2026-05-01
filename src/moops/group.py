@@ -268,16 +268,18 @@ class Group:
             metavar="{" + "|".join(keys) + "}",
             help_text=help_text,
         )
+        no_flag = (
+            f"--no-{opt.option.lstrip('-')}"
+            if allow_select_none and value is not None
+            else None
+        )
         override = self._get_override(opt, None)
         if override is None:
-            raw = self._state.args.options.get(opt.option)
-            if raw is not None:
-                if raw not in keys:
-                    self._state.validation_errors[opt.option] = [
-                        f"Option {opt.option} must be one of {keys!r}, got: {raw!r}"
-                    ]
-                else:
-                    value = raw
+            match self._state.args.get_dropdown(opt.option, keys, no_flag):
+                case _cli._ParseError(message=msg):
+                    self._state.validation_errors[opt.option] = [msg]
+                case _cli._DropdownValue(value=v):
+                    value = v
         else:
             # mo.ui.dropdown doesn't support disabled; filter to one option as a
             # workaround so the user can't change the value. Remove once marimo adds
@@ -295,7 +297,7 @@ class Group:
                 allow_select_none=allow_select_none,
                 **kwargs,
             ),
-            _options._ControlMeta(opt=opt, info=desc),
+            _options._ControlMeta(opt=opt, info=desc, no_flag=no_flag),
         )
 
     def _override_key(self, opt: _options._OptionLabel) -> str:
