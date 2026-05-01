@@ -1,5 +1,6 @@
 import dataclasses
 import math
+import sys
 
 help_flags = ["--help", "-h"]
 
@@ -22,8 +23,11 @@ class _ParsedArgs:
         return any(x in self.options for x in help_flags)
 
     @classmethod
-    def parse(cls, args: list[str]) -> "_ParsedArgs":
+    def parse(cls, args: list[str] | None) -> "_ParsedArgs":
         """Parse command line arguments into flags and options."""
+
+        if args is None:
+            args = sys.argv
 
         cmd, *rest = args
         result = cls(command=cmd, options={}, unexpected=[])

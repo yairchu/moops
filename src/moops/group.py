@@ -13,9 +13,7 @@ class Group:
     def __init__(self, cli_args: list[str] | None = None) -> None:
         """Initialize with command line arguments (defaults to sys.argv)."""
 
-        self._state = _GroupState(
-            args=_cli._ParsedArgs.parse(sys.argv if cli_args is None else cli_args)
-        )
+        self._state = _GroupState(args=_cli._ParsedArgs.parse(cli_args))
         self._overrides: dict[str, typing.Any] = {}
         self._option_prefix: str = ""
 
