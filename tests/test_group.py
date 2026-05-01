@@ -65,7 +65,7 @@ def test_subgroup_render_cli_is_noop():
     casing.render_cli(ctrl)  # should not exit
 
 
-def test_subgroup_controls_visible_in_parent_help(capsys):
+def test_subgroup_controls_visible_in_parent_help(capsys: pytest.CaptureFixture[str]):
     g = Group(cli_args=["script.py", "--help"])
     casing = g.subgroup("casing")
     ctrl = casing.dropdown(
@@ -76,7 +76,7 @@ def test_subgroup_controls_visible_in_parent_help(capsys):
     assert "--casing-style" in capsys.readouterr().out
 
 
-def test_overridden_control_not_in_help(capsys):
+def test_overridden_control_not_in_help(capsys: pytest.CaptureFixture[str]):
     g = Group(cli_args=["script.py", "--help"])
     casing = g.subgroup("casing", overrides={"style": "snake_case"})
     ctrl = casing.dropdown(
@@ -87,7 +87,9 @@ def test_overridden_control_not_in_help(capsys):
     assert "--casing-style" not in capsys.readouterr().out
 
 
-def test_equals_flag_not_consumed_as_prefix_for_next_arg(capsys):
+def test_equals_flag_not_consumed_as_prefix_for_next_arg(
+    capsys: pytest.CaptureFixture[str],
+):
     g = Group(cli_args=["script.py", "--name=Alice", "unexpected"])
     ctrl = g.text(label="Name", help_text="A name")
     with pytest.raises(SystemExit):
@@ -107,7 +109,7 @@ def test_dropdown_no_flag_selects_none():
     assert ctrl.value is None
 
 
-def test_dropdown_no_flag_and_value_is_error(capsys):
+def test_dropdown_no_flag_and_value_is_error(capsys: pytest.CaptureFixture[str]):
     g = Group(cli_args=["script.py", "--no-style", "--style", "snake_case"])
     ctrl = g.dropdown(
         ["snake_case", "camel_case"],
@@ -121,7 +123,9 @@ def test_dropdown_no_flag_and_value_is_error(capsys):
     assert "--no-style" in capsys.readouterr().out
 
 
-def test_validation_error_not_shown_for_unrendered_control(capsys):
+def test_validation_error_not_shown_for_unrendered_control(
+    capsys: pytest.CaptureFixture[str],
+):
     g = Group(cli_args=["script.py", "--count", "not-a-number"])
     _unrendered = g.number(option="--count", help_text="A count")
     other = g.switch(label="Verbose", help_text="Enable verbose output")
@@ -130,7 +134,7 @@ def test_validation_error_not_shown_for_unrendered_control(capsys):
     assert "Unexpected argument: --count" in capsys.readouterr().out
 
 
-def test_help_usage_line_has_no_double_spaces(capsys):
+def test_help_usage_line_has_no_double_spaces(capsys: pytest.CaptureFixture[str]):
     g = Group(cli_args=["script.py", "--help"])
     ctrl = g.text(label="Name", help_text="A name")
     with pytest.raises(SystemExit):

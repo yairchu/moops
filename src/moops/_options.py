@@ -51,7 +51,9 @@ class _ControlMeta:
 class _ControlRegistry:
     """Resolved set of flags and options built from a group's live controls."""
 
-    def __init__(self, controls: tuple, control_meta: dict[int, _ControlMeta]) -> None:
+    def __init__(
+        self, controls: tuple[typing.Any], control_meta: dict[int, _ControlMeta]
+    ) -> None:
         self.flags: dict[str, str] = {}
         self.str_options: dict[str, _OptionDesc] = {}
         seen: set[str] = set()

@@ -2,6 +2,7 @@ import dataclasses
 import marimo as mo
 import math
 import sys
+import typing
 
 help_flags = ["--help", "-h"]
 
@@ -20,11 +21,11 @@ class _DropdownValue:
 class Interface:
     """Controls registered by a subgroup's render_cli, for passing to the parent."""
 
-    controls: tuple
+    controls: tuple[typing.Any]
     notebook_name: str = ""
     option_prefix: str = ""
 
-    def _flatten(self):
+    def _flatten(self) -> typing.Iterator[typing.Any]:
         for ctrl in self.controls:
             if isinstance(ctrl, Interface):
                 yield from ctrl._flatten()

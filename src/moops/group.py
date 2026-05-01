@@ -37,7 +37,7 @@ class Group:
         child._option_prefix = f"{prefix}-"
         return child
 
-    def render_cli(self, *controls) -> mo.Html | interface.Interface | None:
+    def render_cli(self, *controls: typing.Any) -> mo.Html | interface.Interface | None:
         """
         group.render_cli() serves two purposes:
         * Display help text based on the defined flags and options.
@@ -71,7 +71,7 @@ class Group:
         *,
         help_text: str,
         label: str | None = None,
-        **kwargs,
+        **kwargs: typing.Any,
     ) -> mo.ui.switch:
         """Create a switch UI element that maps to a CLI flag."""
 
@@ -90,7 +90,7 @@ class Group:
             ),
         )
 
-    def _register(self, control, meta: _options._ControlMeta):
+    def _register(self, control: typing.Any, meta: _options._ControlMeta) -> typing.Any:
         self._state.control_meta[id(control)] = meta
         return control
 
@@ -102,7 +102,7 @@ class Group:
         *,
         help_text: str,
         label: str | None = None,
-        **kwargs,
+        **kwargs: typing.Any,
     ) -> mo.ui.text:
         """Create a text input UI element that maps to a CLI option."""
 
@@ -129,7 +129,7 @@ class Group:
         *,
         help_text: str,
         label: str | None = None,
-        **kwargs,
+        **kwargs: typing.Any,
     ) -> mo.ui.text_area:
         """Create a text area UI element that maps to a CLI option."""
 
@@ -143,6 +143,8 @@ class Group:
                     self._state.validation_errors[opt.option] = msg
                 case str() as v:
                     value = v
+                case _:
+                    pass
         return self._register(
             mo.ui.text_area(
                 value=value,
@@ -187,7 +189,7 @@ class Group:
         *,
         help_text: str,
         label: str | None = None,
-        **kwargs,
+        **kwargs: typing.Any,
     ) -> mo.ui.number:
         """Create a number input UI element that maps to a CLI option."""
 
@@ -215,7 +217,7 @@ class Group:
         *,
         help_text: str,
         label: str | None = None,
-        **kwargs,
+        **kwargs: typing.Any,
     ) -> mo.ui.slider:
         """Create a slider UI element that maps to a CLI option."""
 
@@ -273,7 +275,7 @@ class Group:
         help_text: str,
         label: str | None = None,
         allow_select_none: bool = True,
-        **kwargs,
+        **kwargs: typing.Any,
     ) -> mo.ui.dropdown:
         """Create a dropdown UI element that maps to a CLI option."""
 
@@ -300,6 +302,8 @@ class Group:
                     self._state.validation_errors[opt.option] = msg
                 case interface._DropdownValue(value=v):
                     value = v
+                case _:
+                    pass
         else:
             # mo.ui.dropdown doesn't support disabled; filter to one option as a
             # workaround so the user can't change the value. Remove once marimo adds
@@ -348,12 +352,12 @@ class Group:
 @dataclasses.dataclass
 class _GroupState:
     args: interface._ParsedArgs
-    validation_errors: dict[str, str] = dataclasses.field(default_factory=dict)
+    validation_errors: dict[str, str] = dataclasses.field(default_factory=lambda: {})
     control_meta: dict[int, _options._ControlMeta] = dataclasses.field(
-        default_factory=dict
+        default_factory=lambda: {}
     )
 
-    def render_cli(self, controls: tuple) -> mo.Html | None:
+    def render_cli(self, controls: tuple[typing.Any]) -> mo.Html | None:
         registry = _options._ControlRegistry(controls, self.control_meta)
 
         show_help = self.args.is_help
