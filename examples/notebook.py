@@ -36,7 +36,7 @@ def _():
 def _():
     import name_casing
 
-    return
+    return (name_casing,)
 
 
 @app.cell
@@ -92,12 +92,10 @@ def _(args, greeting_text):
     return (casing,)
 
 
-app._unparsable_cell(
-    r"""
-    name_casing_instance = .clone()
-    """,
-    name="_",
-)
+@app.cell
+def _(name_casing):
+    name_casing_instance = name_casing.app.clone()
+    return (name_casing_instance,)
 
 
 @app.cell
