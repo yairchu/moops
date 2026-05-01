@@ -45,10 +45,6 @@ def _():
         return "_".join(x.lower() for x in text.split())
 
     @_add
-    def freestyle(text):
-        return text
-
-    @_add
     def camel_case(text):
         def cap(word):
             x, *xs = word
@@ -63,9 +59,9 @@ def _():
 def _(args, name_casings):
     mode_dropdown = args.dropdown(
         name_casings,
+        value="camel_case",
         label="Style",
         help_text="Text style",
-        allow_select_none=False,
     )
     mode_dropdown
     return (mode_dropdown,)
@@ -85,7 +81,11 @@ def _(args):
 
 @app.cell
 def _(input_text, mode_dropdown):
-    result = mode_dropdown.value(input_text.value)
+    result = (
+        mode_dropdown.value(input_text.value)
+        if mode_dropdown.value
+        else input_text.value
+    )
     return (result,)
 
 

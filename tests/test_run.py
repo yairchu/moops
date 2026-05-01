@@ -13,7 +13,7 @@ def test_run_returns_result():
 
 def test_run_default_values():
     result = moops.run(name_casing)
-    assert result == "lorem_ipsum"
+    assert result == "LoremIpsum"
 
 
 def test_overridden_control_is_disabled():
