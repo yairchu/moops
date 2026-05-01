@@ -193,8 +193,6 @@ class Group:
     def number(
         self,
         start: float = 0,
-        stop: float = 100,
-        step: float = 1,
         value: float | None = None,
         option: str | None = None,
         *,
@@ -208,8 +206,6 @@ class Group:
         return self._register(
             mo.ui.number(
                 start=start,
-                stop=stop,
-                step=step,
                 value=value,
                 label=meta.opt.label,
                 disabled=self._is_overridden(meta.opt),
@@ -221,8 +217,6 @@ class Group:
     def slider(
         self,
         start: float = 0,
-        stop: float = 100,
-        step: float = 1,
         value: float | None = None,
         option: str | None = None,
         *,
@@ -236,8 +230,6 @@ class Group:
         return self._register(
             mo.ui.slider(
                 start=start,
-                stop=stop,
-                step=step,
                 value=value,
                 label=meta.opt.label,
                 disabled=self._is_overridden(meta.opt),
