@@ -3,17 +3,35 @@ import typing
 
 from hypothesis import strategies as st
 
-from . import _options, cli, interface
+from . import _options, cli, group
+
+
+def _discover(module: types.ModuleType) -> dict[int, _options._ControlMeta]:
+    args = object.__new__(group.Group)
+    args._state = group._GroupState(args=cli._ParsedArgs.parse(["run"]))
+    args._overrides = {}
+    args._option_prefix = ""
+    module.app.run(defs={"args": args})
+    return args._state.control_meta
 
 
 def from_notebook(module: types.ModuleType) -> st.SearchStrategy[dict[str, typing.Any]]:
     """Return a hypothesis strategy that generates valid kwargs for moops.run(module)."""
-    args = object.__new__(interface.Interface)
-    args._state = interface._GroupState(args=cli._ParsedArgs.parse(["run"]))
-    args._overrides = {}
-    args._option_prefix = ""
-    module.app.run(defs={"args": args})
-    return _strategies_from_meta(args._state.control_meta)
+    return _strategies_from_meta(_discover(module))
+
+
+def defaults(module: types.ModuleType) -> dict[str, str | None]:
+    """Return the default value for each str control in the notebook."""
+    result: dict[str, str | None] = {}
+    seen: set[str] = set()
+    for meta in _discover(module).values():
+        if meta.overridden or isinstance(meta.info, str):
+            continue
+        key = meta.opt.label.lower().replace(" ", "_")
+        if key not in seen:
+            seen.add(key)
+            result[key] = meta.info.default
+    return result
 
 
 def _strategies_from_meta(
