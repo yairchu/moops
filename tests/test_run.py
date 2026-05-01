@@ -1,8 +1,7 @@
 import asyncio
 
 import marimo as mo
-from examples import name_casing
-from examples import notebook
+from examples import name_casing, notebook
 import hypothesis
 
 import moops
