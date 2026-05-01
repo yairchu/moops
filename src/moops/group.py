@@ -26,7 +26,7 @@ class Group:
         child._option_prefix = f"{prefix}-"
         return child
 
-    def render_cli(self, *controls) -> mo.Html | _cli._CliBundle | None:
+    def render_cli(self, *controls) -> mo.Html | tuple | None:
         """
         group.render_cli() serves two purposes:
         * Display help text based on the defined flags and options.
@@ -37,13 +37,9 @@ class Group:
         """
 
         if self._option_prefix:
-            return _cli._CliBundle(controls)
+            return controls
         return self._state.render_cli(
-            tuple(
-                c
-                for x in controls
-                for c in (x.controls if isinstance(x, _cli._CliBundle) else [x])
-            )
+            tuple(c for x in controls for c in (x if isinstance(x, tuple) else [x]))
         )
 
     def md(self, text: str) -> mo.Html | None:
