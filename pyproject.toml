@@ -26,8 +26,6 @@ pythonpath = ["src", "."]
 typeCheckingMode = "strict"
 include = ["src", "tests"]
 extraPaths = ["src", ".", "examples"]
-reportPrivateUsage = "none"
-reportUnusedClass = "none"
 
 [tool.uv.sources]
 moops = { workspace = true }

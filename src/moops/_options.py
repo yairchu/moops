@@ -1,10 +1,10 @@
 import dataclasses
 import typing
-from . import interface
+from . import interface, _parse
 
 
 @dataclasses.dataclass
-class _OptionDesc:
+class OptionDesc:
     """Metadata for CLI options with defaults and help text."""
 
     default: str | None
@@ -14,7 +14,7 @@ class _OptionDesc:
 
 
 @dataclasses.dataclass
-class _OptionLabel:
+class OptionLabel:
     """Maps between UI labels and CLI option names."""
 
     label: str
@@ -23,7 +23,7 @@ class _OptionLabel:
     @staticmethod
     def make(
         label: str | None, option: str | None, prefix: str | None = None
-    ) -> "_OptionLabel":
+    ) -> "OptionLabel":
         """Generate OptionLabel from label or option name."""
 
         if option is None:
@@ -36,28 +36,28 @@ class _OptionLabel:
             )
             if label is None:
                 label = option.lstrip("-").replace("-", " ")
-        return _OptionLabel(label=label, option=option)
+        return OptionLabel(label=label, option=option)
 
 
 @dataclasses.dataclass
-class _ControlMeta:
-    opt: _OptionLabel
-    info: str | _OptionDesc
+class ControlMeta:
+    opt: OptionLabel
+    info: str | OptionDesc
     stdin_flag: str | None = None
     no_flag: str | None = None
     overridden: bool = False
 
 
-class _ControlRegistry:
+class ControlRegistry:
     """Resolved set of flags and options built from a group's live controls."""
 
     def __init__(
-        self, controls: tuple[typing.Any], control_meta: dict[int, _ControlMeta]
+        self, controls: tuple[typing.Any], control_meta: dict[int, ControlMeta]
     ) -> None:
         self.flags: dict[str, str] = {}
-        self.str_options: dict[str, _OptionDesc] = {}
+        self.str_options: dict[str, OptionDesc] = {}
         seen: set[str] = set()
-        for ctrl in interface.Interface(controls)._flatten():
+        for ctrl in interface.Interface(controls).flatten():
             meta = control_meta.get(id(ctrl))
             if meta is None:
                 raise ValueError(f"Control {ctrl!r} was not created by this Group")
@@ -94,7 +94,7 @@ class _ControlRegistry:
         return "\n\n".join(segments)
 
     def validate(
-        self, args: interface._ParsedArgs, validation_errors: dict[str, str]
+        self, args: _parse.ParsedArgs, validation_errors: dict[str, str]
     ) -> typing.Iterator[str]:
         rendered = self.flags | self.str_options
         yield from (v for k, v in validation_errors.items() if k in rendered)
@@ -108,5 +108,5 @@ class _ControlRegistry:
             elif k in self.str_options:
                 if v is None:
                     yield f"Option {k} requires a value"
-            elif k not in interface.help_flags:
+            elif k not in _parse.help_flags:
                 yield f"{unexp_text}{k}"

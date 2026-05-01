@@ -3,16 +3,13 @@ import typing
 
 from hypothesis import strategies as st
 
-from . import _options, interface, group
+from . import _options, group
 
 
-def _discover(module: types.ModuleType) -> dict[int, _options._ControlMeta]:
-    args = object.__new__(group.Group)
-    args._state = group._GroupState(args=interface._ParsedArgs.parse(["run"]))
-    args._overrides = {}
-    args._option_prefix = ""
+def _discover(module: types.ModuleType) -> dict[int, _options.ControlMeta]:
+    args = group.Group.with_overrides({})
     module.app.run(defs={"args": args})
-    return args._state.control_meta
+    return args._state.control_meta  # type: ignore
 
 
 def from_notebook(module: types.ModuleType) -> st.SearchStrategy[dict[str, typing.Any]]:
@@ -35,7 +32,7 @@ def defaults(module: types.ModuleType) -> dict[str, str | None]:
 
 
 def _strategies_from_meta(
-    control_meta: dict[int, _options._ControlMeta],
+    control_meta: dict[int, _options.ControlMeta],
 ) -> st.SearchStrategy[dict[str, typing.Any]]:
     kwarg_strategies: dict[str, st.SearchStrategy] = {}
     seen: set[str] = set()

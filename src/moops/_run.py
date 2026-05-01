@@ -1,7 +1,7 @@
 import types
 import typing
 
-from . import interface, group
+from . import group
 
 
 def run(module: types.ModuleType, **kwargs: typing.Any) -> typing.Any:
@@ -12,10 +12,7 @@ def run(module: types.ModuleType, **kwargs: typing.Any) -> typing.Any:
     text area labelled "Input text" is overridden with input_text="...".
     All controls are overridable, including those not passed to render_cli.
     """
-    args = object.__new__(group.Group)
-    args._state = group._GroupState(args=interface._ParsedArgs.parse(["run"]))
-    args._overrides = kwargs
-    args._option_prefix = ""
+    args = group.Group.with_overrides(kwargs)
 
     _, defs = module.app.run(defs={"args": args})
     return defs.get("result")

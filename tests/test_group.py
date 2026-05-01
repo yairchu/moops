@@ -35,7 +35,7 @@ def test_switch_override_uses_base_option_name():
 def test_label_derived_from_option_has_no_leading_spaces():
     g = Group(cli_args=["script.py"])
     ctrl = g.text(option="--my-option", help_text="Some option")
-    label = g._state.control_meta[id(ctrl)].opt.label
+    label = g._state.control_meta[id(ctrl)].opt.label  # type: ignore
     assert not label.startswith(" ")
 
 

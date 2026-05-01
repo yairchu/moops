@@ -5,7 +5,7 @@ import pathlib
 import sys
 import typing
 
-from . import interface, _options
+from . import interface, _options, _parse
 
 
 class Group:
@@ -14,9 +14,17 @@ class Group:
     def __init__(self, cli_args: list[str] | None = None) -> None:
         """Initialize with command line arguments (defaults to sys.argv)."""
 
-        self._state = _GroupState(args=interface._ParsedArgs.parse(cli_args))
+        self._state = _GroupState(args=_parse.ParsedArgs.parse(cli_args))
         self._overrides: dict[str, typing.Any] = {}
         self._option_prefix: str = ""
+
+    @classmethod
+    def with_overrides(cls, overrides: dict[str, typing.Any]) -> "Group":
+        instance = object.__new__(cls)
+        instance._state = _GroupState(args=_parse.ParsedArgs.parse(["run"]))
+        instance._overrides = overrides
+        instance._option_prefix = ""
+        return instance
 
     def subgroup(
         self, prefix: str, overrides: dict[str, typing.Any] | None = None
@@ -85,12 +93,12 @@ class Group:
                 disabled=self._is_overridden(opt),
                 **kwargs,
             ),
-            _options._ControlMeta(
+            _options.ControlMeta(
                 opt=opt, info=help_text, overridden=self._is_overridden(opt)
             ),
         )
 
-    def _register(self, control: typing.Any, meta: _options._ControlMeta) -> typing.Any:
+    def _register(self, control: typing.Any, meta: _options.ControlMeta) -> typing.Any:
         self._state.control_meta[id(control)] = meta
         return control
 
@@ -116,7 +124,7 @@ class Group:
                 disabled=self._is_overridden(opt),
                 **kwargs,
             ),
-            _options._ControlMeta(
+            _options.ControlMeta(
                 opt=opt, info=desc, overridden=self._is_overridden(opt)
             ),
         )
@@ -139,7 +147,7 @@ class Group:
         stdin_flag = None if self._is_overridden(opt) else f"{opt.option}-from-stdin"
         if stdin_flag:
             match self._state.args.get_text_area(opt.option, stdin_flag):
-                case interface._ParseError(message=msg):
+                case _parse.ParseError(message=msg):
                     self._state.validation_errors[opt.option] = msg
                 case str() as v:
                     value = v
@@ -152,7 +160,7 @@ class Group:
                 disabled=self._is_overridden(opt),
                 **kwargs,
             ),
-            _options._ControlMeta(
+            _options.ControlMeta(
                 opt=opt,
                 info=desc,
                 stdin_flag=stdin_flag,
@@ -167,11 +175,11 @@ class Group:
         option: str | None,
         help_text: str,
         label: str | None,
-    ) -> tuple[_options._OptionLabel, str, _options._OptionDesc]:
+    ) -> tuple[_options.OptionLabel, str, _options.OptionDesc]:
         """Parse a string CLI option."""
 
         opt = self._make_opt(label=label, option=option)
-        desc = _options._OptionDesc(
+        desc = _options.OptionDesc(
             default=value,
             metavar=placeholder or opt.label.upper().replace(" ", "_"),
             help_text=help_text,
@@ -242,26 +250,26 @@ class Group:
         option: str | None,
         help_text: str,
         label: str | None,
-    ) -> tuple[float, _options._ControlMeta]:
+    ) -> tuple[float, _options.ControlMeta]:
         """Parse a numeric CLI option."""
 
         if value is None:
             value = start
         opt = self._make_opt(label=label, option=option)
-        desc = _options._OptionDesc(
+        desc = _options.OptionDesc(
             default=str(value),
             metavar=opt.label.upper().replace(" ", "_"),
             help_text=help_text,
         )
         parsed = self._state.args.get_num(opt.option)
-        if isinstance(parsed, interface._ParseError):
+        if isinstance(parsed, _parse.ParseError):
             if not self._is_overridden(opt):
                 self._state.validation_errors[opt.option] = parsed.message
         elif parsed is not None:
             value = parsed
         return (
             self._get_override(opt, value),
-            _options._ControlMeta(
+            _options.ControlMeta(
                 opt=opt, info=desc, overridden=self._is_overridden(opt)
             ),
         )
@@ -284,7 +292,7 @@ class Group:
         keys = list(options)
         if value is None and not allow_select_none:
             value, *_ = keys
-        desc = _options._OptionDesc(
+        desc = _options.OptionDesc(
             default=value,
             metavar="{" + "|".join(keys) + "}",
             allowed_values=keys,
@@ -298,9 +306,9 @@ class Group:
         override = self._get_override(opt, None)
         if override is None:
             match self._state.args.get_dropdown(opt.option, keys, no_flag):
-                case interface._ParseError(message=msg):
+                case _parse.ParseError(message=msg):
                     self._state.validation_errors[opt.option] = msg
-                case interface._DropdownValue(value=v):
+                case _parse.DropdownValue(value=v):
                     value = v
                 case _:
                     pass
@@ -321,28 +329,28 @@ class Group:
                 allow_select_none=allow_select_none,
                 **kwargs,
             ),
-            _options._ControlMeta(
+            _options.ControlMeta(
                 opt=opt, info=desc, no_flag=no_flag, overridden=self._is_overridden(opt)
             ),
         )
 
-    def _override_key(self, opt: _options._OptionLabel) -> str:
+    def _override_key(self, opt: _options.OptionLabel) -> str:
         return opt.label.lower().replace(" ", "_")
 
     def _get_override(
-        self, opt: _options._OptionLabel, default: typing.Any
+        self, opt: _options.OptionLabel, default: typing.Any
     ) -> typing.Any:
         return self._overrides.get(self._override_key(opt), default)
 
-    def _is_overridden(self, opt: _options._OptionLabel) -> bool:
+    def _is_overridden(self, opt: _options.OptionLabel) -> bool:
         return self._override_key(opt) in self._overrides
 
     def _make_opt(
         self, label: str | None, option: str | None, prefix: str | None = None
-    ) -> _options._OptionLabel:
-        opt = _options._OptionLabel.make(label=label, option=option, prefix=prefix)
+    ) -> _options.OptionLabel:
+        opt = _options.OptionLabel.make(label=label, option=option, prefix=prefix)
         if self._option_prefix:
-            opt = _options._OptionLabel(
+            opt = _options.OptionLabel(
                 label=opt.label,
                 option=f"--{self._option_prefix}{opt.option.lstrip('-')}",
             )
@@ -351,14 +359,14 @@ class Group:
 
 @dataclasses.dataclass
 class _GroupState:
-    args: interface._ParsedArgs
+    args: _parse.ParsedArgs
     validation_errors: dict[str, str] = dataclasses.field(default_factory=lambda: {})
-    control_meta: dict[int, _options._ControlMeta] = dataclasses.field(
+    control_meta: dict[int, _options.ControlMeta] = dataclasses.field(
         default_factory=lambda: {}
     )
 
     def render_cli(self, controls: tuple[typing.Any]) -> mo.Html | None:
-        registry = _options._ControlRegistry(controls, self.control_meta)
+        registry = _options.ControlRegistry(controls, self.control_meta)
 
         show_help = self.args.is_help
         has_errors = False

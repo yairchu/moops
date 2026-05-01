@@ -45,6 +45,6 @@ def test_overridden_control_is_disabled():
         result = await name_casing.app.embed(defs={"args": casing})
         input_text = result.defs["input_text"]
         assert isinstance(input_text, mo.ui.text_area)
-        return input_text._component_args["disabled"]
+        return input_text._component_args["disabled"]  # type: ignore
 
     assert asyncio.run(_run()) is True
