@@ -1,4 +1,5 @@
 import dataclasses
+import marimo as mo
 import math
 import sys
 
@@ -28,6 +29,9 @@ class _ParsedArgs:
 
         if args is None:
             args = sys.argv
+            if mo.running_in_notebook():
+                # When notebooks embed other notebooks, the outer notebook is the last argument in sys.argv
+                args = args[-1:]
 
         cmd, *rest = args
         result = cls(command=cmd, options={}, unexpected=[])
