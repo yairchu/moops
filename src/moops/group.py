@@ -21,10 +21,19 @@ class Group:
     def subgroup(
         self, prefix: str, overrides: dict[str, typing.Any] | None = None
     ) -> "Group":
-        """Create a child Group that prefixes all its option names with '{prefix}-'."""
+        """Create a child Group that prefixes all its option names with '{prefix}-'.
+
+        Pass a nested dict under the same key to moops.run() to override controls
+        in this subgroup: moops.run(notebook, casing={"style": "snake_case"}).
+        Explicit overrides take precedence over those passed via moops.run().
+        """
         child = object.__new__(Group)
         child._state = self._state
-        child._overrides = overrides or {}
+        parent_overrides = self._overrides.get(prefix, {})
+        child._overrides = {
+            **(parent_overrides if isinstance(parent_overrides, dict) else {}),
+            **(overrides or {}),
+        }
         child._option_prefix = f"{prefix}-"
         return child
 
