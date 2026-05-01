@@ -67,7 +67,10 @@ class Group:
             value = not value
         return self._register(
             mo.ui.switch(
-                value=self._get_override(opt, value), label=opt.label, **kwargs
+                value=self._get_override(opt, value),
+                label=opt.label,
+                disabled=self._is_overridden(opt),
+                **kwargs,
             ),
             _options._ControlMeta(opt=opt, info=help_text),
         )
@@ -92,7 +95,12 @@ class Group:
             value, placeholder, option, help_text, label
         )
         return self._register(
-            mo.ui.text(value=value, label=opt.label, **kwargs),
+            mo.ui.text(
+                value=value,
+                label=opt.label,
+                disabled=self._is_overridden(opt),
+                **kwargs,
+            ),
             _options._ControlMeta(opt=opt, info=desc),
         )
 
@@ -123,7 +131,12 @@ class Group:
                 elif self._state.args.options[stdin_flag] is None:
                     value = sys.stdin.read()
         return self._register(
-            mo.ui.text_area(value=value, label=opt.label, **kwargs),
+            mo.ui.text_area(
+                value=value,
+                label=opt.label,
+                disabled=self._is_overridden(opt),
+                **kwargs,
+            ),
             _options._ControlMeta(opt=opt, info=desc, stdin_flag=stdin_flag),
         )
 
@@ -168,6 +181,7 @@ class Group:
                 step=step,
                 value=value,
                 label=opt.label,
+                disabled=self._is_overridden(opt),
                 **kwargs,
             ),
             meta,
@@ -195,6 +209,7 @@ class Group:
                 step=step,
                 value=value,
                 label=opt.label,
+                disabled=self._is_overridden(opt),
                 **kwargs,
             ),
             meta,
@@ -253,7 +268,8 @@ class Group:
             metavar="{" + "|".join(keys) + "}",
             help_text=help_text,
         )
-        if self._get_override(opt, None) is None:
+        override = self._get_override(opt, None)
+        if override is None:
             raw = self._state.args.options.get(opt.option)
             if raw is not None:
                 if raw not in keys:
@@ -262,6 +278,15 @@ class Group:
                     ]
                 else:
                     value = raw
+        else:
+            # mo.ui.dropdown doesn't support disabled; filter to one option as a
+            # workaround so the user can't change the value. Remove once marimo adds
+            # disabled support for dropdowns.
+            options = (
+                {override: options[override]}
+                if isinstance(options, dict)
+                else [override]
+            )
         return self._register(
             mo.ui.dropdown(
                 options=options,
@@ -273,10 +298,16 @@ class Group:
             _options._ControlMeta(opt=opt, info=desc),
         )
 
+    def _override_key(self, opt: _options._OptionLabel) -> str:
+        return opt.label.lower().replace(" ", "_")
+
     def _get_override(
         self, opt: _options._OptionLabel, default: typing.Any
     ) -> typing.Any:
-        return self._overrides.get(opt.label.lower().replace(" ", "_"), default)
+        return self._overrides.get(self._override_key(opt), default)
+
+    def _is_overridden(self, opt: _options._OptionLabel) -> bool:
+        return self._override_key(opt) in self._overrides
 
     def _make_opt(
         self, label: str | None, option: str | None, prefix: str | None = None
