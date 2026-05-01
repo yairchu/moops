@@ -38,9 +38,7 @@ class Group:
 
         if self._option_prefix:
             return controls
-        return self._state.render_cli(
-            tuple(c for x in controls for c in (x if isinstance(x, tuple) else [x]))
-        )
+        return self._state.render_cli(controls)
 
     def md(self, text: str) -> mo.Html | None:
         """Display markdown in notebooks or plain text in CLI."""

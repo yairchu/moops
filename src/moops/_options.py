@@ -1,5 +1,5 @@
-import collections.abc as abc
 import dataclasses
+import typing
 from . import _cli
 
 
@@ -54,7 +54,7 @@ class _ControlRegistry:
         self.flags: dict[str, str] = {}
         self.str_options: dict[str, _OptionDesc] = {}
         seen: set[str] = set()
-        for ctrl in controls:
+        for ctrl in _flatten_cli_controls(controls):
             meta = control_meta.get(id(ctrl))
             if meta is None:
                 raise ValueError(f"Control {ctrl!r} was not created by this Group")
@@ -92,7 +92,7 @@ class _ControlRegistry:
 
     def validate(
         self, args: _cli._ParsedArgs, validation_errors: dict[str, str]
-    ) -> abc.Iterator[str]:
+    ) -> typing.Iterator[str]:
         rendered = self.flags | self.str_options
         yield from (v for k, v in validation_errors.items() if k in rendered)
         unexp_text = "Unexpected argument: "
@@ -107,3 +107,11 @@ class _ControlRegistry:
                     yield f"Option {k} requires a value"
             elif k not in _cli.help_flags:
                 yield f"{unexp_text}{k}"
+
+
+def _flatten_cli_controls(controls: tuple) -> typing.Iterator[typing.Any]:
+    for control in controls:
+        if isinstance(control, tuple):
+            yield from _flatten_cli_controls(control)
+        else:
+            yield control
