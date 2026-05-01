@@ -1,5 +1,6 @@
 import collections.abc as abc
 import dataclasses
+import itertools
 
 from . import _cli
 
@@ -85,7 +86,13 @@ class _ControlRegistry:
             segments.append("\n".join(opts_help))
         return "\n\n".join(segments)
 
-    def validate(self, args: _cli._ParsedArgs) -> abc.Iterator[str]:
+    def validate(
+        self, args: _cli._ParsedArgs, validation_errors: dict[str, list[str]]
+    ) -> abc.Iterator[str]:
+        rendered = self.flags | self.str_options
+        yield from itertools.chain.from_iterable(
+            v for k, v in validation_errors.items() if k in rendered
+        )
         unexp_text = "Unexpected argument: "
         for x in args.unexpected:
             yield f"{unexp_text}{x}"

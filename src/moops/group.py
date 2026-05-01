@@ -1,5 +1,4 @@
 import dataclasses
-import itertools
 import marimo as mo
 import sys
 import typing
@@ -305,13 +304,7 @@ class _GroupState:
         show_help = self.args.is_help
         has_errors = False
         if not mo.running_in_notebook():
-            rendered_opts = registry.flags | registry.str_options
-            issues = [
-                *itertools.chain.from_iterable(
-                    v for k, v in self.validation_errors.items() if k in rendered_opts
-                ),
-                *registry.validate(self.args),
-            ]
+            issues = list(registry.validate(self.args, self.validation_errors))
             if issues:
                 print("Argument errors:\n" + "\n".join(f"- {x}" for x in issues))
                 print()
