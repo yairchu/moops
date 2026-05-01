@@ -121,9 +121,9 @@ class Group:
             stdin_flag = f"{opt.option}-from-stdin"
             if not mo.running_in_notebook() and stdin_flag in self._state.args.options:
                 if opt.option in self._state.args.options:
-                    self._state.validation_errors[opt.option] = [
+                    self._state.validation_errors[opt.option] = (
                         f"Cannot use both {opt.option} and {stdin_flag}"
-                    ]
+                    )
                 elif self._state.args.options[stdin_flag] is None:
                     value = sys.stdin.read()
         return self._register(
@@ -232,7 +232,7 @@ class Group:
         parsed = self._state.args.get_num(opt.option)
         if isinstance(parsed, _cli._ParseError):
             if self._get_override(opt, None) is None:
-                self._state.validation_errors[opt.option] = [parsed.message]
+                self._state.validation_errors[opt.option] = parsed.message
         elif parsed is not None:
             value = parsed
         return (
@@ -273,7 +273,7 @@ class Group:
         if override is None:
             match self._state.args.get_dropdown(opt.option, keys, no_flag):
                 case _cli._ParseError(message=msg):
-                    self._state.validation_errors[opt.option] = [msg]
+                    self._state.validation_errors[opt.option] = msg
                 case _cli._DropdownValue(value=v):
                     value = v
         else:
@@ -322,7 +322,7 @@ class Group:
 @dataclasses.dataclass
 class _GroupState:
     args: _cli._ParsedArgs
-    validation_errors: dict[str, list[str]] = dataclasses.field(default_factory=dict)
+    validation_errors: dict[str, str] = dataclasses.field(default_factory=dict)
     control_meta: dict[int, _options._ControlMeta] = dataclasses.field(
         default_factory=dict
     )
