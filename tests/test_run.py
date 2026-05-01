@@ -2,8 +2,10 @@ import asyncio
 
 import marimo as mo
 from examples import name_casing
+from hypothesis import given
 
 import moops
+import moops.testing
 
 
 def test_run_returns_result():
@@ -14,6 +16,12 @@ def test_run_returns_result():
 def test_run_default_values():
     result = moops.run(name_casing)
     assert result == "LoremIpsum"
+
+
+@given(moops.testing.from_notebook(name_casing))
+def test_name_casing_handles_any_valid_input(kwargs):
+    result = moops.run(name_casing, **kwargs)
+    assert isinstance(result, str)
 
 
 def test_overridden_control_is_disabled():
