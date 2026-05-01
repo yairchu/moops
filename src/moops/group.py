@@ -60,13 +60,15 @@ class Group:
         moops.run() and visible to moops.testing.from_notebook().
         """
 
-        if self._option_prefix:
-            return interface.Interface(
+        return (
+            interface.Interface(
                 controls,
                 notebook_name=pathlib.Path(inspect.stack()[1].filename).name,
                 option_prefix=self._option_prefix,
             )
-        return self._state.render_cli(controls)
+            if self._option_prefix
+            else self._state.render_cli(controls)
+        )
 
     def md(self, text: str) -> mo.Html | None:
         """Display markdown in notebooks or plain text in CLI."""
