@@ -68,7 +68,9 @@ class Group:
                 disabled=self._is_overridden(opt),
                 **kwargs,
             ),
-            _options._ControlMeta(opt=opt, info=help_text),
+            _options._ControlMeta(
+                opt=opt, info=help_text, overridden=self._is_overridden(opt)
+            ),
         )
 
     def _register(self, control, meta: _options._ControlMeta):
@@ -97,7 +99,9 @@ class Group:
                 disabled=self._is_overridden(opt),
                 **kwargs,
             ),
-            _options._ControlMeta(opt=opt, info=desc),
+            _options._ControlMeta(
+                opt=opt, info=desc, overridden=self._is_overridden(opt)
+            ),
         )
 
     def text_area(
@@ -129,7 +133,12 @@ class Group:
                 disabled=self._is_overridden(opt),
                 **kwargs,
             ),
-            _options._ControlMeta(opt=opt, info=desc, stdin_flag=stdin_flag),
+            _options._ControlMeta(
+                opt=opt,
+                info=desc,
+                stdin_flag=stdin_flag,
+                overridden=self._is_overridden(opt),
+            ),
         )
 
     def _text_option(
@@ -233,7 +242,9 @@ class Group:
             value = parsed
         return (
             self._get_override(opt, value),
-            _options._ControlMeta(opt=opt, info=desc),
+            _options._ControlMeta(
+                opt=opt, info=desc, overridden=self._is_overridden(opt)
+            ),
         )
 
     def dropdown(
@@ -288,7 +299,9 @@ class Group:
                 allow_select_none=allow_select_none,
                 **kwargs,
             ),
-            _options._ControlMeta(opt=opt, info=desc, no_flag=no_flag),
+            _options._ControlMeta(
+                opt=opt, info=desc, no_flag=no_flag, overridden=self._is_overridden(opt)
+            ),
         )
 
     def _override_key(self, opt: _options._OptionLabel) -> str:

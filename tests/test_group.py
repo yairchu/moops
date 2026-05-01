@@ -76,6 +76,17 @@ def test_subgroup_controls_visible_in_parent_help(capsys):
     assert "--casing-style" in capsys.readouterr().out
 
 
+def test_overridden_control_not_in_help(capsys):
+    g = Group(cli_args=["script.py", "--help"])
+    casing = g.subgroup("casing", overrides={"style": "snake_case"})
+    ctrl = casing.dropdown(
+        ["snake_case", "camel_case"], label="Style", help_text="Text style"
+    )
+    with pytest.raises(SystemExit):
+        g.render_cli(ctrl)
+    assert "--casing-style" not in capsys.readouterr().out
+
+
 def test_equals_flag_not_consumed_as_prefix_for_next_arg(capsys):
     g = Group(cli_args=["script.py", "--name=Alice", "unexpected"])
     ctrl = g.text(label="Name", help_text="A name")

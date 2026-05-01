@@ -44,6 +44,7 @@ class _ControlMeta:
     info: str | _OptionDesc
     stdin_flag: str | None = None
     no_flag: str | None = None
+    overridden: bool = False
 
 
 class _ControlRegistry:
@@ -62,6 +63,8 @@ class _ControlRegistry:
                     f"Option {meta.opt.option!r} passed to render_cli() more than once"
                 )
             seen.add(meta.opt.option)
+            if meta.overridden:
+                continue
             if isinstance(meta.info, str):
                 self.flags[meta.opt.option] = meta.info
             else:
