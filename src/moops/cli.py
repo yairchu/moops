@@ -21,6 +21,8 @@ class CliBundle:
     """Controls registered by a subgroup's render_cli, for passing to the parent."""
 
     controls: tuple
+    notebook_name: str = ""
+    option_prefix: str = ""
 
     def _flatten(self):
         for ctrl in self.controls:
@@ -30,8 +32,20 @@ class CliBundle:
                 yield ctrl
 
     def _mime_(self):
+        if not self.notebook_name:
+            return mo.md("Cli bundle with no notebook name")._mime_()
+        has_exposed = any(
+            not ctrl._component_args.get("disabled", False)
+            for ctrl in self._flatten()
+            if hasattr(ctrl, "_component_args")
+        )
+        prefix_note = (
+            f" (configured by the `--{self.option_prefix}*` options)"
+            if has_exposed
+            else ""
+        )
         return mo.md(
-            "`CliBundle` with controls: " + ", ".join(repr(c) for c in self._flatten())
+            f"An embedded instance of `{self.notebook_name}`{prefix_note}."
         )._mime_()
 
 

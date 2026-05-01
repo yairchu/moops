@@ -1,5 +1,7 @@
 import dataclasses
+import inspect
 import marimo as mo
+import pathlib
 import sys
 import typing
 
@@ -37,7 +39,11 @@ class Group:
         """
 
         if self._option_prefix:
-            return cli.CliBundle(controls)
+            return cli.CliBundle(
+                controls,
+                notebook_name=pathlib.Path(inspect.stack()[1].filename).name,
+                option_prefix=self._option_prefix,
+            )
         return self._state.render_cli(controls)
 
     def md(self, text: str) -> mo.Html | None:
