@@ -68,6 +68,14 @@ class _ParsedArgs:
             return _ParseError(f"Option {option} must be one of {keys!r}, got: {raw!r}")
         return _DropdownValue(raw)
 
+    def get_text_area(self, option: str, stdin_flag: str) -> str | _ParseError | None:
+        """Returns stdin content, a parse error, or None if not provided."""
+        if mo.running_in_notebook() or stdin_flag not in self.options:
+            return None
+        if option in self.options:
+            return _ParseError(f"Cannot use both {option} and {stdin_flag}")
+        return sys.stdin.read() if self.options[stdin_flag] is None else None
+
     def get_num(self, key: str) -> float | int | _ParseError | None:
         """Parse number or return a parse error."""
         value = self.options.get(key)

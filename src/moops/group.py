@@ -115,17 +115,13 @@ class Group:
         opt, value, desc = self._text_option(
             value, placeholder, option, help_text, label
         )
-        if self._is_overridden(opt):
-            stdin_flag = None
-        else:
-            stdin_flag = f"{opt.option}-from-stdin"
-            if not mo.running_in_notebook() and stdin_flag in self._state.args.options:
-                if opt.option in self._state.args.options:
-                    self._state.validation_errors[opt.option] = (
-                        f"Cannot use both {opt.option} and {stdin_flag}"
-                    )
-                elif self._state.args.options[stdin_flag] is None:
-                    value = sys.stdin.read()
+        stdin_flag = None if self._is_overridden(opt) else f"{opt.option}-from-stdin"
+        if stdin_flag:
+            match self._state.args.get_text_area(opt.option, stdin_flag):
+                case _cli._ParseError(message=msg):
+                    self._state.validation_errors[opt.option] = msg
+                case str() as v:
+                    value = v
         return self._register(
             mo.ui.text_area(
                 value=value,
