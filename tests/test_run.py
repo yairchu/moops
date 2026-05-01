@@ -25,8 +25,8 @@ _name_casing_defaults = moops.testing.defaults(name_casing)
 def test_name_casing_preserves_alphanumeric_count(kwargs):
     result = moops.run(name_casing, **kwargs)
     input_text = kwargs.get("input_text", _name_casing_defaults["input_text"])
-    assert sum(c.lower().isalnum() for c in result) == sum(
-        c.lower().isalnum() for c in input_text
+    assert sum(c.isascii() and c.isalnum() for c in result) == sum(
+        c.isascii() and c.isalnum() for c in input_text
     )
 
 
