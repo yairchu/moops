@@ -58,9 +58,13 @@ uv run examples/notebook.py
 
 Or `uv run marimo edit` to run as notebooks.
 
-## Missing features
+## TODO
 
 * File inputs
 * Notebook inputs presets: allow saving and loading the current settings of an option group
 * More interfaces
   * HTTP services, OpenAPI?
+* Finalize name
+  * moops may stand for "Marimo Options"
+  * Could also consider Shmoop which would stand for "shell/marimo options"
+  * Other ideas?
