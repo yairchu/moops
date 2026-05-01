@@ -272,6 +272,7 @@ class Group:
         desc = _options._OptionDesc(
             default=value,
             metavar="{" + "|".join(keys) + "}",
+            allowed_values=keys,
             help_text=help_text,
         )
         no_flag = (

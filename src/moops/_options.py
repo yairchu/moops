@@ -10,6 +10,7 @@ class _OptionDesc:
     default: str | None
     metavar: str
     help_text: str
+    allowed_values: list[str] | None = None
 
 
 @dataclasses.dataclass
