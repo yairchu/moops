@@ -192,7 +192,7 @@ class Group:
 
     def number(
         self,
-        start: float = 0,
+        start: float | None = None,
         value: float | None = None,
         option: str | None = None,
         *,
@@ -216,7 +216,7 @@ class Group:
 
     def slider(
         self,
-        start: float = 0,
+        start: float | None = None,
         value: float | None = None,
         option: str | None = None,
         *,
@@ -240,7 +240,7 @@ class Group:
 
     def _numeric_option(
         self,
-        start: float,
+        start: float | None,
         value: float | None,
         option: str | None,
         help_text: str,
