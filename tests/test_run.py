@@ -2,6 +2,7 @@ import asyncio
 
 import marimo as mo
 from examples import name_casing
+from examples import notebook
 import hypothesis
 
 import moops
@@ -28,6 +29,13 @@ def test_name_casing_preserves_alphanumeric_count(kwargs):
     assert not input_text.isascii() or sum(c.isalnum() for c in result) == sum(
         c.isalnum() for c in input_text
     )
+
+
+def test_run_propagates_kwargs_to_subgroup_controls():
+    # Default inputs: name="", be_polite=False, times=1 → greeting "Hey there!"
+    # style="snake_case" must reach the embedded name_casing subgroup
+    assert moops.run(notebook, casing={"style": "snake_case"}) == "hey_there!"
+    assert moops.run(notebook, casing={"style": "camel_case"}) == "HeyThere!"
 
 
 def test_overridden_control_is_disabled():

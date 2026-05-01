@@ -111,6 +111,18 @@ def _(casing_result):
 
 
 @app.cell
+def _(casing_result):
+    result = casing_result.defs.get("result")
+    return (result,)
+
+
+@app.cell
+def _(result):
+    result
+    return
+
+
+@app.cell
 def _():
     return
 
