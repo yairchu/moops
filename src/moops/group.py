@@ -305,8 +305,11 @@ class _GroupState:
         show_help = self.args.is_help
         has_errors = False
         if not mo.running_in_notebook():
+            rendered_opts = registry.flags | registry.str_options
             issues = [
-                *itertools.chain.from_iterable(self.validation_errors.values()),
+                *itertools.chain.from_iterable(
+                    v for k, v in self.validation_errors.items() if k in rendered_opts
+                ),
                 *registry.validate(self.args),
             ]
             if issues:

@@ -85,6 +85,15 @@ def test_equals_flag_not_consumed_as_prefix_for_next_arg(capsys):
     assert "unexpected" in capsys.readouterr().out
 
 
+def test_validation_error_not_shown_for_unrendered_control(capsys):
+    g = Group(cli_args=["script.py", "--count", "not-a-number"])
+    _unrendered = g.number(option="--count", help_text="A count")
+    other = g.switch(label="Verbose", help_text="Enable verbose output")
+    with pytest.raises(SystemExit):
+        g.render_cli(other)
+    assert "Unexpected argument: --count" in capsys.readouterr().out
+
+
 def test_help_usage_line_has_no_double_spaces(capsys):
     g = Group(cli_args=["script.py", "--help"])
     ctrl = g.text(label="Name", help_text="A name")
