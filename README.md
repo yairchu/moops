@@ -69,6 +69,8 @@ def test_name_casing_preserves_alphanumeric_count(kwargs):
 
 `moops.testing.defaults(module)` returns the default value for each string control, useful for filling in omitted inputs when writing assertions.
 
+`from_notebook` covers all controls, including those not passed to `render_cli`. Controls omitted from `render_cli` are notebook-only — they don't appear in CLI help — but they are still overridable via `moops.run` and exercised by property tests. This keeps `from_notebook` consistent with `moops.run`.
+
 ## Running the examples
 
 From the project root:

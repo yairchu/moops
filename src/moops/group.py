@@ -36,6 +36,10 @@ class Group:
 
         Pass all controls created by this group so that the registry stays in
         sync with what is actually live (handles cell reruns and deletions).
+
+        Controls NOT passed here are notebook-only: they won't appear in CLI
+        help or be validated as CLI arguments, but they remain overridable via
+        moops.run() and visible to moops.testing.from_notebook().
         """
 
         if self._option_prefix:
