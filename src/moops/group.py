@@ -115,7 +115,7 @@ class Group:
         opt, value, desc = self._text_option(
             value, placeholder, option, help_text, label
         )
-        if self._get_override(opt, None) is not None:
+        if self._is_overridden(opt):
             stdin_flag = None
         else:
             stdin_flag = f"{opt.option}-from-stdin"
@@ -231,7 +231,7 @@ class Group:
         )
         parsed = self._state.args.get_num(opt.option)
         if isinstance(parsed, _cli._ParseError):
-            if self._get_override(opt, None) is None:
+            if not self._is_overridden(opt):
                 self._state.validation_errors[opt.option] = parsed.message
         elif parsed is not None:
             value = parsed
