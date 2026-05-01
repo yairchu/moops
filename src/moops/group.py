@@ -169,15 +169,15 @@ class Group:
     ) -> mo.ui.number:
         """Create a number input UI element that maps to a CLI option."""
 
-        opt, value, meta = self._numeric_option(start, value, option, help_text, label)
+        value, meta = self._numeric_option(start, value, option, help_text, label)
         return self._register(
             mo.ui.number(
                 start=start,
                 stop=stop,
                 step=step,
                 value=value,
-                label=opt.label,
-                disabled=self._is_overridden(opt),
+                label=meta.opt.label,
+                disabled=self._is_overridden(meta.opt),
                 **kwargs,
             ),
             meta,
@@ -197,15 +197,15 @@ class Group:
     ) -> mo.ui.slider:
         """Create a slider UI element that maps to a CLI option."""
 
-        opt, value, meta = self._numeric_option(start, value, option, help_text, label)
+        value, meta = self._numeric_option(start, value, option, help_text, label)
         return self._register(
             mo.ui.slider(
                 start=start,
                 stop=stop,
                 step=step,
                 value=value,
-                label=opt.label,
-                disabled=self._is_overridden(opt),
+                label=meta.opt.label,
+                disabled=self._is_overridden(meta.opt),
                 **kwargs,
             ),
             meta,
@@ -218,7 +218,7 @@ class Group:
         option: str | None,
         help_text: str,
         label: str | None,
-    ) -> tuple[_options._OptionLabel, float, _options._ControlMeta]:
+    ) -> tuple[float, _options._ControlMeta]:
         """Parse a numeric CLI option."""
 
         if value is None:
@@ -236,7 +236,6 @@ class Group:
         elif parsed is not None:
             value = parsed
         return (
-            opt,
             self._get_override(opt, value),
             _options._ControlMeta(opt=opt, info=desc),
         )
