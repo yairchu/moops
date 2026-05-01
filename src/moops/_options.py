@@ -1,6 +1,6 @@
 import dataclasses
 import typing
-from . import cli
+from . import interface
 
 
 @dataclasses.dataclass
@@ -55,7 +55,7 @@ class _ControlRegistry:
         self.flags: dict[str, str] = {}
         self.str_options: dict[str, _OptionDesc] = {}
         seen: set[str] = set()
-        for ctrl in cli.CliBundle(controls)._flatten():
+        for ctrl in interface.Interface(controls)._flatten():
             meta = control_meta.get(id(ctrl))
             if meta is None:
                 raise ValueError(f"Control {ctrl!r} was not created by this Group")
@@ -92,7 +92,7 @@ class _ControlRegistry:
         return "\n\n".join(segments)
 
     def validate(
-        self, args: cli._ParsedArgs, validation_errors: dict[str, str]
+        self, args: interface._ParsedArgs, validation_errors: dict[str, str]
     ) -> typing.Iterator[str]:
         rendered = self.flags | self.str_options
         yield from (v for k, v in validation_errors.items() if k in rendered)
@@ -106,5 +106,5 @@ class _ControlRegistry:
             elif k in self.str_options:
                 if v is None:
                     yield f"Option {k} requires a value"
-            elif k not in cli.help_flags:
+            elif k not in interface.help_flags:
                 yield f"{unexp_text}{k}"

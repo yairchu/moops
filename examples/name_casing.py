@@ -9,8 +9,8 @@ app = marimo.App(width="full")
 
 @app.cell
 def _(args, input_text, mode_dropdown):
-    cli = args.render_cli(mode_dropdown, input_text)  # noqa: F841
-    cli
+    interface = args.render_cli(mode_dropdown, input_text)
+    interface
     return
 
 

@@ -17,7 +17,7 @@ class _DropdownValue:
 
 
 @dataclasses.dataclass
-class CliBundle:
+class Interface:
     """Controls registered by a subgroup's render_cli, for passing to the parent."""
 
     controls: tuple
@@ -26,7 +26,7 @@ class CliBundle:
 
     def _flatten(self):
         for ctrl in self.controls:
-            if isinstance(ctrl, CliBundle):
+            if isinstance(ctrl, Interface):
                 yield from ctrl._flatten()
             else:
                 yield ctrl

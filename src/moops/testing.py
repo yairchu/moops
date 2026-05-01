@@ -3,12 +3,12 @@ import typing
 
 from hypothesis import strategies as st
 
-from . import _options, cli, group
+from . import _options, interface, group
 
 
 def _discover(module: types.ModuleType) -> dict[int, _options._ControlMeta]:
     args = object.__new__(group.Group)
-    args._state = group._GroupState(args=cli._ParsedArgs.parse(["run"]))
+    args._state = group._GroupState(args=interface._ParsedArgs.parse(["run"]))
     args._overrides = {}
     args._option_prefix = ""
     module.app.run(defs={"args": args})
