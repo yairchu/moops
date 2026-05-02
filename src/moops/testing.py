@@ -1,4 +1,3 @@
-import contextlib
 import types
 import typing
 
@@ -29,7 +28,7 @@ def defaults(module: types.ModuleType) -> dict[str, typing.Any]:
         target = result.setdefault(prefix, {}) if prefix else result
         assert key not in target, f"Duplicate control key: {key!r}"
         if hasattr(meta.cli, "default"):
-            target[key] = meta.cli.default # type: ignore
+            target[key] = meta.cli.default  # type: ignore
     return result
 
 
