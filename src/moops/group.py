@@ -91,7 +91,11 @@ class Group:
                 disabled=self._is_overridden(opt),
                 **kwargs,
             ),
-            _options.ControlMeta(cli=cli, overridden=self._is_overridden(opt)),
+            _options.ControlMeta(
+                cli=cli,
+                overridden=self._is_overridden(opt),
+                option_prefix=self._option_prefix,
+            ),
         )
 
     def text(
@@ -118,7 +122,11 @@ class Group:
                 disabled=self._is_overridden(opt),
                 **kwargs,
             ),
-            _options.ControlMeta(cli=cli, overridden=self._is_overridden(opt)),
+            _options.ControlMeta(
+                cli=cli,
+                overridden=self._is_overridden(opt),
+                option_prefix=self._option_prefix,
+            ),
         )
 
     def text_area(
@@ -151,7 +159,11 @@ class Group:
                 disabled=self._is_overridden(opt),
                 **kwargs,
             ),
-            _options.ControlMeta(cli=cli, overridden=self._is_overridden(opt)),
+            _options.ControlMeta(
+                cli=cli,
+                overridden=self._is_overridden(opt),
+                option_prefix=self._option_prefix,
+            ),
         )
 
     def _text_desc(
@@ -225,7 +237,7 @@ class Group:
         cli = _options.NumberControl(
             opt=opt,
             desc=_options.OptionDesc(
-                default=str(value),
+                default=value,
                 metavar=opt.label.upper().replace(" ", "_"),
                 help_text=help_text,
             ),
@@ -294,7 +306,11 @@ class Group:
                 allow_select_none=allow_select_none,
                 **kwargs,
             ),
-            _options.ControlMeta(cli=cli, overridden=self._is_overridden(opt)),
+            _options.ControlMeta(
+                cli=cli,
+                overridden=self._is_overridden(opt),
+                option_prefix=self._option_prefix,
+            ),
         )
 
     def _override_key(self, opt: _options.OptionLabel) -> str:

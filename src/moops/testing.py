@@ -17,17 +17,20 @@ def from_notebook(module: types.ModuleType) -> st.SearchStrategy[dict[str, typin
     return _strategies_from_meta(_discover(module))
 
 
-def defaults(module: types.ModuleType) -> dict[str, str | None]:
-    """Return the default value for each str control in the notebook."""
-    result: dict[str, str | None] = {}
+def defaults(module: types.ModuleType) -> dict[str, typing.Any]:
+    """Return the default value for each control, nested by subgroup prefix."""
+    result: dict[str, typing.Any] = {}
     for meta in _discover(module).values():
-        if meta.overridden or isinstance(meta.cli, _options.FlagControl):
+        if meta.overridden:
             continue
         info = meta.cli.cli_info()
-        assert isinstance(info, _options.OptionDesc)
+        if not isinstance(info, _options.OptionDesc):
+            continue
         key = meta.cli.opt.label.lower().replace(" ", "_")
-        assert key not in result, f"Duplicate control key: {key!r}"
-        result[key] = info.default
+        prefix = meta.option_prefix.rstrip("-")
+        target = result.setdefault(prefix, {}) if prefix else result
+        assert key not in target, f"Duplicate control key: {key!r}"
+        target[key] = info.default
     return result
 
 

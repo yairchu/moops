@@ -15,7 +15,7 @@ from . import _parse, interface
 class OptionDesc:
     """Metadata for CLI options with defaults and help text."""
 
-    default: str | None
+    default: typing.Any
     metavar: str
     help_text: str
 
@@ -217,6 +217,7 @@ class DropdownControl(CliControl):
 class ControlMeta:
     cli: CliControl
     overridden: bool = False
+    option_prefix: str = ""
     control_ref: weakref.ref[typing.Any] | None = dataclasses.field(
         default=None, repr=False, compare=False
     )
@@ -260,7 +261,7 @@ class ControlRegistry:
         opts_help = [f"  {k}: {v}" for k, v in self.flags.items()]
         opts_help.extend(
             f"  {k} {v.metavar}: {v.help_text}"
-            f"{f' (default: {v.default})' if v.default else ''}"
+            f"{f' (default: {v.default})' if v.default is not None else ''}"
             for k, v in self.str_options.items()
         )
         if opts_help:
