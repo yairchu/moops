@@ -7,16 +7,6 @@ help_flags = ["--help", "-h"]
 
 
 @dataclasses.dataclass
-class ParseError:
-    message: str
-
-
-@dataclasses.dataclass
-class DropdownValue:
-    value: str | None
-
-
-@dataclasses.dataclass
 class ParsedArgs:
     command: str
     options: dict[str, str | None]

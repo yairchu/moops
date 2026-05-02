@@ -82,11 +82,9 @@ class Group:
 
         opt = self._make_opt(label=label, option=flag, prefix="no-" if value else None)
         cli = _options.FlagControl(opt=opt, help_text=help_text)
-        if cli.parse(self._state.args):
-            value = not value
         return self._state.register(
             mo.ui.switch(
-                value=self._get_override(opt, value),
+                value=self._get_value(opt, cli, value),
                 label=opt.label,
                 disabled=self._is_overridden(opt),
                 **kwargs,
@@ -117,10 +115,9 @@ class Group:
             help_text=help_text,
             default=value,
         )
-        parsed = cli.parse(self._state.args)
         return self._state.register(
             mo.ui.text(
-                value=self._get_override(opt, value if parsed is None else parsed),
+                value=self._get_value(opt, cli, value),
                 label=opt.label,
                 disabled=self._is_overridden(opt),
                 **kwargs,
@@ -151,16 +148,9 @@ class Group:
             help_text=help_text,
             default=value,
         )
-        match cli.parse(self._state.args):
-            case _parse.ParseError(message=msg):
-                self._state.validation_errors[opt.option] = msg
-            case str() as v:
-                value = v
-            case x:
-                assert x is None, f"Unexpected parse result: {x!r}"
         return self._state.register(
             mo.ui.text_area(
-                value=self._get_override(opt, value),
+                value=self._get_value(opt, cli, value),
                 label=opt.label,
                 disabled=self._is_overridden(opt),
                 **kwargs,
@@ -237,15 +227,7 @@ class Group:
             help_text=help_text,
             default=value,
         )
-        match cli.parse(self._state.args):
-            case _parse.ParseError(message=msg):
-                if not self._is_overridden(opt):
-                    self._state.validation_errors[opt.option] = msg
-            case None:
-                pass
-            case v:
-                value = v
-        return cli, self._get_override(opt, value)
+        return cli, self._get_value(opt, cli, value)
 
     def dropdown(
         self,
@@ -272,19 +254,11 @@ class Group:
             default=value,
             help_text=help_text,
         )
-        override = self._get_override(opt, None)
-        if override is None:
-            match cli.parse(self._state.args):
-                case _parse.ParseError(message=msg):
-                    self._state.validation_errors[opt.option] = msg
-                case _parse.DropdownValue(value=v):
-                    value = v
-                case _:
-                    pass
-        else:
+        if self._is_overridden(opt):
             # mo.ui.dropdown doesn't support disabled; filter to one option as a
             # workaround so the user can't change the value. Remove once marimo adds
             # disabled support for dropdowns.
+            override = self._overrides[self._override_key(opt)]
             options = (
                 {override: options[override]}
                 if isinstance(options, dict)
@@ -293,7 +267,7 @@ class Group:
         return self._state.register(
             mo.ui.dropdown(
                 options=options,
-                value=self._get_override(opt, value),
+                value=self._get_value(opt, cli, value),
                 label=opt.label,
                 allow_select_none=allow_select_none,
                 **kwargs,
@@ -308,10 +282,24 @@ class Group:
     def _override_key(self, opt: _options.OptionLabel) -> str:
         return opt.label.lower().replace(" ", "_")
 
-    def _get_override(
-        self, opt: _options.OptionLabel, default: typing.Any
+    def _get_value(
+        self,
+        opt: _options.OptionLabel,
+        control: _options.CliControl,
+        default: typing.Any,
     ) -> typing.Any:
-        return self._overrides.get(self._override_key(opt), default)
+        key = self._override_key(opt)
+        if key in self._overrides:
+            return self._overrides[key]
+        val = default
+        match control.parse(self._state.args):
+            case _options.ParseError(message=msg):
+                self._state.validation_errors[opt.option] = msg
+            case _options.ParseResult(value=v):
+                val = v
+            case None:
+                pass
+        return val
 
     def _is_overridden(self, opt: _options.OptionLabel) -> bool:
         return self._override_key(opt) in self._overrides

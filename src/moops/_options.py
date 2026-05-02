@@ -38,6 +38,16 @@ class OptionLabel:
 
 
 @dataclasses.dataclass
+class ParseError:
+    message: str
+
+
+@dataclasses.dataclass
+class ParseResult:
+    value: typing.Any
+
+
+@dataclasses.dataclass
 class CliControl(abc.ABC):
     """CLI interface for a single UI control."""
 
@@ -53,7 +63,7 @@ class CliControl(abc.ABC):
         return set()
 
     @abc.abstractmethod
-    def parse(self, args: _parse.ParsedArgs) -> typing.Any:
+    def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         """Parse from CLI args. Returns value, ParseError, or None if not provided."""
 
     @abc.abstractmethod
@@ -73,8 +83,8 @@ class FlagControl(CliControl):
     def flags(self) -> set[str]:
         return {self.opt.option}
 
-    def parse(self, args: _parse.ParsedArgs) -> bool | None:
-        return True if self.opt.option in args.options else None
+    def parse(self, args: _parse.ParsedArgs) -> ParseResult | None:
+        return ParseResult(True) if self.opt.option in args.options else None
 
     def strategy(self) -> st.SearchStrategy:
         return st.booleans()
@@ -103,8 +113,9 @@ class ValueControl(CliControl):
 class TextControl(ValueControl):
     default: str
 
-    def parse(self, args: _parse.ParsedArgs) -> str | None:
-        return args.options.get(self.opt.option)
+    def parse(self, args: _parse.ParsedArgs) -> ParseResult | None:
+        res = args.options.get(self.opt.option)
+        return None if res is None else ParseResult(res)
 
     def strategy(self) -> st.SearchStrategy:
         return st.one_of(st.none(), st.text())
@@ -127,17 +138,18 @@ class TextAreaControl(ValueControl):
     def flags(self) -> set[str]:
         return {self._stdin_flag}
 
-    def parse(self, args: _parse.ParsedArgs) -> str | _parse.ParseError | None:
+    def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         if not mo.running_in_notebook() and self._stdin_flag in args.options:
             assert args.options[self._stdin_flag] is None, (
                 f"{self._stdin_flag} should not take a value"
             )
             if self.opt.option in args.options:
-                return _parse.ParseError(
+                return ParseError(
                     f"Cannot use both {self.opt.option} and {self._stdin_flag}"
                 )
-            return sys.stdin.read()
-        return args.options.get(self.opt.option)
+            return ParseResult(sys.stdin.read())
+        res = args.options.get(self.opt.option)
+        return None if res is None else ParseResult(res)
 
     def strategy(self) -> st.SearchStrategy:
         return st.one_of(st.none(), st.text())
@@ -156,17 +168,17 @@ class TextAreaControl(ValueControl):
 class NumberControl(ValueControl):
     default: float | int | None
 
-    def parse(self, args: _parse.ParsedArgs) -> float | int | _parse.ParseError | None:
+    def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         value = args.options.get(self.opt.option)
         if value is None:
             return None
         try:
             num = float(value)
         except ValueError:
-            return _parse.ParseError(
+            return ParseError(
                 f"Option {self.opt.option} expects a number, got: {value!r}"
             )
-        return int(num) if math.isfinite(num) and num == int(num) else num
+        return ParseResult(int(num) if math.isfinite(num) and num == int(num) else num)
 
     def strategy(self) -> st.SearchStrategy:
         return st.one_of(
@@ -202,25 +214,21 @@ class DropdownControl(CliControl):
         no_flag = self._no_flag
         return {no_flag} if no_flag else set()
 
-    def parse(
-        self, args: _parse.ParsedArgs
-    ) -> _parse.DropdownValue | _parse.ParseError | None:
+    def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         no_flag = self._no_flag
         if no_flag and no_flag in args.options:
             if self.opt.option in args.options:
-                return _parse.ParseError(
-                    f"Cannot use both {self.opt.option} and {no_flag}"
-                )
-            return _parse.DropdownValue(None)
+                return ParseError(f"Cannot use both {self.opt.option} and {no_flag}")
+            return ParseResult(None)
         raw = args.options.get(self.opt.option)
         if raw is None:
             return None
         if raw not in self.allowed_values:
-            return _parse.ParseError(
+            return ParseError(
                 f"Option {self.opt.option} must be one of"
                 f" {self.allowed_values!r}, got: {raw!r}"
             )
-        return _parse.DropdownValue(raw)
+        return ParseResult(raw)
 
     def strategy(self) -> st.SearchStrategy:
         return st.sampled_from(
