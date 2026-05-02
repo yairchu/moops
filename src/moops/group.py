@@ -36,11 +36,7 @@ class Group:
         """
         child = object.__new__(Group)
         child._state = self._state
-        parent_overrides = self._overrides.get(prefix, {})
-        child._overrides = {
-            **(parent_overrides if isinstance(parent_overrides, dict) else {}),
-            **(overrides or {}),
-        }
+        child._overrides = {**self._overrides.get(prefix, {}), **(overrides or {})}
         child._option_prefix = f"{prefix}-"
         return child
 
