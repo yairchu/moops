@@ -41,8 +41,7 @@ def test_switch_override_uses_base_option_name() -> None:
 def test_label_derived_from_option_has_no_leading_spaces() -> None:
     g = Group(cli_args=["script.py"])
     ctrl = g.text(option="--my-option", help_text="Some option")
-    label = g._state.control_meta[id(ctrl)].cli.opt.label  # type: ignore
-    assert not label.startswith(" ")
+    assert not ctrl._args.label.startswith(" ")  # type: ignore
 
 
 def test_duplicate_control_error_mentions_interface() -> None:

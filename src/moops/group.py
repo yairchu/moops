@@ -77,7 +77,9 @@ class Group:
         """Create a switch UI element that maps to a CLI flag."""
 
         opt = self._make_opt(label=label, option=flag, prefix="no-" if value else None)
-        cli = _options.FlagControl(opt=opt, help_text=help_text, default=value)
+        cli = _options.FlagControl(
+            option=opt.option, help_text=help_text, default=value
+        )
         return self._state.register(
             mo.ui.switch(
                 value=self._get_value(opt, cli, value),
@@ -106,7 +108,7 @@ class Group:
 
         opt = self._make_opt(label=label, option=option)
         cli = _options.TextControl(
-            opt=opt,
+            option=opt.option,
             metavar=placeholder or opt.label.upper().replace(" ", "_"),
             help_text=help_text,
             default=value,
@@ -139,7 +141,7 @@ class Group:
 
         opt = self._make_opt(label=label, option=option)
         cli = _options.TextAreaControl(
-            opt=opt,
+            option=opt.option,
             metavar=placeholder or opt.label.upper().replace(" ", "_"),
             help_text=help_text,
             default=value,
@@ -170,16 +172,16 @@ class Group:
     ) -> mo.ui.number:
         """Create a number input UI element that maps to a CLI option."""
 
-        cli, value = self._numeric_cli(start, value, option, help_text, label)
+        opt, cli, value = self._numeric_cli(start, value, option, help_text, label)
         return self._state.register(
             mo.ui.number(
                 start=start,
                 value=value,
-                label=cli.opt.label,
-                disabled=self._is_overridden(cli.opt),
+                label=opt.label,
+                disabled=self._is_overridden(opt),
                 **kwargs,
             ),
-            _options.ControlMeta(cli=cli, overridden=self._is_overridden(cli.opt)),
+            _options.ControlMeta(cli=cli, overridden=self._is_overridden(opt)),
         )
 
     def slider(
@@ -194,16 +196,16 @@ class Group:
     ) -> mo.ui.slider:
         """Create a slider UI element that maps to a CLI option."""
 
-        cli, value = self._numeric_cli(start, value, option, help_text, label)
+        opt, cli, value = self._numeric_cli(start, value, option, help_text, label)
         return self._state.register(
             mo.ui.slider(
                 start=start,
                 value=value,
-                label=cli.opt.label,
-                disabled=self._is_overridden(cli.opt),
+                label=opt.label,
+                disabled=self._is_overridden(opt),
                 **kwargs,
             ),
-            _options.ControlMeta(cli=cli, overridden=self._is_overridden(cli.opt)),
+            _options.ControlMeta(cli=cli, overridden=self._is_overridden(opt)),
         )
 
     def _numeric_cli(
@@ -213,17 +215,17 @@ class Group:
         option: str | None,
         help_text: str,
         label: str | None,
-    ) -> tuple[_options.NumberControl, float | None]:
+    ) -> tuple[_options.OptionLabel, _options.NumberControl, float | None]:
         if value is None:
             value = start
         opt = self._make_opt(label=label, option=option)
         cli = _options.NumberControl(
-            opt=opt,
+            option=opt.option,
             metavar=opt.label.upper().replace(" ", "_"),
             help_text=help_text,
             default=value,
         )
-        return cli, self._get_value(opt, cli, value)
+        return opt, cli, self._get_value(opt, cli, value)
 
     def dropdown(
         self,
@@ -244,7 +246,7 @@ class Group:
         if value is None and not allow_select_none:
             value, *_ = keys
         cli = _options.DropdownControl(
-            opt=opt,
+            option=opt.option,
             allowed_values=keys,
             supports_none=allow_select_none,
             default=value,

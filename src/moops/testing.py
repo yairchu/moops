@@ -13,7 +13,7 @@ def _discover(module: types.ModuleType) -> dict[int, _options.ControlMeta]:
 
 
 def _override_key(meta: _options.ControlMeta) -> str:
-    option = meta.cli.opt.option.lstrip("-")
+    option = meta.cli.option.lstrip("-")
     prefix = meta.option_prefix
     if prefix:
         option = option[len(prefix) :]
@@ -33,9 +33,9 @@ def defaults(module: types.ModuleType) -> dict[str, typing.Any]:
     for meta in _discover(module).values():
         if meta.overridden:
             continue
-        key = _override_key(meta)
         prefix = meta.option_prefix.rstrip("-")
         target = result.setdefault(prefix, {}) if prefix else result
+        key = _override_key(meta)
         assert key not in target, f"Duplicate control key: {key!r}"
         if hasattr(meta.cli, "default"):
             target[key] = meta.cli.default  # type: ignore

@@ -73,7 +73,7 @@ class GroupState:
     def _missing_from_interface(self, controls: tuple[typing.Any]) -> list[str]:
         interface_ids = {id(ctrl) for ctrl in interface.Interface(controls).flatten()}
         return [
-            meta.cli.opt.option
+            meta.cli.option
             for ctrl_id, meta in self.control_meta.items()
             if meta.control_ref is not None
             and meta.control_ref() is not None

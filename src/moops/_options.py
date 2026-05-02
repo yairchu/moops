@@ -51,7 +51,7 @@ class ParseResult:
 class CliControl(abc.ABC):
     """CLI interface for a single UI control."""
 
-    opt: OptionLabel
+    option: str
     help_text: str
 
     def options(self) -> set[str]:
@@ -84,21 +84,19 @@ class FlagControl(CliControl):
     default: bool = False
 
     def flags(self) -> set[str]:
-        return {self.opt.option}
+        return {self.option}
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | None:
-        if self.opt.option not in args.options:
-            return None
-        return ParseResult(not self.default)
+        return ParseResult(not self.default) if self.option in args.options else None
 
     def strategy(self) -> st.SearchStrategy:
         return st.booleans()
 
     def format_usage_parts(self) -> list[str]:
-        return [f"[{self.opt.option}]"]
+        return [f"[{self.option}]"]
 
     def format_help_lines(self) -> list[str]:
-        return [f"  {self.opt.option}: {self.help_text}"]
+        return [f"  {self.option}: {self.help_text}"]
 
 
 @dataclasses.dataclass
@@ -108,10 +106,10 @@ class ValueControl(CliControl):
     metavar: str
 
     def options(self) -> set[str]:
-        return {self.opt.option}
+        return {self.option}
 
     def format_usage_parts(self) -> list[str]:
-        return [f"[{self.opt.option} {self.metavar}]"]
+        return [f"[{self.option} {self.metavar}]"]
 
 
 @dataclasses.dataclass
@@ -119,14 +117,14 @@ class TextControl(ValueControl):
     default: str
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | None:
-        res = args.options.get(self.opt.option)
+        res = args.options.get(self.option)
         return None if res is None else ParseResult(res)
 
     def strategy(self) -> st.SearchStrategy:
         return st.one_of(st.none(), st.text())
 
     def format_help_lines(self) -> list[str]:
-        line = f"  {self.opt.option} {self.metavar}: {self.help_text}"
+        line = f"  {self.option} {self.metavar}: {self.help_text}"
         if self.default:
             line += f" (default: {self.default})"
         return [line]
@@ -138,7 +136,7 @@ class TextAreaControl(ValueControl):
 
     @property
     def _stdin_flag(self) -> str:
-        return f"{self.opt.option}-from-stdin"
+        return f"{self.option}-from-stdin"
 
     def flags(self) -> set[str]:
         return {self._stdin_flag}
@@ -148,25 +146,25 @@ class TextAreaControl(ValueControl):
             assert args.options[self._stdin_flag] is None, (
                 f"{self._stdin_flag} should not take a value"
             )
-            if self.opt.option in args.options:
+            if self.option in args.options:
                 return ParseError(
-                    f"Cannot use both {self.opt.option} and {self._stdin_flag}"
+                    f"Cannot use both {self.option} and {self._stdin_flag}"
                 )
             return ParseResult(sys.stdin.read())
-        res = args.options.get(self.opt.option)
+        res = args.options.get(self.option)
         return None if res is None else ParseResult(res)
 
     def strategy(self) -> st.SearchStrategy:
         return st.one_of(st.none(), st.text())
 
     def format_usage_parts(self) -> list[str]:
-        return [f"[{self.opt.option} {self.metavar}]", f"[{self._stdin_flag}]"]
+        return [f"[{self.option} {self.metavar}]", f"[{self._stdin_flag}]"]
 
     def format_help_lines(self) -> list[str]:
-        line = f"  {self.opt.option} {self.metavar}: {self.help_text}"
+        line = f"  {self.option} {self.metavar}: {self.help_text}"
         if self.default:
             line += f" (default: {self.default})"
-        return [line, f"  {self._stdin_flag}: Read {self.opt.label} from stdin"]
+        return [line, f"  {self._stdin_flag}: Read {self.option} from stdin"]
 
 
 @dataclasses.dataclass
@@ -174,15 +172,13 @@ class NumberControl(ValueControl):
     default: float | int | None
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
-        value = args.options.get(self.opt.option)
+        value = args.options.get(self.option)
         if value is None:
             return None
         try:
             num = float(value)
         except ValueError:
-            return ParseError(
-                f"Option {self.opt.option} expects a number, got: {value!r}"
-            )
+            return ParseError(f"Option {self.option} expects a number, got: {value!r}")
         return ParseResult(int(num) if math.isfinite(num) and num == int(num) else num)
 
     def strategy(self) -> st.SearchStrategy:
@@ -192,7 +188,7 @@ class NumberControl(ValueControl):
         )
 
     def format_help_lines(self) -> list[str]:
-        line = f"  {self.opt.option} {self.metavar}: {self.help_text}"
+        line = f"  {self.option} {self.metavar}: {self.help_text}"
         if self.default is not None:
             line += f" (default: {self.default})"
         return [line]
@@ -205,7 +201,7 @@ class DropdownControl(CliControl):
     default: str | None
 
     def options(self) -> set[str]:
-        return {self.opt.option}
+        return {self.option}
 
     @property
     def has_no_flag(self) -> bool:
@@ -213,7 +209,7 @@ class DropdownControl(CliControl):
 
     @property
     def _no_flag(self) -> str | None:
-        return f"--no-{self.opt.option.lstrip('-')}" if self.has_no_flag else None
+        return f"--no-{self.option.lstrip('-')}" if self.has_no_flag else None
 
     def flags(self) -> set[str]:
         no_flag = self._no_flag
@@ -222,15 +218,15 @@ class DropdownControl(CliControl):
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         no_flag = self._no_flag
         if no_flag and no_flag in args.options:
-            if self.opt.option in args.options:
-                return ParseError(f"Cannot use both {self.opt.option} and {no_flag}")
+            if self.option in args.options:
+                return ParseError(f"Cannot use both {self.option} and {no_flag}")
             return ParseResult(None)
-        raw = args.options.get(self.opt.option)
+        raw = args.options.get(self.option)
         if raw is None:
             return None
         if raw not in self.allowed_values:
             return ParseError(
-                f"Option {self.opt.option} must be one of"
+                f"Option {self.option} must be one of"
                 f" {self.allowed_values!r}, got: {raw!r}"
             )
         return ParseResult(raw)
@@ -241,7 +237,7 @@ class DropdownControl(CliControl):
         )
 
     def format_usage_parts(self) -> list[str]:
-        parts = [f"[{self.opt.option} {self._values_text()}]"]
+        parts = [f"[{self.option} {self._values_text()}]"]
         if self._no_flag:
             parts.append(f"[{self._no_flag}]")
         return parts
@@ -250,12 +246,12 @@ class DropdownControl(CliControl):
         return "{" + "|".join(self.allowed_values) + "}"
 
     def format_help_lines(self) -> list[str]:
-        line = f"  {self.opt.option} {self._values_text()}: {self.help_text}"
+        line = f"  {self.option} {self._values_text()}: {self.help_text}"
         if self.default is not None:
             line += f" (default: {self.default})"
         lines = [line]
         if self._no_flag:
-            lines.append(f"  {self._no_flag}: Set {self.opt.label} to none")
+            lines.append(f"  {self._no_flag}: Set {self.option} to none")
         return lines
 
 
@@ -283,12 +279,11 @@ class ControlRegistry:
             meta = control_meta.get(id(ctrl))
             if meta is None:
                 raise ValueError(f"Control {ctrl!r} was not created by this Group")
-            if meta.cli.opt.option in seen:
+            if meta.cli.option in seen:
                 raise ValueError(
-                    f"Option {meta.cli.opt.option!r} "
-                    f"passed to interface() more than once"
+                    f"Option {meta.cli.option!r} passed to interface() more than once"
                 )
-            seen.add(meta.cli.opt.option)
+            seen.add(meta.cli.option)
             if meta.overridden:
                 continue
             self.value_options.update(meta.cli.options())
