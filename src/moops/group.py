@@ -4,7 +4,7 @@ import typing
 
 import marimo as mo
 
-from . import _options, _parse, _state, interface
+from . import _naming, _options, _parse, _state, interface
 
 
 class Group:
@@ -215,7 +215,7 @@ class Group:
         option: str | None,
         help_text: str,
         label: str | None,
-    ) -> tuple[_options.OptionLabel, _options.NumberControl, float | None]:
+    ) -> tuple[_naming.OptionLabel, _options.NumberControl, float | None]:
         if value is None:
             value = start
         opt = self._make_opt(label=label, option=option)
@@ -277,7 +277,7 @@ class Group:
             ),
         )
 
-    def _override_key(self, opt: _options.OptionLabel) -> str:
+    def _override_key(self, opt: _naming.OptionLabel) -> str:
         option = opt.option.lstrip("-")
         if self._option_prefix:
             option = option[len(self._option_prefix) :]
@@ -287,7 +287,7 @@ class Group:
 
     def _get_value(
         self,
-        opt: _options.OptionLabel,
+        opt: _naming.OptionLabel,
         control: _options.CliControl,
         default: typing.Any,
     ) -> typing.Any:
@@ -304,15 +304,15 @@ class Group:
                 pass
         return val
 
-    def _is_overridden(self, opt: _options.OptionLabel) -> bool:
+    def _is_overridden(self, opt: _naming.OptionLabel) -> bool:
         return self._override_key(opt) in self._overrides
 
     def _make_opt(
         self, label: str | None, option: str | None, prefix: str | None = None
-    ) -> _options.OptionLabel:
-        opt = _options.OptionLabel.make(label=label, option=option, prefix=prefix)
+    ) -> _naming.OptionLabel:
+        opt = _naming.OptionLabel.make(label=label, option=option, prefix=prefix)
         if self._option_prefix:
-            opt = _options.OptionLabel(
+            opt = _naming.OptionLabel(
                 label=opt.label,
                 option=f"--{self._option_prefix}{opt.option.lstrip('-')}",
             )
