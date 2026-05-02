@@ -38,6 +38,11 @@ def test_run_propagates_kwargs_to_subgroup_controls() -> None:
     assert moops.run(notebook, casing={"style": "camel_case"}) == "HeyThere!"
 
 
+def test_defaults_supports_run_form() -> None:
+    d = moops.testing.defaults(notebook)
+    assert moops.run(notebook, **d) is not None
+
+
 def test_overridden_control_is_disabled() -> None:
     async def _run() -> None:
         args = moops.Group(cli_args=["script.py"])
