@@ -2,6 +2,7 @@ import dataclasses
 import sys
 import typing
 import warnings
+import weakref
 
 import marimo as mo
 
@@ -15,6 +16,11 @@ class GroupState:
     control_meta: dict[int, _options.ControlMeta] = dataclasses.field(
         default_factory=lambda: {}
     )
+
+    def register(self, control: typing.Any, meta: _options.ControlMeta) -> typing.Any:
+        meta.control_ref = weakref.ref(control)
+        self.control_meta[id(control)] = meta
+        return control
 
     def interface_info(self, controls: tuple[typing.Any]) -> mo.Html | None:
         registry = _options.ControlRegistry(controls, self.control_meta)

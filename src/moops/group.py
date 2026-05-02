@@ -1,7 +1,6 @@
 import inspect
 import pathlib
 import typing
-import weakref
 
 import marimo as mo
 
@@ -88,7 +87,7 @@ class Group:
         opt = self._make_opt(label=label, option=flag, prefix="no-" if value else None)
         if opt.option in self._state.args.options:
             value = not value
-        return self._register(
+        return self._state.register(
             mo.ui.switch(
                 value=self._get_override(opt, value),
                 label=opt.label,
@@ -99,11 +98,6 @@ class Group:
                 opt=opt, info=help_text, overridden=self._is_overridden(opt)
             ),
         )
-
-    def _register(self, control: typing.Any, meta: _options.ControlMeta) -> typing.Any:
-        meta.control_ref = weakref.ref(control)
-        self._state.control_meta[id(control)] = meta
-        return control
 
     def text(
         self,
@@ -120,7 +114,7 @@ class Group:
         opt, value, desc = self._text_option(
             value, placeholder, option, help_text, label
         )
-        return self._register(
+        return self._state.register(
             mo.ui.text(
                 value=value,
                 label=opt.label,
@@ -156,7 +150,7 @@ class Group:
                     value = v
                 case _:
                     pass
-        return self._register(
+        return self._state.register(
             mo.ui.text_area(
                 value=value,
                 label=opt.label,
@@ -203,7 +197,7 @@ class Group:
         """Create a number input UI element that maps to a CLI option."""
 
         value, meta = self._numeric_option(start, value, option, help_text, label)
-        return self._register(
+        return self._state.register(
             mo.ui.number(
                 start=start,
                 value=value,
@@ -227,7 +221,7 @@ class Group:
         """Create a slider UI element that maps to a CLI option."""
 
         value, meta = self._numeric_option(start, value, option, help_text, label)
-        return self._register(
+        return self._state.register(
             mo.ui.slider(
                 start=start,
                 value=value,
@@ -316,7 +310,7 @@ class Group:
                 if isinstance(options, dict)
                 else [override]
             )
-        return self._register(
+        return self._state.register(
             mo.ui.dropdown(
                 options=options,
                 value=self._get_override(opt, value),
