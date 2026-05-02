@@ -8,7 +8,7 @@ import weakref
 import marimo as mo
 from hypothesis import strategies as st
 
-from . import _parse, interface
+from . import _parse
 
 
 @dataclasses.dataclass
@@ -233,62 +233,6 @@ class DropdownControl(CliControl):
 class ControlMeta:
     cli: CliControl
     overridden: bool = False
-    option_prefix: str = ""
     control_ref: weakref.ref[typing.Any] | None = dataclasses.field(
         default=None, repr=False, compare=False
     )
-
-
-class ControlRegistry:
-    """Resolved set of flags and options built from a group's live controls."""
-
-    def __init__(
-        self, controls: tuple[typing.Any], control_meta: dict[int, ControlMeta]
-    ) -> None:
-        self._controls: list[CliControl] = []
-        self.flags: set[str] = set()
-        self.value_options: set[str] = set()
-        seen: set[str] = set()
-        for ctrl in interface.Interface(controls).flatten():
-            meta = control_meta.get(id(ctrl))
-            if meta is None:
-                raise ValueError(f"Control {ctrl!r} was not created by this Group")
-            if meta.cli.option in seen:
-                raise ValueError(
-                    f"Option {meta.cli.option!r} passed to interface() more than once"
-                )
-            seen.add(meta.cli.option)
-            if meta.overridden:
-                continue
-            self.value_options.update(meta.cli.options())
-            self.flags.update(meta.cli.flags())
-            self._controls.append(meta.cli)
-
-    def format_help(self, command: str) -> str:
-        usage_parts = [p for ctrl in self._controls for p in ctrl.format_usage_parts()]
-        usage_parts.append("[-h/--help]")
-        segments = [f"Usage: {command.rsplit('/', 1)[-1]} {' '.join(usage_parts)}"]
-        help_lines = [
-            line for ctrl in self._controls for line in ctrl.format_help_lines()
-        ]
-        if help_lines:
-            segments.append("\n".join(help_lines))
-        return "\n\n".join(segments)
-
-    def validate(
-        self, args: _parse.ParsedArgs, validation_errors: dict[str, str]
-    ) -> typing.Iterator[str]:
-        rendered = self.flags | self.value_options
-        yield from (v for k, v in validation_errors.items() if k in rendered)
-        unexp_text = "Unexpected argument: "
-        for x in args.unexpected:
-            yield f"{unexp_text}{x}"
-        for k, v in args.options.items():
-            if k in self.flags:
-                if v is not None:
-                    yield f"{k} does not take a value, but was given: {v}"
-            elif k in self.value_options:
-                if v is None:
-                    yield f"Option {k} requires a value"
-            elif k not in _parse.help_flags:
-                yield f"{unexp_text}{k}"

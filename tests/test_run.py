@@ -19,10 +19,11 @@ def test_run_default_values() -> None:
     assert result == "LoremIpsum"
 
 
-_name_casing_defaults = moops.testing.defaults(name_casing)
+_name_casing_args = moops.testing.notebook_args(name_casing)
+_name_casing_defaults = _name_casing_args.default
 
 
-@hypothesis.given(moops.testing.from_notebook(name_casing))
+@hypothesis.given(_name_casing_args.strategy())
 def test_name_casing_preserves_alphanumeric_count(kwargs: dict[str, typing.Any]):
     result = moops.run(name_casing, **kwargs)
     input_text = kwargs.get("text", _name_casing_defaults["text"])
@@ -39,8 +40,9 @@ def test_run_propagates_kwargs_to_subgroup_controls() -> None:
 
 
 def test_defaults_supports_run_form() -> None:
-    d = moops.testing.defaults(notebook)
-    assert moops.run(notebook, **d) is not None
+    assert (
+        moops.run(notebook, **moops.testing.notebook_args(notebook).default) is not None
+    )
 
 
 def test_overridden_control_is_disabled() -> None:

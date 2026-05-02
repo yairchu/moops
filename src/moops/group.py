@@ -1,28 +1,33 @@
 import inspect
 import pathlib
+import sys
 import typing
+import warnings
+import weakref
 
 import marimo as mo
+from hypothesis import strategies as st
 
-from . import _naming, _options, _parse, _state, interface
+from . import _naming, _options, _parse, interface
 
 
-class Group:
+class Group(_options.CliControl):
     """Unified CLI argument parser and marimo UI element generator."""
 
     def __init__(self, cli_args: list[str] | None = None) -> None:
         """Initialize with command line arguments (defaults to sys.argv)."""
 
-        self._state = _state.GroupState(args=_parse.ParsedArgs.parse(cli_args))
+        self.option: str = ""
+        self.help_text: str = ""
+        self._args: _parse.ParsedArgs = _parse.ParsedArgs.parse(cli_args)
+        self._validation_errors: dict[str, str] = {}
         self._overrides: dict[str, typing.Any] = {}
-        self._option_prefix: str = ""
+        self._control_meta: dict[int, _options.ControlMeta] = {}
 
     @classmethod
     def with_overrides(cls, overrides: dict[str, typing.Any]) -> "Group":
-        instance = object.__new__(cls)
-        instance._state = _state.GroupState(args=_parse.ParsedArgs.parse(["run"]))
+        instance = cls(["run"])
         instance._overrides = overrides
-        instance._option_prefix = ""
         return instance
 
     def subgroup(
@@ -34,11 +39,12 @@ class Group:
         in this subgroup: moops.run(notebook, casing={"style": "snake_case"}).
         Explicit overrides take precedence over those passed via moops.run().
         """
-        child = object.__new__(Group)
-        child._state = self._state
+        child = type(self)([prefix])
+        child._args = self._args
+        child._validation_errors = self._validation_errors
         child._overrides = {**self._overrides.get(prefix, {}), **(overrides or {})}
-        child._option_prefix = f"{prefix}-"
-        return child
+        child.option = f"{self.option}-{prefix}" if self.option else f"--{prefix}"
+        return self._register(child, _options.ControlMeta(cli=child, overridden=False))
 
     def interface(self, *controls: typing.Any) -> mo.Html | interface.Interface | None:
         """
@@ -50,20 +56,69 @@ class Group:
         sync with what is actually live (handles cell reruns and deletions).
         """
 
-        return (
-            interface.Interface(
+        missing_options = self._missing_from_interface(controls)
+        if self.option:
+            if missing_options:
+                warnings.warn(
+                    f"Controls registered with this Group "
+                    f"but not passed to interface(): {', '.join(missing_options)}",
+                    stacklevel=2,
+                )
+            return interface.Interface(
                 controls,
+                self._control_meta,
                 notebook_name=pathlib.Path(inspect.stack()[1].filename).name,
-                option_prefix=self._option_prefix,
+                option_prefix=self.option,
             )
-            if self._option_prefix
-            else self._state.interface_info(controls)
-        )
+
+        registry = _ControlRegistry(controls, self._control_meta)
+        if not mo.running_in_notebook():
+            issues = list(registry.validate(self._args, self._validation_errors))
+            if issues:
+                print("Argument errors:\n" + "\n".join(f"- {x}" for x in issues))
+                print()
+
+            if self._args.is_help or issues:
+                print(self._help())
+                sys.exit(1 if issues else 0)
+
+        return None  # TODO
+
+    def _missing_from_interface(self, controls: tuple[typing.Any]) -> list[str]:
+        interface_ids = {id(ctrl) for ctrl in controls}
+        return [
+            meta.cli.option
+            for ctrl_id, meta in self._control_meta.items()
+            if meta.control_ref is not None
+            and meta.control_ref() is not None
+            and ctrl_id not in interface_ids
+        ]
+
+    def _help(self) -> str:
+        usage_parts = self.format_usage_parts()
+        usage_parts.append("[-h/--help]")
+        segments = [
+            f"Usage: {self._args.command.rsplit('/', 1)[-1]} {' '.join(usage_parts)}"
+        ]
+        help_lines = self.format_help_lines()
+        if help_lines:
+            segments.append("\n".join(help_lines))
+        return "\n\n".join(segments)
 
     def md(self, text: str) -> mo.Html | None:
         """Display markdown in notebooks or plain text in CLI."""
 
-        return self._state.md(text)
+        if mo.running_in_notebook():
+            return mo.md(text)
+        if self._args.is_help:
+            return None
+        text = text.strip()
+        if text.startswith("```\n") and text.endswith("\n```"):
+            text = text[4:-4]
+        elif text.startswith("`") and text.endswith("`"):
+            text = text[1:-1]
+        print(f"{text}\n")
+        return None
 
     def switch(
         self,
@@ -80,7 +135,7 @@ class Group:
         cli = _options.FlagControl(
             option=opt.option, help_text=help_text, default=value
         )
-        return self._state.register(
+        return self._register(
             mo.ui.switch(
                 value=self._get_value(cli, value),
                 label=opt.label,
@@ -90,7 +145,6 @@ class Group:
             _options.ControlMeta(
                 cli=cli,
                 overridden=self._is_overridden(opt.option),
-                option_prefix=self._option_prefix,
             ),
         )
 
@@ -113,7 +167,7 @@ class Group:
             help_text=help_text,
             default=value,
         )
-        return self._state.register(
+        return self._register(
             mo.ui.text(
                 value=self._get_value(cli, value),
                 label=opt.label,
@@ -123,7 +177,6 @@ class Group:
             _options.ControlMeta(
                 cli=cli,
                 overridden=self._is_overridden(opt.option),
-                option_prefix=self._option_prefix,
             ),
         )
 
@@ -146,7 +199,7 @@ class Group:
             help_text=help_text,
             default=value,
         )
-        return self._state.register(
+        return self._register(
             mo.ui.text_area(
                 value=self._get_value(cli, value),
                 label=opt.label,
@@ -156,7 +209,6 @@ class Group:
             _options.ControlMeta(
                 cli=cli,
                 overridden=self._is_overridden(opt.option),
-                option_prefix=self._option_prefix,
             ),
         )
 
@@ -173,7 +225,7 @@ class Group:
         """Create a number input UI element that maps to a CLI option."""
 
         opt, cli, value = self._numeric_cli(start, value, option, help_text, label)
-        return self._state.register(
+        return self._register(
             mo.ui.number(
                 start=start,
                 value=value,
@@ -197,7 +249,7 @@ class Group:
         """Create a slider UI element that maps to a CLI option."""
 
         opt, cli, value = self._numeric_cli(start, value, option, help_text, label)
-        return self._state.register(
+        return self._register(
             mo.ui.slider(
                 start=start,
                 value=value,
@@ -258,11 +310,11 @@ class Group:
             # disabled support for dropdowns.
             override = self._overrides[self._override_key(opt.option)]
             options = (
-                {override: options[override]}
+                {override: None if override is None else options[override]}
                 if isinstance(options, dict)
                 else [override]
             )
-        return self._state.register(
+        return self._register(
             mo.ui.dropdown(
                 options=options,
                 value=self._get_value(cli, value),
@@ -273,14 +325,11 @@ class Group:
             _options.ControlMeta(
                 cli=cli,
                 overridden=self._is_overridden(opt.option),
-                option_prefix=self._option_prefix,
             ),
         )
 
     def _override_key(self, option: str) -> str:
-        option = option.lstrip("-")
-        if self._option_prefix:
-            option = option[len(self._option_prefix) :]
+        option = option[len(self.option) :].lstrip("-")
         if option.startswith("no-"):
             option = option[3:]
         return option.replace("-", "_")
@@ -294,9 +343,9 @@ class Group:
         if key in self._overrides:
             return self._overrides[key]
         val = default
-        match control.parse(self._state.args):
+        match control.parse(self._args):
             case _options.ParseError(message=msg):
-                self._state.validation_errors[control.option] = msg
+                self._validation_errors[control.option] = msg
             case _options.ParseResult(value=v):
                 val = v
             case None:
@@ -310,9 +359,119 @@ class Group:
         self, label: str | None, option: str | None, prefix: str | None = None
     ) -> _naming.OptionLabel:
         opt = _naming.OptionLabel.make(label=label, option=option, prefix=prefix)
-        if self._option_prefix:
+        if self.option:
             opt = _naming.OptionLabel(
                 label=opt.label,
-                option=f"--{self._option_prefix}{opt.option.lstrip('-')}",
+                option=f"{self.option}-{opt.option.lstrip('-')}",
             )
         return opt
+
+    def _register(self, control: typing.Any, meta: _options.ControlMeta) -> typing.Any:
+        meta.control_ref = weakref.ref(control)
+        self._control_meta[id(control)] = meta
+        return control
+
+    def _controls(self) -> dict[str, _options.CliControl]:
+        result: dict[str, _options.CliControl] = {}
+        for meta in self._control_meta.values():
+            if meta.control_ref is None:
+                continue
+            control = meta.control_ref()
+            if control is None:
+                continue
+            key = self._override_key(meta.cli.option)
+            if key in self._overrides:
+                continue
+            result[key] = meta.cli
+        return result
+
+    def parse(
+        self, args: _parse.ParsedArgs
+    ) -> _options.ParseResult | _options.ParseError | None:
+        result = {}
+        for k, v in self._controls().items():
+            match v.parse(args):
+                case _options.ParseError() as e:
+                    return e
+                case _options.ParseResult(value=v):
+                    result[k] = v
+                case None:
+                    pass
+        return _options.ParseResult(result)
+
+    def strategy(self) -> st.SearchStrategy:
+        return st.fixed_dictionaries(
+            {k: v.strategy() for k, v in self._controls().items()}
+        )
+
+    def format_usage_parts(self) -> list[str]:
+        parts: list[str] = []
+        for v in self._controls().values():
+            parts.extend(v.format_usage_parts())
+        return parts
+
+    def format_help_lines(self) -> list[str]:
+        lines: list[str] = []
+        for v in self._controls().values():
+            lines.extend(v.format_help_lines())
+        return lines
+
+    @property
+    def default(self) -> dict[str, typing.Any]:
+        return {
+            k: v.default  # type: ignore
+            for k, v in self._controls().items()
+            if hasattr(v, "default")
+        }
+
+
+class _ControlRegistry:
+    """Resolved set of flags and options built from a group's live controls."""
+
+    def __init__(
+        self, controls: tuple[typing.Any], control_meta: dict[int, _options.ControlMeta]
+    ) -> None:
+        self._controls: list[_options.CliControl] = []
+        self.flags: set[str] = set()
+        self.value_options: set[str] = set()
+        self._populate(controls, control_meta)
+
+    def _populate(
+        self, controls: tuple[typing.Any], control_meta: dict[int, _options.ControlMeta]
+    ) -> None:
+        seen: set[str] = set()
+        for ctrl in controls:
+            if isinstance(ctrl, interface.Interface):
+                self._populate(ctrl.controls, ctrl.control_meta)
+                continue
+            meta = control_meta.get(id(ctrl))
+            if meta is None:
+                continue
+            if meta.cli.option in seen:
+                raise ValueError(
+                    f"Option {meta.cli.option!r} passed to interface() more than once"
+                )
+            seen.add(meta.cli.option)
+            if meta.overridden:
+                continue
+            self.value_options.update(meta.cli.options())
+            self.flags.update(meta.cli.flags())
+            self._controls.append(meta.cli)
+
+    def validate(
+        self, args: _parse.ParsedArgs, validation_errors: dict[str, str]
+    ) -> typing.Iterator[str]:
+        rendered = self.flags | self.value_options
+        yield from (v for k, v in validation_errors.items() if k in rendered)
+        unexp_text = "Unexpected argument: "
+        for x in args.unexpected:
+            yield f"{unexp_text}{x}"
+        for k, v in args.options.items():
+            if k in self.flags:
+                if v is not None:
+                    yield f"{k} does not take a value, but was given: {v}"
+            elif k in self.value_options:
+                if v is None:
+                    yield f"Option {k} requires a value"
+            elif k not in _parse.help_flags:
+                yield f"{unexp_text}{k}"
