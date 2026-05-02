@@ -82,14 +82,14 @@ class Group:
         )
         return self._state.register(
             mo.ui.switch(
-                value=self._get_value(opt, cli, value),
+                value=self._get_value(cli, value),
                 label=opt.label,
-                disabled=self._is_overridden(opt),
+                disabled=self._is_overridden(opt.option),
                 **kwargs,
             ),
             _options.ControlMeta(
                 cli=cli,
-                overridden=self._is_overridden(opt),
+                overridden=self._is_overridden(opt.option),
                 option_prefix=self._option_prefix,
             ),
         )
@@ -115,14 +115,14 @@ class Group:
         )
         return self._state.register(
             mo.ui.text(
-                value=self._get_value(opt, cli, value),
+                value=self._get_value(cli, value),
                 label=opt.label,
-                disabled=self._is_overridden(opt),
+                disabled=self._is_overridden(opt.option),
                 **kwargs,
             ),
             _options.ControlMeta(
                 cli=cli,
-                overridden=self._is_overridden(opt),
+                overridden=self._is_overridden(opt.option),
                 option_prefix=self._option_prefix,
             ),
         )
@@ -148,14 +148,14 @@ class Group:
         )
         return self._state.register(
             mo.ui.text_area(
-                value=self._get_value(opt, cli, value),
+                value=self._get_value(cli, value),
                 label=opt.label,
-                disabled=self._is_overridden(opt),
+                disabled=self._is_overridden(opt.option),
                 **kwargs,
             ),
             _options.ControlMeta(
                 cli=cli,
-                overridden=self._is_overridden(opt),
+                overridden=self._is_overridden(opt.option),
                 option_prefix=self._option_prefix,
             ),
         )
@@ -178,10 +178,10 @@ class Group:
                 start=start,
                 value=value,
                 label=opt.label,
-                disabled=self._is_overridden(opt),
+                disabled=self._is_overridden(opt.option),
                 **kwargs,
             ),
-            _options.ControlMeta(cli=cli, overridden=self._is_overridden(opt)),
+            _options.ControlMeta(cli=cli, overridden=self._is_overridden(opt.option)),
         )
 
     def slider(
@@ -202,10 +202,10 @@ class Group:
                 start=start,
                 value=value,
                 label=opt.label,
-                disabled=self._is_overridden(opt),
+                disabled=self._is_overridden(opt.option),
                 **kwargs,
             ),
-            _options.ControlMeta(cli=cli, overridden=self._is_overridden(opt)),
+            _options.ControlMeta(cli=cli, overridden=self._is_overridden(opt.option)),
         )
 
     def _numeric_cli(
@@ -225,7 +225,7 @@ class Group:
             help_text=help_text,
             default=value,
         )
-        return opt, cli, self._get_value(opt, cli, value)
+        return opt, cli, self._get_value(cli, value)
 
     def dropdown(
         self,
@@ -252,11 +252,11 @@ class Group:
             default=value,
             help_text=help_text,
         )
-        if self._is_overridden(opt):
+        if self._is_overridden(opt.option):
             # mo.ui.dropdown doesn't support disabled; filter to one option as a
             # workaround so the user can't change the value. Remove once marimo adds
             # disabled support for dropdowns.
-            override = self._overrides[self._override_key(opt)]
+            override = self._overrides[self._override_key(opt.option)]
             options = (
                 {override: options[override]}
                 if isinstance(options, dict)
@@ -265,20 +265,20 @@ class Group:
         return self._state.register(
             mo.ui.dropdown(
                 options=options,
-                value=self._get_value(opt, cli, value),
+                value=self._get_value(cli, value),
                 label=opt.label,
                 allow_select_none=allow_select_none,
                 **kwargs,
             ),
             _options.ControlMeta(
                 cli=cli,
-                overridden=self._is_overridden(opt),
+                overridden=self._is_overridden(opt.option),
                 option_prefix=self._option_prefix,
             ),
         )
 
-    def _override_key(self, opt: _naming.OptionLabel) -> str:
-        option = opt.option.lstrip("-")
+    def _override_key(self, option: str) -> str:
+        option = option.lstrip("-")
         if self._option_prefix:
             option = option[len(self._option_prefix) :]
         if option.startswith("no-"):
@@ -287,25 +287,24 @@ class Group:
 
     def _get_value(
         self,
-        opt: _naming.OptionLabel,
         control: _options.CliControl,
         default: typing.Any,
     ) -> typing.Any:
-        key = self._override_key(opt)
+        key = self._override_key(control.option)
         if key in self._overrides:
             return self._overrides[key]
         val = default
         match control.parse(self._state.args):
             case _options.ParseError(message=msg):
-                self._state.validation_errors[opt.option] = msg
+                self._state.validation_errors[control.option] = msg
             case _options.ParseResult(value=v):
                 val = v
             case None:
                 pass
         return val
 
-    def _is_overridden(self, opt: _naming.OptionLabel) -> bool:
-        return self._override_key(opt) in self._overrides
+    def _is_overridden(self, option: str) -> bool:
+        return self._override_key(option) in self._overrides
 
     def _make_opt(
         self, label: str | None, option: str | None, prefix: str | None = None
