@@ -54,9 +54,9 @@ class CliControl(abc.ABC):
     def cli_info(self) -> str | OptionDesc:
         """Main option description: str for flags, OptionDesc for value options."""
 
-    @abc.abstractmethod
     def aux_flags(self) -> dict[str, str]:
         """Extra flags for this control: {flag: help_text}."""
+        return {}
 
     @abc.abstractmethod
     def parse(self, args: _parse.ParsedArgs) -> typing.Any:
@@ -83,9 +83,6 @@ class FlagControl(CliControl):
     def cli_info(self) -> str:
         return self.help_text
 
-    def aux_flags(self) -> dict[str, str]:
-        return {}
-
     def parse(self, args: _parse.ParsedArgs) -> bool | None:
         return True if self.opt.option in args.options else None
 
@@ -107,9 +104,6 @@ class TextControl(CliControl):
 
     def cli_info(self) -> OptionDesc:
         return self.desc
-
-    def aux_flags(self) -> dict[str, str]:
-        return {}
 
     def parse(self, args: _parse.ParsedArgs) -> str | None:
         return args.options.get(self.opt.option)
@@ -176,9 +170,6 @@ class NumberControl(CliControl):
 
     def cli_info(self) -> OptionDesc:
         return self.desc
-
-    def aux_flags(self) -> dict[str, str]:
-        return {}
 
     def parse(self, args: _parse.ParsedArgs) -> float | int | _parse.ParseError | None:
         value = args.options.get(self.opt.option)
