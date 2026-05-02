@@ -6,6 +6,7 @@ import typing
 import weakref
 
 import marimo as mo
+from hypothesis import strategies as st
 
 from . import _parse, interface
 
@@ -62,6 +63,10 @@ class CliControl(abc.ABC):
     def parse(self, args: _parse.ParsedArgs) -> typing.Any:
         """Parse from CLI args. Returns value, ParseError, or None if not provided."""
 
+    @abc.abstractmethod
+    def strategy(self) -> st.SearchStrategy:
+        """Hypothesis strategy for generating override values."""
+
 
 @dataclasses.dataclass
 class FlagControl(CliControl):
@@ -77,6 +82,9 @@ class FlagControl(CliControl):
     def parse(self, args: _parse.ParsedArgs) -> bool | None:
         return True if self.opt.option in args.options else None
 
+    def strategy(self) -> st.SearchStrategy:
+        return st.booleans()
+
 
 @dataclasses.dataclass
 class TextControl(CliControl):
@@ -91,6 +99,9 @@ class TextControl(CliControl):
 
     def parse(self, args: _parse.ParsedArgs) -> str | None:
         return args.options.get(self.opt.option)
+
+    def strategy(self) -> st.SearchStrategy:
+        return st.one_of(st.none(), st.text())
 
 
 @dataclasses.dataclass
@@ -120,6 +131,9 @@ class TextAreaControl(CliControl):
             return sys.stdin.read()
         return args.options.get(self.opt.option)
 
+    def strategy(self) -> st.SearchStrategy:
+        return st.one_of(st.none(), st.text())
+
 
 @dataclasses.dataclass
 class NumberControl(CliControl):
@@ -143,6 +157,12 @@ class NumberControl(CliControl):
                 f"Option {self.opt.option} expects a number, got: {value!r}"
             )
         return int(num) if math.isfinite(num) and num == int(num) else num
+
+    def strategy(self) -> st.SearchStrategy:
+        return st.one_of(
+            st.none(),
+            st.integers() | st.floats(allow_nan=False, allow_infinity=False),
+        )
 
 
 @dataclasses.dataclass
@@ -186,6 +206,12 @@ class DropdownControl(CliControl):
                 f" {self.allowed_values!r}, got: {raw!r}"
             )
         return _parse.DropdownValue(raw)
+
+    def strategy(self) -> st.SearchStrategy:
+        base: st.SearchStrategy = st.sampled_from(self.allowed_values)
+        if self.has_no_flag:
+            base = st.one_of(st.none(), base)
+        return st.one_of(st.none(), base)
 
 
 @dataclasses.dataclass

@@ -48,18 +48,7 @@ def _strategies_from_meta(
         if key in seen:
             continue
         seen.add(key)
-
-        if isinstance(cli, _options.FlagControl):
-            kwarg_strategies[key] = st.booleans()
-        else:
-            if isinstance(cli, _options.DropdownControl):
-                base: st.SearchStrategy = st.sampled_from(cli.allowed_values)
-                if cli.has_no_flag:
-                    base = st.one_of(st.none(), base)
-            else:
-                # TODO: add range-aware strategy for number controls
-                base = st.text().filter(lambda v: not v.startswith("-"))
-            kwarg_strategies[key] = st.one_of(st.none(), base)
+        kwarg_strategies[key] = cli.strategy()
 
     return st.fixed_dictionaries(kwarg_strategies).map(
         lambda d: {k: v for k, v in d.items() if v is not None}
