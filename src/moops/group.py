@@ -81,7 +81,7 @@ class Group:
         """Create a switch UI element that maps to a CLI flag."""
 
         opt = self._make_opt(label=label, option=flag, prefix="no-" if value else None)
-        cli = _options.FlagControl(opt=opt, help_text=help_text)
+        cli = _options.FlagControl(opt=opt, help_text=help_text, default=value)
         return self._state.register(
             mo.ui.switch(
                 value=self._get_value(opt, cli, value),

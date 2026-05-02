@@ -79,12 +79,17 @@ class CliControl(abc.ABC):
         """Help lines for this control and any aux flags."""
 
 
+@dataclasses.dataclass
 class FlagControl(CliControl):
+    default: bool = False
+
     def flags(self) -> set[str]:
         return {self.opt.option}
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | None:
-        return ParseResult(True) if self.opt.option in args.options else None
+        if self.opt.option not in args.options:
+            return None
+        return ParseResult(not self.default)
 
     def strategy(self) -> st.SearchStrategy:
         return st.booleans()
