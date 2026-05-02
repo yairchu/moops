@@ -12,14 +12,6 @@ from . import _parse, interface
 
 
 @dataclasses.dataclass
-class OptionDesc:
-    """Metadata for CLI options: display name and help text."""
-
-    metavar: str
-    help_text: str
-
-
-@dataclasses.dataclass
 class OptionLabel:
     """Maps between UI labels and CLI option names."""
 
@@ -102,7 +94,8 @@ class FlagControl(CliControl):
 @dataclasses.dataclass
 class TextControl(CliControl):
     opt: OptionLabel
-    desc: OptionDesc
+    metavar: str
+    help_text: str
     default: str
 
     def options(self) -> set[str]:
@@ -115,10 +108,10 @@ class TextControl(CliControl):
         return st.one_of(st.none(), st.text())
 
     def format_usage_parts(self) -> list[str]:
-        return [f"[{self.opt.option} {self.desc.metavar}]"]
+        return [f"[{self.opt.option} {self.metavar}]"]
 
     def format_help_lines(self) -> list[str]:
-        line = f"  {self.opt.option} {self.desc.metavar}: {self.desc.help_text}"
+        line = f"  {self.opt.option} {self.metavar}: {self.help_text}"
         if self.default:
             line += f" (default: {self.default})"
         return [line]
@@ -127,7 +120,8 @@ class TextControl(CliControl):
 @dataclasses.dataclass
 class TextAreaControl(CliControl):
     opt: OptionLabel
-    desc: OptionDesc
+    metavar: str
+    help_text: str
     default: str
 
     def options(self) -> set[str]:
@@ -156,10 +150,10 @@ class TextAreaControl(CliControl):
         return st.one_of(st.none(), st.text())
 
     def format_usage_parts(self) -> list[str]:
-        return [f"[{self.opt.option} {self.desc.metavar}]", f"[{self._stdin_flag}]"]
+        return [f"[{self.opt.option} {self.metavar}]", f"[{self._stdin_flag}]"]
 
     def format_help_lines(self) -> list[str]:
-        line = f"  {self.opt.option} {self.desc.metavar}: {self.desc.help_text}"
+        line = f"  {self.opt.option} {self.metavar}: {self.help_text}"
         if self.default:
             line += f" (default: {self.default})"
         return [line, f"  {self._stdin_flag}: Read {self.opt.label} from stdin"]
@@ -168,7 +162,8 @@ class TextAreaControl(CliControl):
 @dataclasses.dataclass
 class NumberControl(CliControl):
     opt: OptionLabel
-    desc: OptionDesc
+    metavar: str
+    help_text: str
     default: float | int | None
 
     def options(self) -> set[str]:
@@ -193,10 +188,10 @@ class NumberControl(CliControl):
         )
 
     def format_usage_parts(self) -> list[str]:
-        return [f"[{self.opt.option} {self.desc.metavar}]"]
+        return [f"[{self.opt.option} {self.metavar}]"]
 
     def format_help_lines(self) -> list[str]:
-        line = f"  {self.opt.option} {self.desc.metavar}: {self.desc.help_text}"
+        line = f"  {self.opt.option} {self.metavar}: {self.help_text}"
         if self.default is not None:
             line += f" (default: {self.default})"
         return [line]
@@ -205,10 +200,10 @@ class NumberControl(CliControl):
 @dataclasses.dataclass
 class DropdownControl(CliControl):
     opt: OptionLabel
-    desc: OptionDesc
     allowed_values: list[str]
     supports_none: bool
     default: str | None
+    help_text: str
 
     def options(self) -> set[str]:
         return {self.opt.option}
@@ -251,13 +246,16 @@ class DropdownControl(CliControl):
         )
 
     def format_usage_parts(self) -> list[str]:
-        parts = [f"[{self.opt.option} {self.desc.metavar}]"]
+        parts = [f"[{self.opt.option} {self._values_text()}]"]
         if self._no_flag:
             parts.append(f"[{self._no_flag}]")
         return parts
 
+    def _values_text(self) -> str:
+        return "{" + "|".join(self.allowed_values) + "}"
+
     def format_help_lines(self) -> list[str]:
-        line = f"  {self.opt.option} {self.desc.metavar}: {self.desc.help_text}"
+        line = f"  {self.opt.option} {self._values_text()}: {self.help_text}"
         if self.default is not None:
             line += f" (default: {self.default})"
         lines = [line]

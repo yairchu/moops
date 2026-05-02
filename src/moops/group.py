@@ -113,7 +113,8 @@ class Group:
         opt = self._make_opt(label=label, option=option)
         cli = _options.TextControl(
             opt=opt,
-            desc=self._text_desc(placeholder, opt, help_text),
+            metavar=placeholder or opt.label.upper().replace(" ", "_"),
+            help_text=help_text,
             default=value,
         )
         parsed = cli.parse(self._state.args)
@@ -146,7 +147,8 @@ class Group:
         opt = self._make_opt(label=label, option=option)
         cli = _options.TextAreaControl(
             opt=opt,
-            desc=self._text_desc(placeholder, opt, help_text),
+            metavar=placeholder or opt.label.upper().replace(" ", "_"),
+            help_text=help_text,
             default=value,
         )
         match cli.parse(self._state.args):
@@ -168,14 +170,6 @@ class Group:
                 overridden=self._is_overridden(opt),
                 option_prefix=self._option_prefix,
             ),
-        )
-
-    def _text_desc(
-        self, placeholder: str, opt: _options.OptionLabel, help_text: str
-    ) -> _options.OptionDesc:
-        return _options.OptionDesc(
-            metavar=placeholder or opt.label.upper().replace(" ", "_"),
-            help_text=help_text,
         )
 
     def number(
@@ -239,10 +233,8 @@ class Group:
         opt = self._make_opt(label=label, option=option)
         cli = _options.NumberControl(
             opt=opt,
-            desc=_options.OptionDesc(
-                metavar=opt.label.upper().replace(" ", "_"),
-                help_text=help_text,
-            ),
+            metavar=opt.label.upper().replace(" ", "_"),
+            help_text=help_text,
             default=value,
         )
         match cli.parse(self._state.args):
@@ -275,13 +267,10 @@ class Group:
             value, *_ = keys
         cli = _options.DropdownControl(
             opt=opt,
-            desc=_options.OptionDesc(
-                metavar="{" + "|".join(keys) + "}",
-                help_text=help_text,
-            ),
             allowed_values=keys,
             supports_none=allow_select_none,
             default=value,
+            help_text=help_text,
         )
         override = self._get_override(opt, None)
         if override is None:
