@@ -41,15 +41,18 @@ class ParsedArgs:
         result = cls(command=cmd, options={}, unexpected=[])
         prev = None
         for arg in rest:
-            if arg.startswith("-"):
+            is_negative_num = len(arg) > 1 and arg[0] == "-" and arg[1].isdigit()
+            if arg.startswith("-") and not (prev is not None and is_negative_num):
                 if "=" in arg:
-                    prefix, value = arg.split("=", 1)
-                    result.options[prefix] = value
+                    key, value = arg.split("=", 1)
+                    result.options[key] = value
+                    prev = None
                 else:
                     result.options[arg] = None
+                    prev = arg
             elif prev is not None and prev.startswith("-"):
                 result.options[prev] = arg
+                prev = None
             else:
                 result.unexpected.append(arg)
-            prev = None if "=" in arg else arg
         return result
