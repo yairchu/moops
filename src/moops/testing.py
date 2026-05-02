@@ -57,8 +57,7 @@ def _strategies_from_meta(
             if info.allowed_values is not None:
                 base: st.SearchStrategy = st.sampled_from(info.allowed_values)
                 is_nullable_dropdown = (
-                    isinstance(cli, _options.DropdownControl)
-                    and cli.no_flag is not None
+                    isinstance(cli, _options.DropdownControl) and cli.has_no_flag
                 )
                 if is_nullable_dropdown:
                     base = st.one_of(st.none(), base)

@@ -129,20 +129,28 @@ class NumberControl(CliControl):
 class DropdownControl(CliControl):
     opt: OptionLabel
     desc: OptionDesc
-    no_flag: str | None
+    has_no_flag: bool
 
     def cli_info(self) -> OptionDesc:
         return self.desc
 
+    @property
+    def _no_flag(self) -> str:
+        return f"--no-{self.opt.option.lstrip('-')}"
+
     def aux_flags(self) -> dict[str, str]:
-        return {self.no_flag: f"Set {self.opt.label} to none"} if self.no_flag else {}
+        if self.has_no_flag:
+            return {self._no_flag: f"Set {self.opt.label} to none"}
+        return {}
 
     def parse(
         self, args: _parse.ParsedArgs
     ) -> _parse.DropdownValue | _parse.ParseError | None:
         assert self.desc.allowed_values is not None
         return args.get_dropdown(
-            self.opt.option, self.desc.allowed_values, self.no_flag
+            self.opt.option,
+            self.desc.allowed_values,
+            self._no_flag if self.has_no_flag else None,
         )
 
 

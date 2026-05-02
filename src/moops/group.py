@@ -266,9 +266,7 @@ class Group:
                 allowed_values=keys,
                 help_text=help_text,
             ),
-            no_flag=f"--no-{opt.option.lstrip('-')}"
-            if allow_select_none and value is not None
-            else None,
+            has_no_flag=allow_select_none and value is not None,
         )
         override = self._get_override(opt, None)
         if override is None:
