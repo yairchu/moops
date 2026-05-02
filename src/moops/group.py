@@ -72,17 +72,20 @@ class Group(_options.CliControl):
             )
 
         registry = _registry.ControlRegistry(controls, self._control_meta)
-        if not mo.running_in_notebook():
-            issues = list(registry.validate(self._args, self._validation_errors))
-            if issues:
-                print("Argument errors:\n" + "\n".join(f"- {x}" for x in issues))
-                print()
+        if mo.running_in_notebook():
+            return mo.md(
+                f"This notebook also works as a script:\n```\n{self._help()}\n```\n\n"
+            )
 
-            if self._args.is_help or issues:
-                print(self._help())
-                sys.exit(1 if issues else 0)
+        issues = list(registry.validate(self._args, self._validation_errors))
+        if issues:
+            print("Argument errors:\n" + "\n".join(f"- {x}" for x in issues))
+            print()
 
-        return None  # TODO
+        if self._args.is_help or issues:
+            print(self._help())
+            sys.exit(1 if issues else 0)
+        return None
 
     def _missing_from_interface(self, controls: tuple[typing.Any]) -> list[str]:
         interface_ids = {id(ctrl) for ctrl in controls}

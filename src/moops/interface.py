@@ -24,7 +24,7 @@ class Interface:
             if hasattr(ctrl, "_component_args")
         )
         prefix_note = (
-            f" (configured by the `--{self.option_prefix}*` options)"
+            f" (configured by the `{self.option_prefix}` options)"
             if has_exposed
             else ""
         )
