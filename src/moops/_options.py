@@ -110,13 +110,14 @@ class TextAreaControl(CliControl):
 
     def parse(self, args: _parse.ParsedArgs) -> str | _parse.ParseError | None:
         if not mo.running_in_notebook() and self._stdin_flag in args.options:
+            assert args.options[self._stdin_flag] is None, (
+                f"{self._stdin_flag} should not take a value"
+            )
             if self.opt.option in args.options:
                 return _parse.ParseError(
                     f"Cannot use both {self.opt.option} and {self._stdin_flag}"
                 )
-            if args.options[self._stdin_flag] is None:
-                return sys.stdin.read()
-            return None
+            return sys.stdin.read()
         return args.options.get(self.opt.option)
 
 
