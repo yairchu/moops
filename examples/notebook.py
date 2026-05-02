@@ -85,7 +85,7 @@ def _(name_text, polite_switch, times_number):
 
 @app.cell
 def _(args, greeting_text):
-    casing = args.subgroup("casing", overrides={"input_text": greeting_text})
+    casing = args.subgroup("casing", overrides={"text": greeting_text})
     return (casing,)
 
 

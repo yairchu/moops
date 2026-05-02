@@ -276,7 +276,12 @@ class Group:
         )
 
     def _override_key(self, opt: _options.OptionLabel) -> str:
-        return opt.label.lower().replace(" ", "_")
+        option = opt.option.lstrip("-")
+        if self._option_prefix:
+            option = option[len(self._option_prefix) :]
+        if option.startswith("no-"):
+            option = option[3:]
+        return option.replace("-", "_")
 
     def _get_value(
         self,

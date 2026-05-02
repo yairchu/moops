@@ -10,7 +10,7 @@ from examples import name_casing, notebook
 
 
 def test_run_returns_result() -> None:
-    result = moops.run(name_casing, input_text="Hello World", style="snake_case")
+    result = moops.run(name_casing, text="Hello World", style="snake_case")
     assert result == "hello_world"
 
 
@@ -25,7 +25,7 @@ _name_casing_defaults = moops.testing.defaults(name_casing)
 @hypothesis.given(moops.testing.from_notebook(name_casing))
 def test_name_casing_preserves_alphanumeric_count(kwargs: dict[str, typing.Any]):
     result = moops.run(name_casing, **kwargs)
-    input_text = kwargs.get("input_text", _name_casing_defaults["input_text"])
+    input_text = kwargs.get("text", _name_casing_defaults["text"])
     assert not input_text.isascii() or sum(c.isalnum() for c in result) == sum(
         c.isalnum() for c in input_text
     )
@@ -46,7 +46,7 @@ def test_defaults_supports_run_form() -> None:
 def test_overridden_control_is_disabled() -> None:
     async def _run() -> None:
         args = moops.Group(cli_args=["script.py"])
-        casing = args.subgroup("casing", overrides={"input_text": "hello"})
+        casing = args.subgroup("casing", overrides={"text": "hello"})
         result = await name_casing.app.embed(defs={"args": casing})
         input_text = result.defs["input_text"]
         assert isinstance(input_text, mo.ui.text_area)

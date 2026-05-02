@@ -12,6 +12,16 @@ def _discover(module: types.ModuleType) -> dict[int, _options.ControlMeta]:
     return args._state.control_meta  # type: ignore
 
 
+def _override_key(meta: _options.ControlMeta) -> str:
+    option = meta.cli.opt.option.lstrip("-")
+    prefix = meta.option_prefix
+    if prefix:
+        option = option[len(prefix) :]
+    if option.startswith("no-"):
+        option = option[3:]
+    return option.replace("-", "_")
+
+
 def from_notebook(module: types.ModuleType) -> st.SearchStrategy[dict[str, typing.Any]]:
     "Return a hypothesis strategy that generates valid kwargs for moops.run(module)."
     return _strategies_from_meta(_discover(module))
@@ -23,7 +33,7 @@ def defaults(module: types.ModuleType) -> dict[str, typing.Any]:
     for meta in _discover(module).values():
         if meta.overridden:
             continue
-        key = meta.cli.opt.label.lower().replace(" ", "_")
+        key = _override_key(meta)
         prefix = meta.option_prefix.rstrip("-")
         target = result.setdefault(prefix, {}) if prefix else result
         assert key not in target, f"Duplicate control key: {key!r}"
@@ -40,7 +50,7 @@ def _strategies_from_meta(
     for meta in control_meta.values():
         if meta.overridden:
             continue
-        key = meta.cli.opt.label.lower().replace(" ", "_")
+        key = _override_key(meta)
         assert key not in kwarg_strategies, f"Duplicate control key: {key!r}"
         kwarg_strategies[key] = meta.cli.strategy()
 
