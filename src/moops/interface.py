@@ -33,5 +33,5 @@ class Interface:
             else ""
         )
         return mo.md(
-            f"An embedded instance of `{self.notebook_name}`{prefix_note}.",
+            f"An embedded instance of `{self.notebook_name}`{prefix_note}."
         )._mime_()  # type: ignore

@@ -23,9 +23,7 @@ _name_casing_defaults = moops.testing.defaults(name_casing)
 
 
 @hypothesis.given(moops.testing.from_notebook(name_casing))
-def test_name_casing_preserves_alphanumeric_count(
-    kwargs: dict[str, typing.Any],
-) -> None:
+def test_name_casing_preserves_alphanumeric_count(kwargs: dict[str, typing.Any]):
     result = moops.run(name_casing, **kwargs)
     input_text = kwargs.get("input_text", _name_casing_defaults["input_text"])
     assert not input_text.isascii() or sum(c.isalnum() for c in result) == sum(

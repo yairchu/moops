@@ -45,8 +45,7 @@ def _(moops):
 @app.cell
 def _(args):
     polite_switch = args.switch(
-        label="Be polite",
-        help_text="Makes the greeting polite",
+        label="Be polite", help_text="Makes the greeting polite"
     )
     polite_switch
     return (polite_switch,)

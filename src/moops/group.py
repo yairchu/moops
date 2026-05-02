@@ -26,9 +26,7 @@ class Group:
         return instance
 
     def subgroup(
-        self,
-        prefix: str,
-        overrides: dict[str, typing.Any] | None = None,
+        self, prefix: str, overrides: dict[str, typing.Any] | None = None
     ) -> "Group":
         """Create a child Group that prefixes all its option names with '{prefix}-'.
 
@@ -97,9 +95,7 @@ class Group:
                 **kwargs,
             ),
             _options.ControlMeta(
-                opt=opt,
-                info=help_text,
-                overridden=self._is_overridden(opt),
+                opt=opt, info=help_text, overridden=self._is_overridden(opt)
             ),
         )
 
@@ -116,11 +112,7 @@ class Group:
         """Create a text input UI element that maps to a CLI option."""
 
         opt, value, desc = self._text_option(
-            value,
-            placeholder,
-            option,
-            help_text,
-            label,
+            value, placeholder, option, help_text, label
         )
         return self._state.register(
             mo.ui.text(
@@ -130,9 +122,7 @@ class Group:
                 **kwargs,
             ),
             _options.ControlMeta(
-                opt=opt,
-                info=desc,
-                overridden=self._is_overridden(opt),
+                opt=opt, info=desc, overridden=self._is_overridden(opt)
             ),
         )
 
@@ -149,11 +139,7 @@ class Group:
         """Create a text area UI element that maps to a CLI option."""
 
         opt, value, desc = self._text_option(
-            value,
-            placeholder,
-            option,
-            help_text,
-            label,
+            value, placeholder, option, help_text, label
         )
         stdin_flag = None if self._is_overridden(opt) else f"{opt.option}-from-stdin"
         if stdin_flag:
@@ -273,9 +259,7 @@ class Group:
         return (
             self._get_override(opt, value),
             _options.ControlMeta(
-                opt=opt,
-                info=desc,
-                overridden=self._is_overridden(opt),
+                opt=opt, info=desc, overridden=self._is_overridden(opt)
             ),
         )
 
@@ -335,10 +319,7 @@ class Group:
                 **kwargs,
             ),
             _options.ControlMeta(
-                opt=opt,
-                info=desc,
-                no_flag=no_flag,
-                overridden=self._is_overridden(opt),
+                opt=opt, info=desc, no_flag=no_flag, overridden=self._is_overridden(opt)
             ),
         )
 
@@ -346,9 +327,7 @@ class Group:
         return opt.label.lower().replace(" ", "_")
 
     def _get_override(
-        self,
-        opt: _options.OptionLabel,
-        default: typing.Any,
+        self, opt: _options.OptionLabel, default: typing.Any
     ) -> typing.Any:
         return self._overrides.get(self._override_key(opt), default)
 
@@ -356,10 +335,7 @@ class Group:
         return self._override_key(opt) in self._overrides
 
     def _make_opt(
-        self,
-        label: str | None,
-        option: str | None,
-        prefix: str | None = None,
+        self, label: str | None, option: str | None, prefix: str | None = None
     ) -> _options.OptionLabel:
         opt = _options.OptionLabel.make(label=label, option=option, prefix=prefix)
         if self._option_prefix:

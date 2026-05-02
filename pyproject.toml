@@ -31,7 +31,7 @@ extraPaths = ["src", ".", "examples"]
 moops = { workspace = true }
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B", "RUF", "C4", "SIM", "N", "Q", "TID", "UP", "COM", "PT", "RET"]
+select = ["E", "F", "I", "B", "RUF", "C4", "SIM", "N", "Q", "TID", "UP", "PT", "RET"]
 
 [tool.ruff.lint.per-file-ignores]
 "examples/*.py" = ["F401", "B018"]

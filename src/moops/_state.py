@@ -14,7 +14,7 @@ class GroupState:
     args: _parse.ParsedArgs
     validation_errors: dict[str, str] = dataclasses.field(default_factory=lambda: {})
     control_meta: dict[int, _options.ControlMeta] = dataclasses.field(
-        default_factory=lambda: {},
+        default_factory=lambda: {}
     )
 
     def register(self, control: typing.Any, meta: _options.ControlMeta) -> typing.Any:
@@ -39,7 +39,7 @@ class GroupState:
         missing_options = self._missing_from_interface(controls)
         if mo.running_in_notebook():
             info = mo.md(
-                f"This notebook also works as a script:\n```\n{help_text.strip()}\n```",
+                f"This notebook also works as a script:\n```\n{help_text.strip()}\n```"
             )
             return (
                 mo.vstack(
@@ -48,11 +48,11 @@ class GroupState:
                         mo.callout(
                             mo.md(
                                 f"Controls missing from interface: "
-                                f"`{', '.join(missing_options)}`",
+                                f"`{', '.join(missing_options)}`"
                             ),
                             "warn",
                         ),
-                    ],
+                    ]
                 )
                 if missing_options
                 else info

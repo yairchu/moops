@@ -59,5 +59,5 @@ def _strategies_from_meta(
             kwarg_strategies[key] = st.one_of(st.none(), base)
 
     return st.fixed_dictionaries(kwarg_strategies).map(
-        lambda d: {k: v for k, v in d.items() if v is not None},
+        lambda d: {k: v for k, v in d.items() if v is not None}
     )
