@@ -25,6 +25,12 @@ def test_switch_with_default_true_and_explicit_flag() -> None:
     assert ctrl.value is True
 
 
+def test_switch_default_true_toggled_by_flag() -> None:
+    g = Group(cli_args=["script.py", "--no-verbose"])
+    ctrl = g.switch(value=True, flag="--no-verbose", help_text="Disable verbose output")
+    assert ctrl.value is False
+
+
 def test_switch_override_uses_base_option_name() -> None:
     g = Group(cli_args=["script.py"])
     sub = g.subgroup("x", overrides={"verbose": False})
