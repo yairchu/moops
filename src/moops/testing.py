@@ -52,14 +52,9 @@ def _strategies_from_meta(
         if isinstance(cli, _options.FlagControl):
             kwarg_strategies[key] = st.booleans()
         else:
-            info = cli.cli_info()
-            assert isinstance(info, _options.OptionDesc)
-            if info.allowed_values is not None:
-                base: st.SearchStrategy = st.sampled_from(info.allowed_values)
-                is_nullable_dropdown = (
-                    isinstance(cli, _options.DropdownControl) and cli.has_no_flag
-                )
-                if is_nullable_dropdown:
+            if isinstance(cli, _options.DropdownControl):
+                base: st.SearchStrategy = st.sampled_from(cli.allowed_values)
+                if cli.has_no_flag:
                     base = st.one_of(st.none(), base)
             else:
                 # TODO: add range-aware strategy for number controls

@@ -13,7 +13,6 @@ class OptionDesc:
     default: str | None
     metavar: str
     help_text: str
-    allowed_values: list[str] | None = None
 
 
 @dataclasses.dataclass
@@ -129,6 +128,7 @@ class NumberControl(CliControl):
 class DropdownControl(CliControl):
     opt: OptionLabel
     desc: OptionDesc
+    allowed_values: list[str]
     has_no_flag: bool
 
     def cli_info(self) -> OptionDesc:
@@ -146,10 +146,9 @@ class DropdownControl(CliControl):
     def parse(
         self, args: _parse.ParsedArgs
     ) -> _parse.DropdownValue | _parse.ParseError | None:
-        assert self.desc.allowed_values is not None
         return args.get_dropdown(
             self.opt.option,
-            self.desc.allowed_values,
+            self.allowed_values,
             self._no_flag if self.has_no_flag else None,
         )
 

@@ -263,9 +263,9 @@ class Group:
             desc=_options.OptionDesc(
                 default=value,
                 metavar="{" + "|".join(keys) + "}",
-                allowed_values=keys,
                 help_text=help_text,
             ),
+            allowed_values=keys,
             has_no_flag=allow_select_none and value is not None,
         )
         override = self._get_override(opt, None)
