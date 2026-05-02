@@ -9,12 +9,12 @@ import moops.testing
 from examples import name_casing, notebook
 
 
-def test_run_returns_result():
+def test_run_returns_result() -> None:
     result = moops.run(name_casing, input_text="Hello World", style="snake_case")
     assert result == "hello_world"
 
 
-def test_run_default_values():
+def test_run_default_values() -> None:
     result = moops.run(name_casing)
     assert result == "LoremIpsum"
 
@@ -23,7 +23,9 @@ _name_casing_defaults = moops.testing.defaults(name_casing)
 
 
 @hypothesis.given(moops.testing.from_notebook(name_casing))
-def test_name_casing_preserves_alphanumeric_count(kwargs: dict[str, typing.Any]):
+def test_name_casing_preserves_alphanumeric_count(
+    kwargs: dict[str, typing.Any],
+) -> None:
     result = moops.run(name_casing, **kwargs)
     input_text = kwargs.get("input_text", _name_casing_defaults["input_text"])
     assert not input_text.isascii() or sum(c.isalnum() for c in result) == sum(
@@ -31,15 +33,15 @@ def test_name_casing_preserves_alphanumeric_count(kwargs: dict[str, typing.Any])
     )
 
 
-def test_run_propagates_kwargs_to_subgroup_controls():
+def test_run_propagates_kwargs_to_subgroup_controls() -> None:
     # Default inputs: name="", be_polite=False, times=1 → greeting "Hey there!"
     # style="snake_case" must reach the embedded name_casing subgroup
     assert moops.run(notebook, casing={"style": "snake_case"}) == "hey_there!"
     assert moops.run(notebook, casing={"style": "camel_case"}) == "HeyThere!"
 
 
-def test_overridden_control_is_disabled():
-    async def _run():
+def test_overridden_control_is_disabled() -> None:
+    async def _run() -> None:
         args = moops.Group(cli_args=["script.py"])
         casing = args.subgroup("casing", overrides={"input_text": "hello"})
         result = await name_casing.app.embed(defs={"args": casing})

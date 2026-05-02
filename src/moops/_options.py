@@ -24,7 +24,9 @@ class OptionLabel:
 
     @staticmethod
     def make(
-        label: str | None, option: str | None, prefix: str | None = None
+        label: str | None,
+        option: str | None,
+        prefix: str | None = None,
     ) -> "OptionLabel":
         """Generate OptionLabel from label or option name."""
 
@@ -48,8 +50,10 @@ class ControlMeta:
     stdin_flag: str | None = None
     no_flag: str | None = None
     overridden: bool = False
-    control_ref: "weakref.ref[typing.Any] | None" = dataclasses.field(
-        default=None, repr=False, compare=False
+    control_ref: weakref.ref[typing.Any] | None = dataclasses.field(
+        default=None,
+        repr=False,
+        compare=False,
     )
 
 
@@ -57,7 +61,9 @@ class ControlRegistry:
     """Resolved set of flags and options built from a group's live controls."""
 
     def __init__(
-        self, controls: tuple[typing.Any], control_meta: dict[int, ControlMeta]
+        self,
+        controls: tuple[typing.Any],
+        control_meta: dict[int, ControlMeta],
     ) -> None:
         self.flags: dict[str, str] = {}
         self.str_options: dict[str, OptionDesc] = {}
@@ -68,7 +74,7 @@ class ControlRegistry:
                 raise ValueError(f"Control {ctrl!r} was not created by this Group")
             if meta.opt.option in seen:
                 raise ValueError(
-                    f"Option {meta.opt.option!r} passed to interface() more than once"
+                    f"Option {meta.opt.option!r} passed to interface() more than once",
                 )
             seen.add(meta.opt.option)
             if meta.overridden:
@@ -100,7 +106,9 @@ class ControlRegistry:
         return "\n\n".join(segments)
 
     def validate(
-        self, args: _parse.ParsedArgs, validation_errors: dict[str, str]
+        self,
+        args: _parse.ParsedArgs,
+        validation_errors: dict[str, str],
     ) -> typing.Iterator[str]:
         rendered = self.flags | self.str_options
         yield from (v for k, v in validation_errors.items() if k in rendered)

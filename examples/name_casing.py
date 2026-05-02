@@ -1,6 +1,3 @@
-# ruff: noqa: F401
-# pyright: reportUnusedExpression=false
-
 import marimo
 
 __generated_with = "0.23.4"

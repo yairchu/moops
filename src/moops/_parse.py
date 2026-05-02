@@ -56,7 +56,10 @@ class ParsedArgs:
         return result
 
     def get_dropdown(
-        self, option: str, keys: list[str], no_flag: str | None
+        self,
+        option: str,
+        keys: list[str],
+        no_flag: str | None,
     ) -> DropdownValue | ParseError | None:
         """Returns the selected value, a parse error, or None if not provided."""
         if no_flag and no_flag in self.options:
