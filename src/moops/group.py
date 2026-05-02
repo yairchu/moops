@@ -266,7 +266,7 @@ class Group:
                 help_text=help_text,
             ),
             allowed_values=keys,
-            has_no_flag=allow_select_none and value is not None,
+            supports_none=allow_select_none,
         )
         override = self._get_override(opt, None)
         if override is None:

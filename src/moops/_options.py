@@ -129,19 +129,22 @@ class DropdownControl(CliControl):
     opt: OptionLabel
     desc: OptionDesc
     allowed_values: list[str]
-    has_no_flag: bool
+    supports_none: bool
 
     def cli_info(self) -> OptionDesc:
         return self.desc
 
     @property
-    def _no_flag(self) -> str:
-        return f"--no-{self.opt.option.lstrip('-')}"
+    def has_no_flag(self) -> bool:
+        return self.supports_none and self.desc.default is not None
+
+    @property
+    def _no_flag(self) -> str | None:
+        return f"--no-{self.opt.option.lstrip('-')}" if self.has_no_flag else None
 
     def aux_flags(self) -> dict[str, str]:
-        if self.has_no_flag:
-            return {self._no_flag: f"Set {self.opt.label} to none"}
-        return {}
+        no_flag = self._no_flag
+        return {no_flag: f"Set {self.opt.label} to none"} if no_flag else {}
 
     def parse(
         self, args: _parse.ParsedArgs
@@ -149,7 +152,7 @@ class DropdownControl(CliControl):
         return args.get_dropdown(
             self.opt.option,
             self.allowed_values,
-            self._no_flag if self.has_no_flag else None,
+            self._no_flag,
         )
 
 
