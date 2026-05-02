@@ -64,7 +64,7 @@ class ControlRegistry:
                 raise ValueError(f"Control {ctrl!r} was not created by this Group")
             if meta.opt.option in seen:
                 raise ValueError(
-                    f"Option {meta.opt.option!r} passed to render_cli() more than once"
+                    f"Option {meta.opt.option!r} passed to interface() more than once"
                 )
             seen.add(meta.opt.option)
             if meta.overridden:

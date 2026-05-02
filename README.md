@@ -11,7 +11,7 @@ Using `moops`, both implementations are merged into one.
 
 * Create your argument group: `args = moops.Group()`
 * Replace your `mo.ui` usages with using methods of `args`
-* Add `args.render_cli` call, preferably as the top cell, and provide the UI elements to it. This makes the notebook works as a script and adds info about it in the notebook.
+* Add `args.interface` call, preferably as the top cell, and provide the UI elements to it. This makes the notebook works as a script and adds info about it in the notebook.
 
 Now your notebook doubles as a CLI script
 
@@ -66,7 +66,7 @@ def test_name_casing_preserves_alphanumeric_count(kwargs):
 
 `moops.testing.defaults(module)` returns the default value for each string control, useful for filling in omitted inputs when writing assertions.
 
-`from_notebook` covers all controls, including those not passed to `render_cli`. Controls omitted from `render_cli` are notebook-only — they don't appear in CLI help — but they are still overridable via `moops.run` and exercised by property tests. This keeps `from_notebook` consistent with `moops.run`.
+`from_notebook` covers all controls, including those not passed to `interface`. Controls omitted from `interface` are notebook-only — they don't appear in CLI help — but they are still overridable via `moops.run` and exercised by property tests. This keeps `from_notebook` consistent with `moops.run`.
 
 ## Running the examples
 

@@ -6,7 +6,7 @@ import marimo as mo
 
 @dataclasses.dataclass
 class Interface:
-    """Controls registered by a subgroup's render_cli, for passing to the parent."""
+    """Controls registered by a subgroup's interface, for passing to the parent."""
 
     controls: tuple[typing.Any]
     notebook_name: str = ""

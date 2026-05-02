@@ -46,9 +46,9 @@ class Group:
         child._option_prefix = f"{prefix}-"
         return child
 
-    def render_cli(self, *controls: typing.Any) -> mo.Html | interface.Interface | None:
+    def interface(self, *controls: typing.Any) -> mo.Html | interface.Interface | None:
         """
-        group.render_cli() serves two purposes:
+        group.interface() serves two purposes:
         * Display help text based on the defined flags and options.
         * Verify the arguments passed to the script.
 
@@ -67,7 +67,7 @@ class Group:
                 option_prefix=self._option_prefix,
             )
             if self._option_prefix
-            else self._state.render_cli(controls)
+            else self._state.interface(controls)
         )
 
     def md(self, text: str) -> mo.Html | None:
@@ -360,7 +360,7 @@ class _GroupState:
         default_factory=lambda: {}
     )
 
-    def render_cli(self, controls: tuple[typing.Any]) -> mo.Html | None:
+    def interface(self, controls: tuple[typing.Any]) -> mo.Html | None:
         registry = _options.ControlRegistry(controls, self.control_meta)
 
         show_help = self.args.is_help

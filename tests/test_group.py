@@ -7,7 +7,7 @@ def test_help_exits_zero():
     g = Group(cli_args=["script.py", "--help"])
     ctrl = g.switch(label="Verbose", help_text="Enable verbose output")
     with pytest.raises(SystemExit) as exc_info:
-        g.render_cli(ctrl)
+        g.interface(ctrl)
     assert exc_info.value.code == 0
 
 
@@ -15,7 +15,7 @@ def test_invalid_arg_exits_nonzero():
     g = Group(cli_args=["script.py", "--unknown"])
     ctrl = g.switch(label="Verbose", help_text="Enable verbose output")
     with pytest.raises(SystemExit) as exc_info:
-        g.render_cli(ctrl)
+        g.interface(ctrl)
     assert exc_info.value.code != 0
 
 
@@ -39,10 +39,10 @@ def test_label_derived_from_option_has_no_leading_spaces():
     assert not label.startswith(" ")
 
 
-def test_duplicate_control_error_mentions_render_cli():
+def test_duplicate_control_error_mentions_interface():
     g = Group(cli_args=["script.py"])
     ctrl = g.switch(label="Verbose", help_text="Enable verbose output")
-    method = g.render_cli
+    method = g.interface
     with pytest.raises(ValueError, match=method.__name__):
         method(ctrl, ctrl)
 
@@ -56,13 +56,13 @@ def test_subgroup_prefixes_options():
     assert ctrl.value == "snake_case"
 
 
-def test_subgroup_render_cli_is_noop():
+def test_subgroup_interface_is_noop():
     g = Group(cli_args=["script.py"])
     casing = g.subgroup("casing")
     ctrl = casing.dropdown(
         ["snake_case"], label="Style", help_text="...", allow_select_none=False
     )
-    casing.render_cli(ctrl)  # should not exit
+    casing.interface(ctrl)  # should not exit
 
 
 def test_subgroup_controls_visible_in_parent_help(capsys: pytest.CaptureFixture[str]):
@@ -72,7 +72,7 @@ def test_subgroup_controls_visible_in_parent_help(capsys: pytest.CaptureFixture[
         ["snake_case", "camel_case"], label="Style", help_text="Text style"
     )
     with pytest.raises(SystemExit):
-        g.render_cli(ctrl)
+        g.interface(ctrl)
     assert "--casing-style" in capsys.readouterr().out
 
 
@@ -83,7 +83,7 @@ def test_overridden_control_not_in_help(capsys: pytest.CaptureFixture[str]):
         ["snake_case", "camel_case"], label="Style", help_text="Text style"
     )
     with pytest.raises(SystemExit):
-        g.render_cli(ctrl)
+        g.interface(ctrl)
     assert "--casing-style" not in capsys.readouterr().out
 
 
@@ -93,7 +93,7 @@ def test_equals_flag_not_consumed_as_prefix_for_next_arg(
     g = Group(cli_args=["script.py", "--name=Alice", "unexpected"])
     ctrl = g.text(label="Name", help_text="A name")
     with pytest.raises(SystemExit):
-        g.render_cli(ctrl)
+        g.interface(ctrl)
     # "unexpected" should be reported as the bad argument, not silently consumed
     assert "unexpected" in capsys.readouterr().out
 
@@ -118,7 +118,7 @@ def test_dropdown_no_flag_and_value_is_error(capsys: pytest.CaptureFixture[str])
         help_text="Text style",
     )
     with pytest.raises(SystemExit) as exc_info:
-        g.render_cli(ctrl)
+        g.interface(ctrl)
     assert exc_info.value.code != 0
     assert "--no-style" in capsys.readouterr().out
 
@@ -130,7 +130,7 @@ def test_validation_error_not_shown_for_unrendered_control(
     _unrendered = g.number(option="--count", help_text="A count")
     other = g.switch(label="Verbose", help_text="Enable verbose output")
     with pytest.raises(SystemExit):
-        g.render_cli(other)
+        g.interface(other)
     assert "Unexpected argument: --count" in capsys.readouterr().out
 
 
@@ -138,6 +138,6 @@ def test_help_usage_line_has_no_double_spaces(capsys: pytest.CaptureFixture[str]
     g = Group(cli_args=["script.py", "--help"])
     ctrl = g.text(label="Name", help_text="A name")
     with pytest.raises(SystemExit):
-        g.render_cli(ctrl)  # no flags, only an option
+        g.interface(ctrl)  # no flags, only an option
     usage_line = capsys.readouterr().out.splitlines()[0]
     assert "  " not in usage_line
