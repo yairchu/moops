@@ -1,3 +1,4 @@
+import contextlib
 import types
 import typing
 
@@ -23,14 +24,12 @@ def defaults(module: types.ModuleType) -> dict[str, typing.Any]:
     for meta in _discover(module).values():
         if meta.overridden:
             continue
-        info = meta.cli.cli_info()
-        if not isinstance(info, _options.OptionDesc):
-            continue
         key = meta.cli.opt.label.lower().replace(" ", "_")
         prefix = meta.option_prefix.rstrip("-")
         target = result.setdefault(prefix, {}) if prefix else result
         assert key not in target, f"Duplicate control key: {key!r}"
-        target[key] = meta.cli.default  # type: ignore[attr-defined]
+        with contextlib.suppress(AttributeError):
+            target[key] = meta.cli.default  # type: ignore[attr-defined]
     return result
 
 

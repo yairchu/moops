@@ -50,9 +50,9 @@ class CliControl(abc.ABC):
 
     opt: OptionLabel
 
-    @abc.abstractmethod
-    def cli_info(self) -> str | OptionDesc:
-        """Main option description: str for flags, OptionDesc for value options."""
+    def options(self) -> set[str]:
+        """Value options for this control."""
+        return set()
 
     def flags(self) -> set[str]:
         """Flags for this control."""
@@ -105,8 +105,8 @@ class TextControl(CliControl):
     desc: OptionDesc
     default: str
 
-    def cli_info(self) -> OptionDesc:
-        return self.desc
+    def options(self) -> set[str]:
+        return {self.opt.option}
 
     def parse(self, args: _parse.ParsedArgs) -> str | None:
         return args.options.get(self.opt.option)
@@ -130,8 +130,8 @@ class TextAreaControl(CliControl):
     desc: OptionDesc
     default: str
 
-    def cli_info(self) -> OptionDesc:
-        return self.desc
+    def options(self) -> set[str]:
+        return {self.opt.option}
 
     @property
     def _stdin_flag(self) -> str:
@@ -171,8 +171,8 @@ class NumberControl(CliControl):
     desc: OptionDesc
     default: float | int | None
 
-    def cli_info(self) -> OptionDesc:
-        return self.desc
+    def options(self) -> set[str]:
+        return {self.opt.option}
 
     def parse(self, args: _parse.ParsedArgs) -> float | int | _parse.ParseError | None:
         value = args.options.get(self.opt.option)
@@ -210,8 +210,8 @@ class DropdownControl(CliControl):
     supports_none: bool
     default: str | None
 
-    def cli_info(self) -> OptionDesc:
-        return self.desc
+    def options(self) -> set[str]:
+        return {self.opt.option}
 
     @property
     def has_no_flag(self) -> bool:
@@ -298,9 +298,7 @@ class ControlRegistry:
             seen.add(meta.cli.opt.option)
             if meta.overridden:
                 continue
-            info = meta.cli.cli_info()
-            if not isinstance(info, str):
-                self.value_options.add(meta.cli.opt.option)
+            self.value_options.update(meta.cli.options())
             self.flags.update(meta.cli.flags())
             self._controls.append(meta.cli)
 
