@@ -28,8 +28,8 @@ def defaults(module: types.ModuleType) -> dict[str, typing.Any]:
         prefix = meta.option_prefix.rstrip("-")
         target = result.setdefault(prefix, {}) if prefix else result
         assert key not in target, f"Duplicate control key: {key!r}"
-        with contextlib.suppress(AttributeError):
-            target[key] = meta.cli.default  # type: ignore[attr-defined]
+        if hasattr(meta.cli, "default"):
+            target[key] = meta.cli.default # type: ignore
     return result
 
 

@@ -72,9 +72,6 @@ class FlagControl(CliControl):
     opt: OptionLabel
     help_text: str
 
-    def cli_info(self) -> str:
-        return self.help_text
-
     def flags(self) -> set[str]:
         return {self.opt.option}
 
@@ -92,23 +89,29 @@ class FlagControl(CliControl):
 
 
 @dataclasses.dataclass
-class TextControl(CliControl):
+class ValueControl(CliControl):
+    """Base class for controls that take a value, like text or dropdowns."""
+
     opt: OptionLabel
     metavar: str
     help_text: str
-    default: str
 
     def options(self) -> set[str]:
         return {self.opt.option}
+
+    def format_usage_parts(self) -> list[str]:
+        return [f"[{self.opt.option} {self.metavar}]"]
+
+
+@dataclasses.dataclass
+class TextControl(ValueControl):
+    default: str
 
     def parse(self, args: _parse.ParsedArgs) -> str | None:
         return args.options.get(self.opt.option)
 
     def strategy(self) -> st.SearchStrategy:
         return st.one_of(st.none(), st.text())
-
-    def format_usage_parts(self) -> list[str]:
-        return [f"[{self.opt.option} {self.metavar}]"]
 
     def format_help_lines(self) -> list[str]:
         line = f"  {self.opt.option} {self.metavar}: {self.help_text}"
@@ -118,14 +121,8 @@ class TextControl(CliControl):
 
 
 @dataclasses.dataclass
-class TextAreaControl(CliControl):
-    opt: OptionLabel
-    metavar: str
-    help_text: str
+class TextAreaControl(ValueControl):
     default: str
-
-    def options(self) -> set[str]:
-        return {self.opt.option}
 
     @property
     def _stdin_flag(self) -> str:
@@ -160,14 +157,8 @@ class TextAreaControl(CliControl):
 
 
 @dataclasses.dataclass
-class NumberControl(CliControl):
-    opt: OptionLabel
-    metavar: str
-    help_text: str
+class NumberControl(ValueControl):
     default: float | int | None
-
-    def options(self) -> set[str]:
-        return {self.opt.option}
 
     def parse(self, args: _parse.ParsedArgs) -> float | int | _parse.ParseError | None:
         value = args.options.get(self.opt.option)
@@ -186,9 +177,6 @@ class NumberControl(CliControl):
             st.none(),
             st.integers() | st.floats(allow_nan=False, allow_infinity=False),
         )
-
-    def format_usage_parts(self) -> list[str]:
-        return [f"[{self.opt.option} {self.metavar}]"]
 
     def format_help_lines(self) -> list[str]:
         line = f"  {self.opt.option} {self.metavar}: {self.help_text}"
