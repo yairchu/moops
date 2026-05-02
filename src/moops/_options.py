@@ -208,10 +208,9 @@ class DropdownControl(CliControl):
         return _parse.DropdownValue(raw)
 
     def strategy(self) -> st.SearchStrategy:
-        base: st.SearchStrategy = st.sampled_from(self.allowed_values)
-        if self.has_no_flag:
-            base = st.one_of(st.none(), base)
-        return st.one_of(st.none(), base)
+        return st.sampled_from(
+            [None, *self.allowed_values] if self.supports_none else self.allowed_values
+        )
 
 
 @dataclasses.dataclass
