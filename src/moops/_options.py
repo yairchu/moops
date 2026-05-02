@@ -95,7 +95,7 @@ class TextControl(ValueControl):
         return None if res is None else ParseResult(res)
 
     def strategy(self) -> st.SearchStrategy:
-        return st.one_of(st.none(), st.text())
+        return st.text()
 
     def format_help_lines(self) -> list[str]:
         line = f"  {self.option} {self.metavar}: {self.help_text}"
@@ -129,7 +129,7 @@ class TextAreaControl(ValueControl):
         return None if res is None else ParseResult(res)
 
     def strategy(self) -> st.SearchStrategy:
-        return st.one_of(st.none(), st.text())
+        return st.text()
 
     def format_usage_parts(self) -> list[str]:
         return [f"[{self.option} {self.metavar}]", f"[{self._stdin_flag}]"]
