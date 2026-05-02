@@ -54,9 +54,9 @@ class CliControl(abc.ABC):
     def cli_info(self) -> str | OptionDesc:
         """Main option description: str for flags, OptionDesc for value options."""
 
-    def aux_flags(self) -> dict[str, str]:
-        """Extra flags for this control: {flag: help_text}."""
-        return {}
+    def aux_flags(self) -> set[str]:
+        """Extra flags for this control."""
+        return set()
 
     @abc.abstractmethod
     def parse(self, args: _parse.ParsedArgs) -> typing.Any:
@@ -134,8 +134,8 @@ class TextAreaControl(CliControl):
     def _stdin_flag(self) -> str:
         return f"{self.opt.option}-from-stdin"
 
-    def aux_flags(self) -> dict[str, str]:
-        return {self._stdin_flag: f"Read {self.opt.label} from stdin"}
+    def aux_flags(self) -> set[str]:
+        return {self._stdin_flag}
 
     def parse(self, args: _parse.ParsedArgs) -> str | _parse.ParseError | None:
         if not mo.running_in_notebook() and self._stdin_flag in args.options:
@@ -218,9 +218,9 @@ class DropdownControl(CliControl):
     def _no_flag(self) -> str | None:
         return f"--no-{self.opt.option.lstrip('-')}" if self.has_no_flag else None
 
-    def aux_flags(self) -> dict[str, str]:
+    def aux_flags(self) -> set[str]:
         no_flag = self._no_flag
-        return {no_flag: f"Set {self.opt.label} to none"} if no_flag else {}
+        return {no_flag} if no_flag else set()
 
     def parse(
         self, args: _parse.ParsedArgs
@@ -300,7 +300,7 @@ class ControlRegistry:
                 self.flags.add(meta.cli.opt.option)
             else:
                 self.value_options.add(meta.cli.opt.option)
-            self.flags.update(meta.cli.aux_flags().keys())
+            self.flags.update(meta.cli.aux_flags())
             self._controls.append(meta.cli)
 
     def format_help(self, command: str) -> str:
