@@ -134,6 +134,13 @@ def test_validation_error_not_shown_for_unrendered_control(
     assert "Unexpected argument: --count" in capsys.readouterr().out
 
 
+def test_number_accepts_negative_value() -> None:
+    g = Group(cli_args=["script.py", "--count", "-3"])
+    ctrl = g.number(option="--count", help_text="A count")
+    g.interface(ctrl)
+    assert ctrl.value == -3
+
+
 def test_help_usage_line_has_no_double_spaces(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
