@@ -56,6 +56,17 @@ def test_subgroup_prefixes_options() -> None:
     assert ctrl.value == "snake_case"
 
 
+@pytest.mark.xfail(reason="TODO: subgroup() ignores parent prefix, nested prefixes don't accumulate")
+def test_nested_subgroup_accumulates_prefix() -> None:
+    g = Group(cli_args=["script.py", "--outer-inner-style", "snake_case"])
+    outer = g.subgroup("outer")
+    inner = outer.subgroup("inner")
+    ctrl = inner.dropdown(
+        ["snake_case", "camel_case"], label="Style", help_text="Text style"
+    )
+    assert ctrl.value == "snake_case"
+
+
 def test_subgroup_interface_is_noop():
     g = Group(cli_args=["script.py"])
     casing = g.subgroup("casing")
