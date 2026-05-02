@@ -19,7 +19,7 @@ class Interface:
             else:
                 yield ctrl
 
-    def _mime_(self):
+    def _mime_(self) -> tuple[str, str]:
         if not self.notebook_name:
             return mo.md("Cli bundle with no notebook name")._mime_()  # type: ignore
         has_exposed = any(
