@@ -1,7 +1,11 @@
 import abc
 import dataclasses
+import math
+import sys
 import typing
 import weakref
+
+import marimo as mo
 
 from . import _parse, interface
 
@@ -105,8 +109,15 @@ class TextAreaControl(CliControl):
         return {self._stdin_flag: f"Read {self.opt.label} from stdin"}
 
     def parse(self, args: _parse.ParsedArgs) -> str | _parse.ParseError | None:
-        result = args.get_text_area(self.opt.option, self._stdin_flag)
-        return args.options.get(self.opt.option) if result is None else result
+        if not mo.running_in_notebook() and self._stdin_flag in args.options:
+            if self.opt.option in args.options:
+                return _parse.ParseError(
+                    f"Cannot use both {self.opt.option} and {self._stdin_flag}"
+                )
+            if args.options[self._stdin_flag] is None:
+                return sys.stdin.read()
+            return None
+        return args.options.get(self.opt.option)
 
 
 @dataclasses.dataclass
@@ -121,7 +132,16 @@ class NumberControl(CliControl):
         return {}
 
     def parse(self, args: _parse.ParsedArgs) -> float | int | _parse.ParseError | None:
-        return args.get_num(self.opt.option)
+        value = args.options.get(self.opt.option)
+        if value is None:
+            return None
+        try:
+            num = float(value)
+        except ValueError:
+            return _parse.ParseError(
+                f"Option {self.opt.option} expects a number, got: {value!r}"
+            )
+        return int(num) if math.isfinite(num) and num == int(num) else num
 
 
 @dataclasses.dataclass
@@ -149,11 +169,22 @@ class DropdownControl(CliControl):
     def parse(
         self, args: _parse.ParsedArgs
     ) -> _parse.DropdownValue | _parse.ParseError | None:
-        return args.get_dropdown(
-            self.opt.option,
-            self.allowed_values,
-            self._no_flag,
-        )
+        no_flag = self._no_flag
+        if no_flag and no_flag in args.options:
+            if self.opt.option in args.options:
+                return _parse.ParseError(
+                    f"Cannot use both {self.opt.option} and {no_flag}"
+                )
+            return _parse.DropdownValue(None)
+        raw = args.options.get(self.opt.option)
+        if raw is None:
+            return None
+        if raw not in self.allowed_values:
+            return _parse.ParseError(
+                f"Option {self.opt.option} must be one of"
+                f" {self.allowed_values!r}, got: {raw!r}"
+            )
+        return _parse.DropdownValue(raw)
 
 
 @dataclasses.dataclass
