@@ -37,10 +37,12 @@ class OptionLabel:
         return OptionLabel(label=label, option=option)
 
 
+@dataclasses.dataclass
 class CliControl(abc.ABC):
     """CLI interface for a single UI control."""
 
     opt: OptionLabel
+    help_text: str
 
     def options(self) -> set[str]:
         """Value options for this control."""
@@ -67,11 +69,7 @@ class CliControl(abc.ABC):
         """Help lines for this control and any aux flags."""
 
 
-@dataclasses.dataclass
 class FlagControl(CliControl):
-    opt: OptionLabel
-    help_text: str
-
     def flags(self) -> set[str]:
         return {self.opt.option}
 
@@ -92,9 +90,7 @@ class FlagControl(CliControl):
 class ValueControl(CliControl):
     """Base class for controls that take a value, like text or dropdowns."""
 
-    opt: OptionLabel
     metavar: str
-    help_text: str
 
     def options(self) -> set[str]:
         return {self.opt.option}
@@ -187,11 +183,9 @@ class NumberControl(ValueControl):
 
 @dataclasses.dataclass
 class DropdownControl(CliControl):
-    opt: OptionLabel
     allowed_values: list[str]
     supports_none: bool
     default: str | None
-    help_text: str
 
     def options(self) -> set[str]:
         return {self.opt.option}
