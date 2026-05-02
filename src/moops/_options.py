@@ -54,8 +54,8 @@ class CliControl(abc.ABC):
     def cli_info(self) -> str | OptionDesc:
         """Main option description: str for flags, OptionDesc for value options."""
 
-    def aux_flags(self) -> set[str]:
-        """Extra flags for this control."""
+    def flags(self) -> set[str]:
+        """Flags for this control."""
         return set()
 
     @abc.abstractmethod
@@ -82,6 +82,9 @@ class FlagControl(CliControl):
 
     def cli_info(self) -> str:
         return self.help_text
+
+    def flags(self) -> set[str]:
+        return {self.opt.option}
 
     def parse(self, args: _parse.ParsedArgs) -> bool | None:
         return True if self.opt.option in args.options else None
@@ -134,7 +137,7 @@ class TextAreaControl(CliControl):
     def _stdin_flag(self) -> str:
         return f"{self.opt.option}-from-stdin"
 
-    def aux_flags(self) -> set[str]:
+    def flags(self) -> set[str]:
         return {self._stdin_flag}
 
     def parse(self, args: _parse.ParsedArgs) -> str | _parse.ParseError | None:
@@ -218,7 +221,7 @@ class DropdownControl(CliControl):
     def _no_flag(self) -> str | None:
         return f"--no-{self.opt.option.lstrip('-')}" if self.has_no_flag else None
 
-    def aux_flags(self) -> set[str]:
+    def flags(self) -> set[str]:
         no_flag = self._no_flag
         return {no_flag} if no_flag else set()
 
@@ -296,11 +299,9 @@ class ControlRegistry:
             if meta.overridden:
                 continue
             info = meta.cli.cli_info()
-            if isinstance(info, str):
-                self.flags.add(meta.cli.opt.option)
-            else:
+            if not isinstance(info, str):
                 self.value_options.add(meta.cli.opt.option)
-            self.flags.update(meta.cli.aux_flags())
+            self.flags.update(meta.cli.flags())
             self._controls.append(meta.cli)
 
     def format_help(self, command: str) -> str:
