@@ -81,23 +81,12 @@ def _(args):
 
 
 @app.cell
-def _(args):
-    space_switch = args.switch(
-        label="Add spaces", help_text="SECRET option only in notebook (not in cli)"
-    )
-    space_switch
-    return (space_switch,)
-
-
-@app.cell
-def _(input_text, mode_dropdown, space_switch):
+def _(input_text, mode_dropdown):
     result = (
         mode_dropdown.value(input_text.value)
         if mode_dropdown.value
         else input_text.value
     )
-    if space_switch.value:
-        result = " ".join(result)
     return (result,)
 
 

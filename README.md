@@ -64,10 +64,6 @@ def test_name_casing_preserves_alphanumeric_count(kwargs):
     assert sum(c.isalnum() for c in result) == sum(c.isalnum() for c in input_text)
 ```
 
-`moops.testing.defaults(module)` returns the default value for each string control, useful for filling in omitted inputs when writing assertions.
-
-`from_notebook` covers all controls, including those not passed to `interface`. Controls omitted from `interface` are notebook-only — they don't appear in CLI help — but they are still overridable via `moops.run` and exercised by property tests. This keeps `from_notebook` consistent with `moops.run`.
-
 ## Running the examples
 
 From the project root:

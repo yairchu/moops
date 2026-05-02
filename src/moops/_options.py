@@ -1,5 +1,6 @@
 import dataclasses
 import typing
+import weakref
 
 from . import _parse, interface
 
@@ -47,6 +48,9 @@ class ControlMeta:
     stdin_flag: str | None = None
     no_flag: str | None = None
     overridden: bool = False
+    control_ref: "weakref.ref[typing.Any] | None" = dataclasses.field(
+        default=None, repr=False, compare=False
+    )
 
 
 class ControlRegistry:
