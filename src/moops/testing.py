@@ -22,12 +22,15 @@ def defaults(module: types.ModuleType) -> dict[str, str | None]:
     result: dict[str, str | None] = {}
     seen: set[str] = set()
     for meta in _discover(module).values():
-        if meta.overridden or isinstance(meta.info, str):
+        cli = meta.cli
+        if meta.overridden or isinstance(cli, _options.FlagControl):
             continue
-        key = meta.opt.label.lower().replace(" ", "_")
+        key = cli.opt.label.lower().replace(" ", "_")
         if key not in seen:
             seen.add(key)
-            result[key] = meta.info.default
+            info = cli.cli_info()
+            assert isinstance(info, _options.OptionDesc)
+            result[key] = info.default
     return result
 
 
@@ -38,20 +41,26 @@ def _strategies_from_meta(
     seen: set[str] = set()
 
     for meta in control_meta.values():
+        cli = meta.cli
         if meta.overridden:
             continue
-        key = meta.opt.label.lower().replace(" ", "_")
+        key = cli.opt.label.lower().replace(" ", "_")
         if key in seen:
             continue
         seen.add(key)
 
-        if isinstance(meta.info, str):
+        if isinstance(cli, _options.FlagControl):
             kwarg_strategies[key] = st.booleans()
         else:
-            desc = meta.info
-            if desc.allowed_values is not None:
-                base: st.SearchStrategy = st.sampled_from(desc.allowed_values)
-                if meta.no_flag is not None:
+            info = cli.cli_info()
+            assert isinstance(info, _options.OptionDesc)
+            if info.allowed_values is not None:
+                base: st.SearchStrategy = st.sampled_from(info.allowed_values)
+                is_nullable_dropdown = (
+                    isinstance(cli, _options.DropdownControl)
+                    and cli.no_flag is not None
+                )
+                if is_nullable_dropdown:
                     base = st.one_of(st.none(), base)
             else:
                 # TODO: add range-aware strategy for number controls

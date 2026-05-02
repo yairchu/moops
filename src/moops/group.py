@@ -81,7 +81,8 @@ class Group:
         """Create a switch UI element that maps to a CLI flag."""
 
         opt = self._make_opt(label=label, option=flag, prefix="no-" if value else None)
-        if opt.option in self._state.args.options:
+        cli = _options.FlagControl(opt=opt, help_text=help_text)
+        if cli.parse(self._state.args):
             value = not value
         return self._state.register(
             mo.ui.switch(
@@ -90,9 +91,7 @@ class Group:
                 disabled=self._is_overridden(opt),
                 **kwargs,
             ),
-            _options.ControlMeta(
-                opt=opt, info=help_text, overridden=self._is_overridden(opt)
-            ),
+            _options.ControlMeta(cli=cli, overridden=self._is_overridden(opt)),
         )
 
     def text(
@@ -107,19 +106,19 @@ class Group:
     ) -> mo.ui.text:
         """Create a text input UI element that maps to a CLI option."""
 
-        opt, value, desc = self._text_option(
-            value, placeholder, option, help_text, label
+        opt = self._make_opt(label=label, option=option)
+        cli = _options.TextControl(
+            opt=opt, desc=self._text_desc(value, placeholder, opt, help_text)
         )
+        parsed = cli.parse(self._state.args)
         return self._state.register(
             mo.ui.text(
-                value=value,
+                value=self._get_override(opt, value if parsed is None else parsed),
                 label=opt.label,
                 disabled=self._is_overridden(opt),
                 **kwargs,
             ),
-            _options.ControlMeta(
-                opt=opt, info=desc, overridden=self._is_overridden(opt)
-            ),
+            _options.ControlMeta(cli=cli, overridden=self._is_overridden(opt)),
         )
 
     def text_area(
@@ -134,51 +133,35 @@ class Group:
     ) -> mo.ui.text_area:
         """Create a text area UI element that maps to a CLI option."""
 
-        opt, value, desc = self._text_option(
-            value, placeholder, option, help_text, label
+        opt = self._make_opt(label=label, option=option)
+        cli = _options.TextAreaControl(
+            opt=opt, desc=self._text_desc(value, placeholder, opt, help_text)
         )
-        stdin_flag = None if self._is_overridden(opt) else f"{opt.option}-from-stdin"
-        if stdin_flag:
-            match self._state.args.get_text_area(opt.option, stdin_flag):
-                case _parse.ParseError(message=msg):
-                    self._state.validation_errors[opt.option] = msg
-                case str() as v:
-                    value = v
-                case _:
-                    pass
+        match cli.parse(self._state.args):
+            case _parse.ParseError(message=msg):
+                self._state.validation_errors[opt.option] = msg
+            case str() as v:
+                value = v
+            case x:
+                assert x is None, f"Unexpected parse result: {x!r}"
         return self._state.register(
             mo.ui.text_area(
-                value=value,
+                value=self._get_override(opt, value),
                 label=opt.label,
                 disabled=self._is_overridden(opt),
                 **kwargs,
             ),
-            _options.ControlMeta(
-                opt=opt,
-                info=desc,
-                stdin_flag=stdin_flag,
-                overridden=self._is_overridden(opt),
-            ),
+            _options.ControlMeta(cli=cli, overridden=self._is_overridden(opt)),
         )
 
-    def _text_option(
-        self,
-        value: str,
-        placeholder: str,
-        option: str | None,
-        help_text: str,
-        label: str | None,
-    ) -> tuple[_options.OptionLabel, str, _options.OptionDesc]:
-        """Parse a string CLI option."""
-
-        opt = self._make_opt(label=label, option=option)
-        desc = _options.OptionDesc(
+    def _text_desc(
+        self, value: str, placeholder: str, opt: _options.OptionLabel, help_text: str
+    ) -> _options.OptionDesc:
+        return _options.OptionDesc(
             default=value,
             metavar=placeholder or opt.label.upper().replace(" ", "_"),
             help_text=help_text,
         )
-        raw = self._state.args.options.get(opt.option)
-        return opt, self._get_override(opt, value if raw is None else raw), desc
 
     def number(
         self,
@@ -192,16 +175,16 @@ class Group:
     ) -> mo.ui.number:
         """Create a number input UI element that maps to a CLI option."""
 
-        value, meta = self._numeric_option(start, value, option, help_text, label)
+        cli, value = self._numeric_cli(start, value, option, help_text, label)
         return self._state.register(
             mo.ui.number(
                 start=start,
                 value=value,
-                label=meta.opt.label,
-                disabled=self._is_overridden(meta.opt),
+                label=cli.opt.label,
+                disabled=self._is_overridden(cli.opt),
                 **kwargs,
             ),
-            meta,
+            _options.ControlMeta(cli=cli, overridden=self._is_overridden(cli.opt)),
         )
 
     def slider(
@@ -216,48 +199,46 @@ class Group:
     ) -> mo.ui.slider:
         """Create a slider UI element that maps to a CLI option."""
 
-        value, meta = self._numeric_option(start, value, option, help_text, label)
+        cli, value = self._numeric_cli(start, value, option, help_text, label)
         return self._state.register(
             mo.ui.slider(
                 start=start,
                 value=value,
-                label=meta.opt.label,
-                disabled=self._is_overridden(meta.opt),
+                label=cli.opt.label,
+                disabled=self._is_overridden(cli.opt),
                 **kwargs,
             ),
-            meta,
+            _options.ControlMeta(cli=cli, overridden=self._is_overridden(cli.opt)),
         )
 
-    def _numeric_option(
+    def _numeric_cli(
         self,
         start: float | None,
         value: float | None,
         option: str | None,
         help_text: str,
         label: str | None,
-    ) -> tuple[float, _options.ControlMeta]:
-        """Parse a numeric CLI option."""
-
+    ) -> tuple[_options.NumberControl, float | None]:
         if value is None:
             value = start
         opt = self._make_opt(label=label, option=option)
-        desc = _options.OptionDesc(
-            default=str(value),
-            metavar=opt.label.upper().replace(" ", "_"),
-            help_text=help_text,
-        )
-        parsed = self._state.args.get_num(opt.option)
-        if isinstance(parsed, _parse.ParseError):
-            if not self._is_overridden(opt):
-                self._state.validation_errors[opt.option] = parsed.message
-        elif parsed is not None:
-            value = parsed
-        return (
-            self._get_override(opt, value),
-            _options.ControlMeta(
-                opt=opt, info=desc, overridden=self._is_overridden(opt)
+        cli = _options.NumberControl(
+            opt=opt,
+            desc=_options.OptionDesc(
+                default=str(value),
+                metavar=opt.label.upper().replace(" ", "_"),
+                help_text=help_text,
             ),
         )
+        match cli.parse(self._state.args):
+            case _parse.ParseError(message=msg):
+                if not self._is_overridden(opt):
+                    self._state.validation_errors[opt.option] = msg
+            case None:
+                pass
+            case v:
+                value = v
+        return cli, self._get_override(opt, value)
 
     def dropdown(
         self,
@@ -277,20 +258,21 @@ class Group:
         keys = list(options)
         if value is None and not allow_select_none:
             value, *_ = keys
-        desc = _options.OptionDesc(
-            default=value,
-            metavar="{" + "|".join(keys) + "}",
-            allowed_values=keys,
-            help_text=help_text,
-        )
-        no_flag = (
-            f"--no-{opt.option.lstrip('-')}"
+        cli = _options.DropdownControl(
+            opt=opt,
+            desc=_options.OptionDesc(
+                default=value,
+                metavar="{" + "|".join(keys) + "}",
+                allowed_values=keys,
+                help_text=help_text,
+            ),
+            no_flag=f"--no-{opt.option.lstrip('-')}"
             if allow_select_none and value is not None
-            else None
+            else None,
         )
         override = self._get_override(opt, None)
         if override is None:
-            match self._state.args.get_dropdown(opt.option, keys, no_flag):
+            match cli.parse(self._state.args):
                 case _parse.ParseError(message=msg):
                     self._state.validation_errors[opt.option] = msg
                 case _parse.DropdownValue(value=v):
@@ -314,9 +296,7 @@ class Group:
                 allow_select_none=allow_select_none,
                 **kwargs,
             ),
-            _options.ControlMeta(
-                opt=opt, info=desc, no_flag=no_flag, overridden=self._is_overridden(opt)
-            ),
+            _options.ControlMeta(cli=cli, overridden=self._is_overridden(opt)),
         )
 
     def _override_key(self, opt: _options.OptionLabel) -> str:

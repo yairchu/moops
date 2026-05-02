@@ -1,3 +1,4 @@
+import abc
 import dataclasses
 import typing
 import weakref
@@ -41,14 +42,115 @@ class OptionLabel:
         return OptionLabel(label=label, option=option)
 
 
+class CliControl(abc.ABC):
+    """CLI interface for a single UI control."""
+
+    opt: OptionLabel
+
+    @abc.abstractmethod
+    def cli_info(self) -> str | OptionDesc:
+        """Main option description: str for flags, OptionDesc for value options."""
+
+    @abc.abstractmethod
+    def aux_flags(self) -> dict[str, str]:
+        """Extra flags for this control: {flag: help_text}."""
+
+    @abc.abstractmethod
+    def parse(self, args: _parse.ParsedArgs) -> typing.Any:
+        """Parse from CLI args. Returns value, ParseError, or None if not provided."""
+
+
+@dataclasses.dataclass
+class FlagControl(CliControl):
+    opt: OptionLabel
+    help_text: str
+
+    def cli_info(self) -> str:
+        return self.help_text
+
+    def aux_flags(self) -> dict[str, str]:
+        return {}
+
+    def parse(self, args: _parse.ParsedArgs) -> bool | None:
+        return True if self.opt.option in args.options else None
+
+
+@dataclasses.dataclass
+class TextControl(CliControl):
+    opt: OptionLabel
+    desc: OptionDesc
+
+    def cli_info(self) -> OptionDesc:
+        return self.desc
+
+    def aux_flags(self) -> dict[str, str]:
+        return {}
+
+    def parse(self, args: _parse.ParsedArgs) -> str | None:
+        return args.options.get(self.opt.option)
+
+
+@dataclasses.dataclass
+class TextAreaControl(CliControl):
+    opt: OptionLabel
+    desc: OptionDesc
+
+    def cli_info(self) -> OptionDesc:
+        return self.desc
+
+    @property
+    def _stdin_flag(self) -> str:
+        return f"{self.opt.option}-from-stdin"
+
+    def aux_flags(self) -> dict[str, str]:
+        return {self._stdin_flag: f"Read {self.opt.label} from stdin"}
+
+    def parse(self, args: _parse.ParsedArgs) -> str | _parse.ParseError | None:
+        result = args.get_text_area(self.opt.option, self._stdin_flag)
+        return args.options.get(self.opt.option) if result is None else result
+
+
+@dataclasses.dataclass
+class NumberControl(CliControl):
+    opt: OptionLabel
+    desc: OptionDesc
+
+    def cli_info(self) -> OptionDesc:
+        return self.desc
+
+    def aux_flags(self) -> dict[str, str]:
+        return {}
+
+    def parse(self, args: _parse.ParsedArgs) -> float | int | _parse.ParseError | None:
+        return args.get_num(self.opt.option)
+
+
+@dataclasses.dataclass
+class DropdownControl(CliControl):
+    opt: OptionLabel
+    desc: OptionDesc
+    no_flag: str | None
+
+    def cli_info(self) -> OptionDesc:
+        return self.desc
+
+    def aux_flags(self) -> dict[str, str]:
+        return {self.no_flag: f"Set {self.opt.label} to none"} if self.no_flag else {}
+
+    def parse(
+        self, args: _parse.ParsedArgs
+    ) -> _parse.DropdownValue | _parse.ParseError | None:
+        assert self.desc.allowed_values is not None
+        return args.get_dropdown(
+            self.opt.option, self.desc.allowed_values, self.no_flag
+        )
+
+
 @dataclasses.dataclass
 class ControlMeta:
-    opt: OptionLabel
-    info: str | OptionDesc
-    stdin_flag: str | None = None
-    no_flag: str | None = None
+    cli: CliControl
     overridden: bool = False
-    control_ref: "weakref.ref[typing.Any] | None" = dataclasses.field(
+    control_ref: weakref.ref[typing.Any] | None = dataclasses.field(
         default=None, repr=False, compare=False
     )
 
@@ -66,21 +168,20 @@ class ControlRegistry:
             meta = control_meta.get(id(ctrl))
             if meta is None:
                 raise ValueError(f"Control {ctrl!r} was not created by this Group")
-            if meta.opt.option in seen:
+            if meta.cli.opt.option in seen:
                 raise ValueError(
-                    f"Option {meta.opt.option!r} passed to interface() more than once"
+                    f"Option {meta.cli.opt.option!r} "
+                    f"passed to interface() more than once"
                 )
-            seen.add(meta.opt.option)
+            seen.add(meta.cli.opt.option)
             if meta.overridden:
                 continue
-            if isinstance(meta.info, str):
-                self.flags[meta.opt.option] = meta.info
+            info = meta.cli.cli_info()
+            if isinstance(info, str):
+                self.flags[meta.cli.opt.option] = info
             else:
-                self.str_options[meta.opt.option] = meta.info
-            if meta.stdin_flag:
-                self.flags[meta.stdin_flag] = f"Read {meta.opt.label} from stdin"
-            if meta.no_flag:
-                self.flags[meta.no_flag] = f"Set {meta.opt.label} to none"
+                self.str_options[meta.cli.opt.option] = info
+            self.flags.update(meta.cli.aux_flags())
 
     def format_help(self, command: str) -> str:
         options = [
