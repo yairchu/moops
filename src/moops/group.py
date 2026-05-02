@@ -112,7 +112,9 @@ class Group:
 
         opt = self._make_opt(label=label, option=option)
         cli = _options.TextControl(
-            opt=opt, desc=self._text_desc(value, placeholder, opt, help_text)
+            opt=opt,
+            desc=self._text_desc(placeholder, opt, help_text),
+            default=value,
         )
         parsed = cli.parse(self._state.args)
         return self._state.register(
@@ -143,7 +145,9 @@ class Group:
 
         opt = self._make_opt(label=label, option=option)
         cli = _options.TextAreaControl(
-            opt=opt, desc=self._text_desc(value, placeholder, opt, help_text)
+            opt=opt,
+            desc=self._text_desc(placeholder, opt, help_text),
+            default=value,
         )
         match cli.parse(self._state.args):
             case _parse.ParseError(message=msg):
@@ -167,10 +171,9 @@ class Group:
         )
 
     def _text_desc(
-        self, value: str, placeholder: str, opt: _options.OptionLabel, help_text: str
+        self, placeholder: str, opt: _options.OptionLabel, help_text: str
     ) -> _options.OptionDesc:
         return _options.OptionDesc(
-            default=value,
             metavar=placeholder or opt.label.upper().replace(" ", "_"),
             help_text=help_text,
         )
@@ -237,10 +240,10 @@ class Group:
         cli = _options.NumberControl(
             opt=opt,
             desc=_options.OptionDesc(
-                default=value,
                 metavar=opt.label.upper().replace(" ", "_"),
                 help_text=help_text,
             ),
+            default=value,
         )
         match cli.parse(self._state.args):
             case _parse.ParseError(message=msg):
@@ -273,12 +276,12 @@ class Group:
         cli = _options.DropdownControl(
             opt=opt,
             desc=_options.OptionDesc(
-                default=value,
                 metavar="{" + "|".join(keys) + "}",
                 help_text=help_text,
             ),
             allowed_values=keys,
             supports_none=allow_select_none,
+            default=value,
         )
         override = self._get_override(opt, None)
         if override is None:

@@ -13,9 +13,8 @@ from . import _parse, interface
 
 @dataclasses.dataclass
 class OptionDesc:
-    """Metadata for CLI options with defaults and help text."""
+    """Metadata for CLI options: display name and help text."""
 
-    default: typing.Any
     metavar: str
     help_text: str
 
@@ -67,6 +66,14 @@ class CliControl(abc.ABC):
     def strategy(self) -> st.SearchStrategy:
         """Hypothesis strategy for generating override values."""
 
+    @abc.abstractmethod
+    def format_usage_parts(self) -> list[str]:
+        """Usage tokens for this control, e.g. ['[--flag]'] or ['[--name NAME]']."""
+
+    @abc.abstractmethod
+    def format_help_lines(self) -> list[str]:
+        """Help lines for this control and any aux flags."""
+
 
 @dataclasses.dataclass
 class FlagControl(CliControl):
@@ -85,11 +92,18 @@ class FlagControl(CliControl):
     def strategy(self) -> st.SearchStrategy:
         return st.booleans()
 
+    def format_usage_parts(self) -> list[str]:
+        return [f"[{self.opt.option}]"]
+
+    def format_help_lines(self) -> list[str]:
+        return [f"  {self.opt.option}: {self.help_text}"]
+
 
 @dataclasses.dataclass
 class TextControl(CliControl):
     opt: OptionLabel
     desc: OptionDesc
+    default: str
 
     def cli_info(self) -> OptionDesc:
         return self.desc
@@ -103,11 +117,21 @@ class TextControl(CliControl):
     def strategy(self) -> st.SearchStrategy:
         return st.one_of(st.none(), st.text())
 
+    def format_usage_parts(self) -> list[str]:
+        return [f"[{self.opt.option} {self.desc.metavar}]"]
+
+    def format_help_lines(self) -> list[str]:
+        line = f"  {self.opt.option} {self.desc.metavar}: {self.desc.help_text}"
+        if self.default:
+            line += f" (default: {self.default})"
+        return [line]
+
 
 @dataclasses.dataclass
 class TextAreaControl(CliControl):
     opt: OptionLabel
     desc: OptionDesc
+    default: str
 
     def cli_info(self) -> OptionDesc:
         return self.desc
@@ -134,11 +158,21 @@ class TextAreaControl(CliControl):
     def strategy(self) -> st.SearchStrategy:
         return st.one_of(st.none(), st.text())
 
+    def format_usage_parts(self) -> list[str]:
+        return [f"[{self.opt.option} {self.desc.metavar}]", f"[{self._stdin_flag}]"]
+
+    def format_help_lines(self) -> list[str]:
+        line = f"  {self.opt.option} {self.desc.metavar}: {self.desc.help_text}"
+        if self.default:
+            line += f" (default: {self.default})"
+        return [line, f"  {self._stdin_flag}: Read {self.opt.label} from stdin"]
+
 
 @dataclasses.dataclass
 class NumberControl(CliControl):
     opt: OptionLabel
     desc: OptionDesc
+    default: float | int | None
 
     def cli_info(self) -> OptionDesc:
         return self.desc
@@ -164,6 +198,15 @@ class NumberControl(CliControl):
             st.integers() | st.floats(allow_nan=False, allow_infinity=False),
         )
 
+    def format_usage_parts(self) -> list[str]:
+        return [f"[{self.opt.option} {self.desc.metavar}]"]
+
+    def format_help_lines(self) -> list[str]:
+        line = f"  {self.opt.option} {self.desc.metavar}: {self.desc.help_text}"
+        if self.default is not None:
+            line += f" (default: {self.default})"
+        return [line]
+
 
 @dataclasses.dataclass
 class DropdownControl(CliControl):
@@ -171,13 +214,14 @@ class DropdownControl(CliControl):
     desc: OptionDesc
     allowed_values: list[str]
     supports_none: bool
+    default: str | None
 
     def cli_info(self) -> OptionDesc:
         return self.desc
 
     @property
     def has_no_flag(self) -> bool:
-        return self.supports_none and self.desc.default is not None
+        return self.supports_none and self.default is not None
 
     @property
     def _no_flag(self) -> str | None:
@@ -212,6 +256,21 @@ class DropdownControl(CliControl):
             [None, *self.allowed_values] if self.supports_none else self.allowed_values
         )
 
+    def format_usage_parts(self) -> list[str]:
+        parts = [f"[{self.opt.option} {self.desc.metavar}]"]
+        if self._no_flag:
+            parts.append(f"[{self._no_flag}]")
+        return parts
+
+    def format_help_lines(self) -> list[str]:
+        line = f"  {self.opt.option} {self.desc.metavar}: {self.desc.help_text}"
+        if self.default is not None:
+            line += f" (default: {self.default})"
+        lines = [line]
+        if self._no_flag:
+            lines.append(f"  {self._no_flag}: Set {self.opt.label} to none")
+        return lines
+
 
 @dataclasses.dataclass
 class ControlMeta:
@@ -229,8 +288,9 @@ class ControlRegistry:
     def __init__(
         self, controls: tuple[typing.Any], control_meta: dict[int, ControlMeta]
     ) -> None:
-        self.flags: dict[str, str] = {}
-        self.str_options: dict[str, OptionDesc] = {}
+        self._controls: list[CliControl] = []
+        self.flags: set[str] = set()
+        self.value_options: set[str] = set()
         seen: set[str] = set()
         for ctrl in interface.Interface(controls).flatten():
             meta = control_meta.get(id(ctrl))
@@ -246,32 +306,27 @@ class ControlRegistry:
                 continue
             info = meta.cli.cli_info()
             if isinstance(info, str):
-                self.flags[meta.cli.opt.option] = info
+                self.flags.add(meta.cli.opt.option)
             else:
-                self.str_options[meta.cli.opt.option] = info
-            self.flags.update(meta.cli.aux_flags())
+                self.value_options.add(meta.cli.opt.option)
+            self.flags.update(meta.cli.aux_flags().keys())
+            self._controls.append(meta.cli)
 
     def format_help(self, command: str) -> str:
-        options = [
-            *[f"[{x}]" for x in self.flags],
-            *[f"[{k} {v.metavar}]" for k, v in self.str_options.items()],
-            "[-h/--help]",
+        usage_parts = [p for ctrl in self._controls for p in ctrl.format_usage_parts()]
+        usage_parts.append("[-h/--help]")
+        segments = [f"Usage: {command.rsplit('/', 1)[-1]} {' '.join(usage_parts)}"]
+        help_lines = [
+            line for ctrl in self._controls for line in ctrl.format_help_lines()
         ]
-        segments = [f"Usage: {command.rsplit('/', 1)[-1]} {' '.join(options)}"]
-        opts_help = [f"  {k}: {v}" for k, v in self.flags.items()]
-        opts_help.extend(
-            f"  {k} {v.metavar}: {v.help_text}"
-            f"{f' (default: {v.default})' if v.default is not None else ''}"
-            for k, v in self.str_options.items()
-        )
-        if opts_help:
-            segments.append("\n".join(opts_help))
+        if help_lines:
+            segments.append("\n".join(help_lines))
         return "\n\n".join(segments)
 
     def validate(
         self, args: _parse.ParsedArgs, validation_errors: dict[str, str]
     ) -> typing.Iterator[str]:
-        rendered = self.flags | self.str_options
+        rendered = self.flags | self.value_options
         yield from (v for k, v in validation_errors.items() if k in rendered)
         unexp_text = "Unexpected argument: "
         for x in args.unexpected:
@@ -280,7 +335,7 @@ class ControlRegistry:
             if k in self.flags:
                 if v is not None:
                     yield f"{k} does not take a value, but was given: {v}"
-            elif k in self.str_options:
+            elif k in self.value_options:
                 if v is None:
                     yield f"Option {k} requires a value"
             elif k not in _parse.help_flags:
