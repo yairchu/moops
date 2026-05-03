@@ -3,6 +3,8 @@ import typing
 
 import marimo as mo
 
+from . import _options, _parse
+
 
 @dataclasses.dataclass
 class Interface:
@@ -11,6 +13,34 @@ class Interface:
     controls: tuple[typing.Any]
     notebook_name: str = ""
     option_prefix: str = ""
+
+    def validate(
+        self, args: _parse.ParsedArgs, validation_errors: dict[str, str]
+    ) -> typing.Iterator[str]:
+        flags: set[str] = set()
+        value_options: set[str] = set()
+        for cli in self._all_cli_controls():
+            flags.update(cli.flags())
+            value_options.update(cli.options())
+        # TODO: also collect from direct (non-Interface) controls in self.controls
+        rendered = flags | value_options
+        yield from (v for k, v in validation_errors.items() if k in rendered)
+        unexp_text = "Unexpected argument: "
+        for x in args.unexpected:
+            yield f"{unexp_text}{x}"
+        for k, v in args.options.items():
+            if k in flags:
+                if v is not None:
+                    yield f"{k} does not take a value, but was given: {v}"
+            elif k in value_options:
+                if v is None:
+                    yield f"Option {k} requires a value"
+            elif k not in _parse.help_flags:
+                yield f"{unexp_text}{k}"
+
+    def _all_cli_controls(self) -> typing.Iterator[_options.CliControl]:
+        # TODO
+        yield from []
 
     def _mime_(self) -> tuple[str, str]:
         if not self.notebook_name:

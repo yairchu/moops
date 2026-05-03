@@ -6,7 +6,7 @@ import warnings
 
 import marimo as mo
 
-from . import _naming, _options, _parse, _registry, interface
+from . import _naming, _options, _parse, interface
 
 
 class Group:
@@ -53,6 +53,11 @@ class Group:
         sync with what is actually live (handles cell reruns and deletions).
         """
 
+        iface = interface.Interface(
+            controls,
+            notebook_name=pathlib.Path(inspect.stack()[1].filename).name,
+            option_prefix=self.option,
+        )
         missing_options = self._missing_from_interface(controls)
         if self.option:
             if missing_options:
@@ -61,19 +66,13 @@ class Group:
                     f"but not passed to interface(): {', '.join(missing_options)}",
                     stacklevel=2,
                 )
-            return interface.Interface(
-                controls,
-                notebook_name=pathlib.Path(inspect.stack()[1].filename).name,
-                option_prefix=self.option,
-            )
-
-        registry = _registry.ControlRegistry(controls)
+            return iface
         if mo.running_in_notebook():
             return mo.md(
                 f"This notebook also works as a script:\n```\n{self._help()}\n```\n\n"
             )
 
-        issues = list(registry.validate(self._args, self._validation_errors))
+        issues = list(iface.validate(self._args, self._validation_errors))
         if issues:
             print("Argument errors:\n" + "\n".join(f"- {x}" for x in issues))
             print()
@@ -346,8 +345,3 @@ class Group:
 
     def _register(self, control: typing.Any, cli: _options.CliControl) -> typing.Any:
         return control
-
-    def _controls(self) -> dict[str, _options.CliControl]:
-        result: dict[str, _options.CliControl] = {}
-        # TODO
-        return result
