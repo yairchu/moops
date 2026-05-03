@@ -6,7 +6,7 @@ app = marimo.App(width="full")
 
 @app.cell
 def _(args, casing_result, name_text, polite_switch, times_number):
-    args.interface(
+    interface = args.interface(
         polite_switch,
         name_text,
         times_number,
