@@ -2,6 +2,7 @@ import dataclasses
 import typing
 
 import marimo as mo
+from hypothesis import strategies as st
 
 from . import _options, _parse
 
@@ -41,6 +42,15 @@ class Interface:
         segments = [f"Usage: {command.rsplit('/', 1)[-1]} {' '.join(usage_parts)}"]
         # TODO
         return "\n\n".join(segments)
+
+    @property
+    def default(self) -> dict[str, typing.Any]:
+        # TODO
+        return {}
+
+    def strategy(self) -> st.SearchStrategy[dict[str, typing.Any]]:
+        # TODO
+        return st.just({})
 
     def _all_cli_controls(self) -> typing.Iterator[_options.CliControl]:
         # TODO
