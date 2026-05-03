@@ -1,4 +1,5 @@
 import dataclasses
+import sys
 import typing
 
 import marimo as mo
@@ -131,3 +132,35 @@ class Interface:
                 yield from ctrl._flatten()
             else:
                 yield ctrl
+
+    def format_help(self, state: _parse.ParseState) -> mo.Html | None:
+        help_text = self.help(state.args.command)
+        missing_options = self.missing_options()
+        if mo.running_in_notebook():
+            info = mo.md(
+                f"This notebook also works as a script:\n```\n{help_text}\n```\n\n"
+            )
+            return mo.vstack(
+                [
+                    info,
+                    mo.callout(
+                        mo.md(
+                            "Missing options: "
+                            f"{', '.join(f'`{opt}`' for opt in missing_options)}"
+                        ),
+                        "warn",
+                    ),
+                ]
+                if missing_options
+                else [info]
+            )
+
+        issues = list(self.validate(state))
+        if issues:
+            print("Argument errors:\n" + "\n".join(f"- {x}" for x in issues))
+            print()
+
+        if state.args.is_help or issues:
+            print(help_text)
+            sys.exit(1 if issues else 0)
+        return None

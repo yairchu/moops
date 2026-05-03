@@ -1,6 +1,5 @@
 import inspect
 import pathlib
-import sys
 import typing
 import warnings
 
@@ -68,8 +67,8 @@ class Group:
             notebook_name=pathlib.Path(inspect.stack()[1].filename).name,
             option_prefix=self.option,
         )
-        missing_options = iface.missing_options()
         if self.option or self._return_interface:
+            missing_options = iface.missing_options()
             if missing_options:
                 warnings.warn(
                     f"Controls registered with this Group "
@@ -77,35 +76,7 @@ class Group:
                     stacklevel=2,
                 )
             return iface
-        help_text = iface.help(self._state.args.command)
-        if mo.running_in_notebook():
-            info = mo.md(
-                f"This notebook also works as a script:\n```\n{help_text}\n```\n\n"
-            )
-            return mo.vstack(
-                [
-                    info,
-                    mo.callout(
-                        mo.md(
-                            "Missing options: "
-                            f"{', '.join(f'`{opt}`' for opt in missing_options)}"
-                        ),
-                        "warn",
-                    ),
-                ]
-                if missing_options
-                else [info]
-            )
-
-        issues = list(iface.validate(self._state))
-        if issues:
-            print("Argument errors:\n" + "\n".join(f"- {x}" for x in issues))
-            print()
-
-        if self._state.args.is_help or issues:
-            print(help_text)
-            sys.exit(1 if issues else 0)
-        return None
+        return iface.format_help(self._state)
 
     def md(self, text: str) -> mo.Html | None:
         """Display markdown in notebooks or plain text in CLI."""
