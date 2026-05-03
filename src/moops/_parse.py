@@ -46,3 +46,13 @@ class ParsedArgs:
             else:
                 result.unexpected.append(arg)
         return result
+
+
+@dataclasses.dataclass
+class ParseState:
+    """Shared mutable state between a Group and all its subgroups."""
+
+    args: ParsedArgs
+    validation_errors: dict[str, str] = dataclasses.field(
+        default_factory=dict[str, str]
+    )

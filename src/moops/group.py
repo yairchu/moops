@@ -17,8 +17,7 @@ class Group:
 
         self.option: str = ""
         self.help_text: str = ""
-        self._args: _parse.ParsedArgs = _parse.ParsedArgs.parse(cli_args)
-        self._validation_errors: dict[str, str] = {}
+        self._state = _parse.ParseState(args=_parse.ParsedArgs.parse(cli_args))
         self._overrides: dict[str, typing.Any] = {}
 
     @classmethod
@@ -37,8 +36,7 @@ class Group:
         Explicit overrides take precedence over those passed via moops.run().
         """
         child = type(self)([prefix])
-        child._args = self._args
-        child._validation_errors = self._validation_errors
+        child._state = self._state
         child._overrides = {**self._overrides.get(prefix, {}), **(overrides or {})}
         child.option = f"{self.option}-{prefix}" if self.option else f"--{prefix}"
         return child
@@ -72,12 +70,12 @@ class Group:
                 f"This notebook also works as a script:\n```\n{self._help()}\n```\n\n"
             )
 
-        issues = list(iface.validate(self._args, self._validation_errors))
+        issues = list(iface.validate(self._state))
         if issues:
             print("Argument errors:\n" + "\n".join(f"- {x}" for x in issues))
             print()
 
-        if self._args.is_help or issues:
+        if self._state.args.is_help or issues:
             print(self._help())
             sys.exit(1 if issues else 0)
         return None
@@ -89,7 +87,10 @@ class Group:
     def _help(self) -> str:
         usage_parts = ["[-h/--help]"]  # TODO
         segments = [
-            f"Usage: {self._args.command.rsplit('/', 1)[-1]} {' '.join(usage_parts)}"
+            "Usage: "
+            + self._state.args.command.rsplit("/", 1)[-1]
+            + " "
+            + " ".join(usage_parts)
         ]
         # TODO
         return "\n\n".join(segments)
@@ -99,7 +100,7 @@ class Group:
 
         if mo.running_in_notebook():
             return mo.md(text)
-        if self._args.is_help:
+        if self._state.args.is_help:
             return None
         text = text.strip()
         if text.startswith("```\n") and text.endswith("\n```"):
@@ -320,9 +321,9 @@ class Group:
         if key in self._overrides:
             return self._overrides[key]
         val = default
-        match control.parse(self._args):
+        match control.parse(self._state.args):
             case _options.ParseError(message=msg):
-                self._validation_errors[control.option] = msg
+                self._state.validation_errors[control.option] = msg
             case _options.ParseResult(value=v):
                 val = v
             case None:

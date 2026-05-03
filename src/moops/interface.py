@@ -14,9 +14,7 @@ class Interface:
     notebook_name: str = ""
     option_prefix: str = ""
 
-    def validate(
-        self, args: _parse.ParsedArgs, validation_errors: dict[str, str]
-    ) -> typing.Iterator[str]:
+    def validate(self, state: _parse.ParseState) -> typing.Iterator[str]:
         flags: set[str] = set()
         value_options: set[str] = set()
         for cli in self._all_cli_controls():
@@ -24,11 +22,11 @@ class Interface:
             value_options.update(cli.options())
         # TODO: also collect from direct (non-Interface) controls in self.controls
         rendered = flags | value_options
-        yield from (v for k, v in validation_errors.items() if k in rendered)
+        yield from (v for k, v in state.validation_errors.items() if k in rendered)
         unexp_text = "Unexpected argument: "
-        for x in args.unexpected:
+        for x in state.args.unexpected:
             yield f"{unexp_text}{x}"
-        for k, v in args.options.items():
+        for k, v in state.args.options.items():
             if k in flags:
                 if v is not None:
                     yield f"{k} does not take a value, but was given: {v}"
