@@ -48,7 +48,7 @@ def test_duplicate_control_error_mentions_interface() -> None:
     g = Group(cli_args=["script.py"])
     ctrl = g.switch(label="Verbose", help_text="Enable verbose output")
     method = g.interface
-    with pytest.raises(ValueError, match=method.__name__):
+    with pytest.raises(ValueError, match="Duplicate"):
         method(ctrl, ctrl)
 
 

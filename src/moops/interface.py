@@ -18,6 +18,13 @@ class Interface:
     notebook_name: str = ""
     option_prefix: str = ""
 
+    def __post_init__(self) -> None:
+        seen_ids: set[int] = set()
+        for ctrl in self.controls:
+            if not isinstance(ctrl, Interface) and id(ctrl) in seen_ids:
+                raise ValueError("Duplicate control passed to interface")
+            seen_ids.add(id(ctrl))
+
     def validate(self, state: _parse.ParseState) -> typing.Iterator[str]:
         flags: set[str] = set()
         value_options: set[str] = set()

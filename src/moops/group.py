@@ -53,13 +53,6 @@ class Group:
         sync with what is actually live (handles cell reruns and deletions).
         """
 
-        seen_ids: set[int] = set()
-        for ctrl in controls:
-            if not isinstance(ctrl, interface.Interface) and id(ctrl) in seen_ids:
-                raise ValueError(
-                    f"Duplicate control passed to {self.interface.__name__}()"
-                )
-            seen_ids.add(id(ctrl))
         iface = interface.Interface(
             controls,
             cli_map=self._cli_map,
