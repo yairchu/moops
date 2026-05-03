@@ -4,7 +4,7 @@ import typing
 import marimo as mo
 from hypothesis import strategies as st
 
-from . import _options, _parse
+from . import _cli_map, _options, _parse
 
 
 @dataclasses.dataclass
@@ -12,6 +12,7 @@ class Interface:
     """Controls registered by a subgroup's interface, for passing to the parent."""
 
     controls: tuple[typing.Any]
+    cli_map: _cli_map.CliMap = dataclasses.field(default_factory=_cli_map.CliMap)
     notebook_name: str = ""
     option_prefix: str = ""
 
@@ -53,8 +54,13 @@ class Interface:
         return st.just({})
 
     def _all_cli_controls(self) -> typing.Iterator[_options.CliControl]:
-        # TODO
-        yield from []
+        for ctrl in self.controls:
+            if isinstance(ctrl, Interface):
+                yield from ctrl._all_cli_controls()
+            else:
+                cli = self.cli_map.get(ctrl)
+                if cli is not None:
+                    yield cli
 
     def _mime_(self) -> tuple[str, str]:
         if not self.notebook_name:

@@ -6,7 +6,7 @@ import warnings
 
 import marimo as mo
 
-from . import _naming, _options, _parse, interface
+from . import _cli_map, _naming, _options, _parse, interface
 
 
 class Group:
@@ -18,6 +18,7 @@ class Group:
         self.option: str = ""
         self.help_text: str = ""
         self._state = _parse.ParseState(args=_parse.ParsedArgs.parse(cli_args))
+        self._cli_map = _cli_map.CliMap()
         self._overrides: dict[str, typing.Any] = {}
 
     @classmethod
@@ -37,6 +38,7 @@ class Group:
         """
         child = type(self)([prefix])
         child._state = self._state
+        child._cli_map = _cli_map.CliMap()
         child._overrides = {**self._overrides.get(prefix, {}), **(overrides or {})}
         child.option = f"{self.option}-{prefix}" if self.option else f"--{prefix}"
         return child
@@ -53,6 +55,7 @@ class Group:
 
         iface = interface.Interface(
             controls,
+            cli_map=self._cli_map,
             notebook_name=pathlib.Path(inspect.stack()[1].filename).name,
             option_prefix=self.option,
         )
@@ -115,7 +118,7 @@ class Group:
         cli = _options.FlagControl(
             option=opt.option, help_text=help_text, default=value
         )
-        return self._register(
+        return self._cli_map.register(
             mo.ui.switch(
                 value=self._get_value(cli, value),
                 label=opt.label,
@@ -144,7 +147,7 @@ class Group:
             help_text=help_text,
             default=value,
         )
-        return self._register(
+        return self._cli_map.register(
             mo.ui.text(
                 value=self._get_value(cli, value),
                 label=opt.label,
@@ -173,7 +176,7 @@ class Group:
             help_text=help_text,
             default=value,
         )
-        return self._register(
+        return self._cli_map.register(
             mo.ui.text_area(
                 value=self._get_value(cli, value),
                 label=opt.label,
@@ -196,7 +199,7 @@ class Group:
         """Create a number input UI element that maps to a CLI option."""
 
         opt, cli, value = self._numeric_cli(start, value, option, help_text, label)
-        return self._register(
+        return self._cli_map.register(
             mo.ui.number(
                 start=start,
                 value=value,
@@ -220,7 +223,7 @@ class Group:
         """Create a slider UI element that maps to a CLI option."""
 
         opt, cli, value = self._numeric_cli(start, value, option, help_text, label)
-        return self._register(
+        return self._cli_map.register(
             mo.ui.slider(
                 start=start,
                 value=value,
@@ -285,7 +288,7 @@ class Group:
                 if isinstance(options, dict)
                 else [override]
             )
-        return self._register(
+        return self._cli_map.register(
             mo.ui.dropdown(
                 options=options,
                 value=self._get_value(cli, value),
@@ -333,6 +336,3 @@ class Group:
                 option=f"{self.option}-{opt.option.lstrip('-')}",
             )
         return opt
-
-    def _register(self, control: typing.Any, cli: _options.CliControl) -> typing.Any:
-        return control
