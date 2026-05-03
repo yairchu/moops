@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Write Marimo notebooks that also work as CLI scripts, with unified UI controls"
 license = "MIT"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.10"
 dependencies = [
     "marimo>=0.23.1",
     "hypothesis",
