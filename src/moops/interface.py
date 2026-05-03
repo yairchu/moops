@@ -108,6 +108,30 @@ class Interface:
     def _is_overridden(self, cli: _options.CliControl) -> bool:
         return self._key(cli) in self.overrides
 
+    def cur_values(self) -> dict[str, typing.Any]:
+        result: dict[str, typing.Any] = {}
+        for ctrl in self.controls:
+            if isinstance(ctrl, Interface):
+                result.update(ctrl.cur_values())
+            else:
+                cli = self.cli_map.get(ctrl)
+                if cli is not None:
+                    value = (
+                        ctrl._selected_key
+                        if hasattr(ctrl, "_selected_key")
+                        else ctrl.value
+                    )
+                    result[cli.option] = value
+        return result
+
+    def format_current_command(self, command: str) -> str:
+        values = self.cur_values()
+        parts = [command.rsplit("/", 1)[-1]]
+        for cli in self._all_cli_controls():
+            if cli.option in values:
+                parts.extend(cli.format_value(values[cli.option]))
+        return " ".join(parts)
+
     def missing_options(self) -> list[str]:
         interface_ids = {id(ctrl) for ctrl in self.controls}
         return [
@@ -146,6 +170,8 @@ class Interface:
         if mo.running_in_notebook():
             info = mo.md(
                 f"This notebook also works as a script:\n```\n{help_text}\n```\n\n"
+                "To run the script with the current values in the notebook use:\n"
+                f"```\n{self.format_current_command(state.args.command)}\n```"
             )
             return mo.vstack(
                 [

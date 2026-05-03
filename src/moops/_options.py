@@ -1,6 +1,7 @@
 import abc
 import dataclasses
 import math
+import shlex
 import sys
 import typing
 
@@ -51,6 +52,10 @@ class CliControl(abc.ABC):
     def format_help_lines(self) -> list[str]:
         """Help lines for this control and any aux flags."""
 
+    @abc.abstractmethod
+    def format_value(self, value: typing.Any) -> list[str]:
+        """Format the command line arguments for a given value."""
+
 
 @dataclasses.dataclass
 class FlagControl(CliControl):
@@ -70,6 +75,9 @@ class FlagControl(CliControl):
 
     def format_help_lines(self) -> list[str]:
         return [f"  {self.option}: {self.help_text}"]
+
+    def format_value(self, value: typing.Any) -> list[str]:
+        return [] if value == self.default else [self.option]
 
 
 @dataclasses.dataclass
@@ -101,6 +109,9 @@ class TextControl(ValueControl):
         if self.default:
             line += f" (default: {self.default})"
         return [line]
+
+    def format_value(self, value: typing.Any) -> list[str]:
+        return [] if value == self.default else [f"{self.option} {shlex.quote(value)}"]
 
 
 @dataclasses.dataclass
@@ -139,6 +150,9 @@ class TextAreaControl(ValueControl):
             line += f" (default: {self.default})"
         return [line, f"  {self._stdin_flag}: Read {self.option} from stdin"]
 
+    def format_value(self, value: typing.Any) -> list[str]:
+        return [] if value == self.default else [f"{self.option} {shlex.quote(value)}"]
+
 
 @dataclasses.dataclass
 class NumberControl(ValueControl):
@@ -165,6 +179,9 @@ class NumberControl(ValueControl):
         if self.default is not None:
             line += f" (default: {self.default})"
         return [line]
+
+    def format_value(self, value: typing.Any) -> list[str]:
+        return [] if value == self.default else [f"{self.option} {value}"]
 
 
 @dataclasses.dataclass
@@ -226,3 +243,11 @@ class DropdownControl(CliControl):
         if self._no_flag:
             lines.append(f"  {self._no_flag}: Set {self.option} to none")
         return lines
+
+    def format_value(self, value: typing.Any) -> list[str]:
+        if value == self.default:
+            return []
+        if value is None:
+            assert self._no_flag
+            return [self._no_flag]
+        return [f"{self.option} {shlex.quote(value)}"]
