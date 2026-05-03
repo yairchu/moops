@@ -12,6 +12,7 @@ def _(args, casing_result, name_text, polite_switch, times_number):
         times_number,
         casing_result.defs["interface"],
     )
+    interface
     return
 
 
