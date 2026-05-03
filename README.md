@@ -7,6 +7,12 @@ but until now this required maintaining matching input handling implementations.
 
 Using `moops`, both implementations are merged into one.
 
+## Installation
+
+```sh
+uv add "moops @ git+https://github.com/yairchu/moops"
+```
+
 ## Transition guide
 
 * Create your argument group: `args = moops.Group()`
