@@ -87,7 +87,9 @@ Or `uv run marimo edit` to run as notebooks.
 * Notebook inputs presets: allow saving and loading the current settings of an option group
 * More interfaces
   * HTTP services, OpenAPI?
-* Finalize name
-  * moops may stand for "Marimo Options"
-  * Could also consider Shmoop which would stand for "shell/marimo options"
-  * Other ideas?
+
+## Feedback welcome
+
+This is an early release — issues, ideas, and pull requests are very welcome on [GitHub](https://github.com/yairchu/moops).
+
+The name is still up for debate too (`moops` may stand for "Marimo Options" — but if you have a better idea, please share!).
