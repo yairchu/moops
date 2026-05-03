@@ -100,6 +100,14 @@ class Interface:
     def _is_overridden(self, cli: _options.CliControl) -> bool:
         return self._key(cli) in self.overrides
 
+    def missing_options(self) -> list[str]:
+        interface_ids = {id(ctrl) for ctrl in self.controls}
+        return [
+            cli.option
+            for ctrl_id, cli in self.cli_map.items()
+            if ctrl_id not in interface_ids
+        ]
+
     def _mime_(self) -> tuple[str, str]:
         if not self.notebook_name:
             return mo.md("Cli bundle with no notebook name")._mime_()  # type: ignore

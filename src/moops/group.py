@@ -68,7 +68,7 @@ class Group:
             notebook_name=pathlib.Path(inspect.stack()[1].filename).name,
             option_prefix=self.option,
         )
-        missing_options = self._missing_from_interface(controls)
+        missing_options = iface.missing_options()
         if self.option or self._return_interface:
             if missing_options:
                 warnings.warn(
@@ -92,14 +92,6 @@ class Group:
             print(help_text)
             sys.exit(1 if issues else 0)
         return None
-
-    def _missing_from_interface(self, controls: tuple[typing.Any]) -> list[str]:
-        interface_ids = {id(ctrl) for ctrl in controls}
-        return [
-            cli.option
-            for ctrl_id, cli in self._cli_map.items()
-            if ctrl_id not in interface_ids
-        ]
 
     def md(self, text: str) -> mo.Html | None:
         """Display markdown in notebooks or plain text in CLI."""
