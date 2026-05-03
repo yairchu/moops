@@ -44,7 +44,7 @@ class Group(_options.CliControl):
         child._validation_errors = self._validation_errors
         child._overrides = {**self._overrides.get(prefix, {}), **(overrides or {})}
         child.option = f"{self.option}-{prefix}" if self.option else f"--{prefix}"
-        return self._register(child, _options.ControlMeta(cli=child, overridden=False))
+        return self._register(child, child)
 
     def interface(self, *controls: typing.Any) -> mo.Html | interface.Interface | None:
         """
@@ -145,10 +145,7 @@ class Group(_options.CliControl):
                 disabled=self._is_overridden(opt.option),
                 **kwargs,
             ),
-            _options.ControlMeta(
-                cli=cli,
-                overridden=self._is_overridden(opt.option),
-            ),
+            cli,
         )
 
     def text(
@@ -177,10 +174,7 @@ class Group(_options.CliControl):
                 disabled=self._is_overridden(opt.option),
                 **kwargs,
             ),
-            _options.ControlMeta(
-                cli=cli,
-                overridden=self._is_overridden(opt.option),
-            ),
+            cli=cli,
         )
 
     def text_area(
@@ -209,10 +203,7 @@ class Group(_options.CliControl):
                 disabled=self._is_overridden(opt.option),
                 **kwargs,
             ),
-            _options.ControlMeta(
-                cli=cli,
-                overridden=self._is_overridden(opt.option),
-            ),
+            cli=cli,
         )
 
     def number(
@@ -236,7 +227,7 @@ class Group(_options.CliControl):
                 disabled=self._is_overridden(opt.option),
                 **kwargs,
             ),
-            _options.ControlMeta(cli=cli, overridden=self._is_overridden(opt.option)),
+            cli,
         )
 
     def slider(
@@ -260,7 +251,7 @@ class Group(_options.CliControl):
                 disabled=self._is_overridden(opt.option),
                 **kwargs,
             ),
-            _options.ControlMeta(cli=cli, overridden=self._is_overridden(opt.option)),
+            cli,
         )
 
     def _numeric_cli(
@@ -325,10 +316,7 @@ class Group(_options.CliControl):
                 allow_select_none=allow_select_none,
                 **kwargs,
             ),
-            _options.ControlMeta(
-                cli=cli,
-                overridden=self._is_overridden(opt.option),
-            ),
+            cli,
         )
 
     def _override_key(self, option: str) -> str:
@@ -369,7 +357,8 @@ class Group(_options.CliControl):
             )
         return opt
 
-    def _register(self, control: typing.Any, meta: _options.ControlMeta) -> typing.Any:
+    def _register(self, control: typing.Any, cli: _options.CliControl) -> typing.Any:
+        meta = _options.ControlMeta(cli=cli, overridden=self._is_overridden(cli.option))
         meta.control_ref = weakref.ref(control)
         self._control_meta[id(control)] = meta
         return control
