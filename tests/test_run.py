@@ -19,11 +19,11 @@ def test_run_default_values() -> None:
     assert result == "LoremIpsum"
 
 
-_name_casing_args = moops.testing.notebook_interface(name_casing)
-_name_casing_defaults = _name_casing_args.default
+_name_casing_interface = moops.testing.notebook_interface(name_casing)
+_name_casing_defaults = _name_casing_interface.default
 
 
-@hypothesis.given(_name_casing_args.strategy())
+@hypothesis.given(_name_casing_interface.strategy())
 def test_name_casing_preserves_alphanumeric_count(kwargs: dict[str, typing.Any]):
     result = moops.run(name_casing, **kwargs)
     input_text = kwargs.get("text", _name_casing_defaults["text"])

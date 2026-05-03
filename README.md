@@ -55,12 +55,13 @@ If no overrides are provided, `moops.run` uses the notebook defaults.
 ```python
 from examples import name_casing
 
-_defaults = moops.testing.defaults(name_casing)
+_name_casing_interface = moops.testing.notebook_interface(name_casing)
+_name_casing_defaults = _name_casing_interface.default
 
-@hypothesis.given(moops.testing.from_notebook(name_casing))
+@hypothesis.given(_name_casing_interface.strategy())
 def test_name_casing_preserves_alphanumeric_count(kwargs):
     result = moops.run(name_casing, **kwargs)
-    input_text = kwargs.get("input_text", _defaults["input_text"])
+    input_text = kwargs.get("input_text", _name_casing_defaults["input_text"])
     assert sum(c.isalnum() for c in result) == sum(c.isalnum() for c in input_text)
 ```
 
