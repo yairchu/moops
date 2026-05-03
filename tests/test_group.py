@@ -48,7 +48,7 @@ def test_duplicate_control_error_mentions_interface() -> None:
     g = Group(cli_args=["script.py"])
     ctrl = g.switch(label="Verbose", help_text="Enable verbose output")
     method = g.interface
-    with pytest.raises(ValueError, match=method.__name__):
+    with pytest.raises(ValueError, match="Duplicate"):
         method(ctrl, ctrl)
 
 
@@ -87,7 +87,7 @@ def test_subgroup_controls_visible_in_parent_help(capsys: pytest.CaptureFixture[
         ["snake_case", "camel_case"], label="Style", help_text="Text style"
     )
     with pytest.raises(SystemExit):
-        g.interface(ctrl)
+        g.interface(casing.interface(ctrl))
     assert "--casing-style" in capsys.readouterr().out
 
 
@@ -98,7 +98,7 @@ def test_overridden_control_not_in_help(capsys: pytest.CaptureFixture[str]):
         ["snake_case", "camel_case"], label="Style", help_text="Text style"
     )
     with pytest.raises(SystemExit):
-        g.interface(ctrl)
+        g.interface(casing.interface(ctrl))
     assert "--casing-style" not in capsys.readouterr().out
 
 

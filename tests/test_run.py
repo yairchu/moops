@@ -19,7 +19,7 @@ def test_run_default_values() -> None:
     assert result == "LoremIpsum"
 
 
-_name_casing_args = moops.testing.notebook_args(name_casing)
+_name_casing_args = moops.testing.notebook_interface(name_casing)
 _name_casing_defaults = _name_casing_args.default
 
 
@@ -40,9 +40,8 @@ def test_run_propagates_kwargs_to_subgroup_controls() -> None:
 
 
 def test_defaults_supports_run_form() -> None:
-    assert (
-        moops.run(notebook, **moops.testing.notebook_args(notebook).default) is not None
-    )
+    iface = moops.testing.notebook_interface(notebook)
+    assert moops.run(notebook, **iface.default) is not None
 
 
 def test_overridden_control_is_disabled() -> None:

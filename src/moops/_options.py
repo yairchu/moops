@@ -3,7 +3,6 @@ import dataclasses
 import math
 import sys
 import typing
-import weakref
 
 import marimo as mo
 from hypothesis import strategies as st
@@ -227,12 +226,3 @@ class DropdownControl(CliControl):
         if self._no_flag:
             lines.append(f"  {self._no_flag}: Set {self.option} to none")
         return lines
-
-
-@dataclasses.dataclass
-class ControlMeta:
-    cli: CliControl
-    overridden: bool = False
-    control_ref: weakref.ref[typing.Any] | None = dataclasses.field(
-        default=None, repr=False, compare=False
-    )
