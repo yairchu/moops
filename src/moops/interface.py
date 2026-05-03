@@ -13,6 +13,7 @@ class Interface:
 
     controls: tuple[typing.Any]
     cli_map: _cli_map.CliMap = dataclasses.field(default_factory=_cli_map.CliMap)
+    overrides: dict[str, typing.Any] = dataclasses.field(default_factory=lambda: {})
     notebook_name: str = ""
     option_prefix: str = ""
 
@@ -22,7 +23,6 @@ class Interface:
         for cli in self._all_cli_controls():
             flags.update(cli.flags())
             value_options.update(cli.options())
-        # TODO: also collect from direct (non-Interface) controls in self.controls
         rendered = flags | value_options
         yield from (v for k, v in state.validation_errors.items() if k in rendered)
         unexp_text = "Unexpected argument: "
@@ -39,19 +39,48 @@ class Interface:
                 yield f"{unexp_text}{k}"
 
     def help(self, command: str) -> str:
-        usage_parts = ["[-h/--help]"]  # TODO
+        usage_parts = [
+            p for cli in self._all_cli_controls() for p in cli.format_usage_parts()
+        ]
+        usage_parts.append("[-h/--help]")
         segments = [f"Usage: {command.rsplit('/', 1)[-1]} {' '.join(usage_parts)}"]
-        # TODO
+        help_lines = [
+            line for cli in self._all_cli_controls() for line in cli.format_help_lines()
+        ]
+        if help_lines:
+            segments.append("\n".join(help_lines))
         return "\n\n".join(segments)
 
     @property
     def default(self) -> dict[str, typing.Any]:
-        # TODO
-        return {}
+        result: dict[str, typing.Any] = {}
+        for ctrl in self.controls:
+            if isinstance(ctrl, Interface):
+                prefix = ctrl.option_prefix.lstrip("-")
+                result[prefix] = ctrl.default
+            else:
+                cli = self.cli_map.get(ctrl)
+                if (
+                    cli is not None
+                    and not self._is_overridden(cli)
+                    and hasattr(cli, "default")
+                ):
+                    result[self._key(cli)] = cli.default  # type: ignore
+        return result
 
     def strategy(self) -> st.SearchStrategy[dict[str, typing.Any]]:
-        # TODO
-        return st.just({})
+        strategies: dict[str, st.SearchStrategy[typing.Any]] = {}
+        for ctrl in self.controls:
+            if isinstance(ctrl, Interface):
+                prefix = ctrl.option_prefix.lstrip("-")
+                strategies[prefix] = ctrl.strategy()
+            else:
+                cli = self.cli_map.get(ctrl)
+                if cli is not None and not self._is_overridden(cli):
+                    strategies[self._key(cli)] = cli.strategy()
+        return st.fixed_dictionaries(strategies).map(
+            lambda d: {k: v for k, v in d.items() if v is not None}
+        )
 
     def _all_cli_controls(self) -> typing.Iterator[_options.CliControl]:
         for ctrl in self.controls:
@@ -59,8 +88,17 @@ class Interface:
                 yield from ctrl._all_cli_controls()
             else:
                 cli = self.cli_map.get(ctrl)
-                if cli is not None:
+                if cli is not None and not self._is_overridden(cli):
                     yield cli
+
+    def _key(self, cli: _options.CliControl) -> str:
+        option = cli.option[len(self.option_prefix) :].lstrip("-")
+        if option.startswith("no-"):
+            option = option[3:]
+        return option.replace("-", "_")
+
+    def _is_overridden(self, cli: _options.CliControl) -> bool:
+        return self._key(cli) in self.overrides
 
     def _mime_(self) -> tuple[str, str]:
         if not self.notebook_name:

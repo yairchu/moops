@@ -19,11 +19,13 @@ class Group:
         self._state = _parse.ParseState(args=_parse.ParsedArgs.parse(cli_args))
         self._cli_map = _cli_map.CliMap()
         self._overrides: dict[str, typing.Any] = {}
+        self._return_interface: bool = False
 
     @classmethod
     def with_overrides(cls, overrides: dict[str, typing.Any]) -> "Group":
         instance = cls(["run"])
         instance._overrides = overrides
+        instance._return_interface = True
         return instance
 
     def subgroup(
@@ -52,14 +54,22 @@ class Group:
         sync with what is actually live (handles cell reruns and deletions).
         """
 
+        seen_ids: set[int] = set()
+        for ctrl in controls:
+            if not isinstance(ctrl, interface.Interface) and id(ctrl) in seen_ids:
+                raise ValueError(
+                    f"Duplicate control passed to {self.interface.__name__}()"
+                )
+            seen_ids.add(id(ctrl))
         iface = interface.Interface(
             controls,
             cli_map=self._cli_map,
+            overrides=self._overrides,
             notebook_name=pathlib.Path(inspect.stack()[1].filename).name,
             option_prefix=self.option,
         )
         missing_options = self._missing_from_interface(controls)
-        if self.option:
+        if self.option or self._return_interface:
             if missing_options:
                 warnings.warn(
                     f"Controls registered with this Group "
@@ -84,8 +94,12 @@ class Group:
         return None
 
     def _missing_from_interface(self, controls: tuple[typing.Any]) -> list[str]:
-        # TODO
-        return []
+        interface_ids = {id(ctrl) for ctrl in controls}
+        return [
+            cli.option
+            for ctrl_id, cli in self._cli_map.items()
+            if ctrl_id not in interface_ids
+        ]
 
     def md(self, text: str) -> mo.Html | None:
         """Display markdown in notebooks or plain text in CLI."""
@@ -153,7 +167,7 @@ class Group:
                 disabled=self._is_overridden(opt.option),
                 **kwargs,
             ),
-            cli=cli,
+            cli,
         )
 
     def text_area(
@@ -182,7 +196,7 @@ class Group:
                 disabled=self._is_overridden(opt.option),
                 **kwargs,
             ),
-            cli=cli,
+            cli,
         )
 
     def number(
