@@ -3,15 +3,12 @@ import typing
 
 import marimo as mo
 
-from . import _options
-
 
 @dataclasses.dataclass
 class Interface:
     """Controls registered by a subgroup's interface, for passing to the parent."""
 
     controls: tuple[typing.Any]
-    control_meta: dict[int, _options.ControlMeta]
     notebook_name: str = ""
     option_prefix: str = ""
 

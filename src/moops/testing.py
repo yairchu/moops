@@ -1,9 +1,8 @@
 import types
 
-from . import group
+from . import group, interface
 
 
-def notebook_args(module: types.ModuleType) -> group.Group:
-    args = group.Group.with_overrides({})
-    module.app.run(defs={"args": args})
-    return args
+def notebook_interface(module: types.ModuleType) -> interface.Interface:
+    _, defs = module.app.run(defs={"args": group.Group.with_overrides({})})
+    return defs["interface"]

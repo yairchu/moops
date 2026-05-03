@@ -3,15 +3,13 @@ import pathlib
 import sys
 import typing
 import warnings
-import weakref
 
 import marimo as mo
-from hypothesis import strategies as st
 
 from . import _naming, _options, _parse, _registry, interface
 
 
-class Group(_options.CliControl):
+class Group:
     """Unified CLI argument parser and marimo UI element generator."""
 
     def __init__(self, cli_args: list[str] | None = None) -> None:
@@ -22,7 +20,6 @@ class Group(_options.CliControl):
         self._args: _parse.ParsedArgs = _parse.ParsedArgs.parse(cli_args)
         self._validation_errors: dict[str, str] = {}
         self._overrides: dict[str, typing.Any] = {}
-        self._control_meta: dict[int, _options.ControlMeta] = {}
 
     @classmethod
     def with_overrides(cls, overrides: dict[str, typing.Any]) -> "Group":
@@ -44,7 +41,7 @@ class Group(_options.CliControl):
         child._validation_errors = self._validation_errors
         child._overrides = {**self._overrides.get(prefix, {}), **(overrides or {})}
         child.option = f"{self.option}-{prefix}" if self.option else f"--{prefix}"
-        return self._register(child, child)
+        return child
 
     def interface(self, *controls: typing.Any) -> mo.Html | interface.Interface | None:
         """
@@ -66,12 +63,11 @@ class Group(_options.CliControl):
                 )
             return interface.Interface(
                 controls,
-                self._control_meta,
                 notebook_name=pathlib.Path(inspect.stack()[1].filename).name,
                 option_prefix=self.option,
             )
 
-        registry = _registry.ControlRegistry(controls, self._control_meta)
+        registry = _registry.ControlRegistry(controls)
         if mo.running_in_notebook():
             return mo.md(
                 f"This notebook also works as a script:\n```\n{self._help()}\n```\n\n"
@@ -88,24 +84,15 @@ class Group(_options.CliControl):
         return None
 
     def _missing_from_interface(self, controls: tuple[typing.Any]) -> list[str]:
-        interface_ids = {id(ctrl) for ctrl in controls}
-        return [
-            meta.cli.option
-            for ctrl_id, meta in self._control_meta.items()
-            if meta.control_ref is not None
-            and meta.control_ref() is not None
-            and ctrl_id not in interface_ids
-        ]
+        # TODO
+        return []
 
     def _help(self) -> str:
-        usage_parts = self.format_usage_parts()
-        usage_parts.append("[-h/--help]")
+        usage_parts = ["[-h/--help]"]  # TODO
         segments = [
             f"Usage: {self._args.command.rsplit('/', 1)[-1]} {' '.join(usage_parts)}"
         ]
-        help_lines = self.format_help_lines()
-        if help_lines:
-            segments.append("\n".join(help_lines))
+        # TODO
         return "\n\n".join(segments)
 
     def md(self, text: str) -> mo.Html | None:
@@ -358,60 +345,9 @@ class Group(_options.CliControl):
         return opt
 
     def _register(self, control: typing.Any, cli: _options.CliControl) -> typing.Any:
-        meta = _options.ControlMeta(cli=cli, overridden=self._is_overridden(cli.option))
-        meta.control_ref = weakref.ref(control)
-        self._control_meta[id(control)] = meta
         return control
 
     def _controls(self) -> dict[str, _options.CliControl]:
         result: dict[str, _options.CliControl] = {}
-        for meta in self._control_meta.values():
-            if meta.control_ref is None:
-                continue
-            control = meta.control_ref()
-            if control is None:
-                continue
-            key = self._override_key(meta.cli.option)
-            if key in self._overrides:
-                continue
-            result[key] = meta.cli
+        # TODO
         return result
-
-    def parse(
-        self, args: _parse.ParsedArgs
-    ) -> _options.ParseResult | _options.ParseError | None:
-        result = {}
-        for k, v in self._controls().items():
-            match v.parse(args):
-                case _options.ParseError() as e:
-                    return e
-                case _options.ParseResult(value=v):
-                    result[k] = v
-                case None:
-                    pass
-        return _options.ParseResult(result)
-
-    def strategy(self) -> st.SearchStrategy:
-        return st.fixed_dictionaries(
-            {k: v.strategy() for k, v in self._controls().items()}
-        )
-
-    def format_usage_parts(self) -> list[str]:
-        parts: list[str] = []
-        for v in self._controls().values():
-            parts.extend(v.format_usage_parts())
-        return parts
-
-    def format_help_lines(self) -> list[str]:
-        lines: list[str] = []
-        for v in self._controls().values():
-            lines.extend(v.format_help_lines())
-        return lines
-
-    @property
-    def default(self) -> dict[str, typing.Any]:
-        return {
-            k: v.default  # type: ignore
-            for k, v in self._controls().items()
-            if hasattr(v, "default")
-        }
