@@ -16,7 +16,6 @@ class Group:
         """Initialize with command line arguments (defaults to sys.argv)."""
 
         self.option: str = ""
-        self.help_text: str = ""
         self._state = _parse.ParseState(args=_parse.ParsedArgs.parse(cli_args))
         self._cli_map = _cli_map.CliMap()
         self._overrides: dict[str, typing.Any] = {}
