@@ -19,8 +19,8 @@ def test_run_default_values() -> None:
     assert result == "LoremIpsum"
 
 
-_name_casing_interface = moops.testing.notebook_interface(name_casing)
-_name_casing_defaults = _name_casing_interface.default
+_name_casing_interface: moops.Interface = moops.testing.notebook_interface(name_casing)
+_name_casing_defaults: dict[str, typing.Any] = _name_casing_interface.default
 
 
 @hypothesis.given(_name_casing_interface.strategy())
