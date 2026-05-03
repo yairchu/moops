@@ -36,6 +36,12 @@ class Interface:
             elif k not in _parse.help_flags:
                 yield f"{unexp_text}{k}"
 
+    def help(self, command: str) -> str:
+        usage_parts = ["[-h/--help]"]  # TODO
+        segments = [f"Usage: {command.rsplit('/', 1)[-1]} {' '.join(usage_parts)}"]
+        # TODO
+        return "\n\n".join(segments)
+
     def _all_cli_controls(self) -> typing.Iterator[_options.CliControl]:
         # TODO
         yield from []

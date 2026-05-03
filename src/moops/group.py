@@ -65,9 +65,10 @@ class Group:
                     stacklevel=2,
                 )
             return iface
+        help_text = iface.help(self._state.args.command)
         if mo.running_in_notebook():
             return mo.md(
-                f"This notebook also works as a script:\n```\n{self._help()}\n```\n\n"
+                f"This notebook also works as a script:\n```\n{help_text}\n```\n\n"
             )
 
         issues = list(iface.validate(self._state))
@@ -76,24 +77,13 @@ class Group:
             print()
 
         if self._state.args.is_help or issues:
-            print(self._help())
+            print(help_text)
             sys.exit(1 if issues else 0)
         return None
 
     def _missing_from_interface(self, controls: tuple[typing.Any]) -> list[str]:
         # TODO
         return []
-
-    def _help(self) -> str:
-        usage_parts = ["[-h/--help]"]  # TODO
-        segments = [
-            "Usage: "
-            + self._state.args.command.rsplit("/", 1)[-1]
-            + " "
-            + " ".join(usage_parts)
-        ]
-        # TODO
-        return "\n\n".join(segments)
 
     def md(self, text: str) -> mo.Html | None:
         """Display markdown in notebooks or plain text in CLI."""
