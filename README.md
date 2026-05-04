@@ -85,4 +85,4 @@ Or `uv run marimo edit` to run as notebooks.
 
 This is an early release — issues, ideas, and pull requests are very welcome on [GitHub](https://github.com/yairchu/moops).
 
-The name is still up for debate too (`moops` may stand for "Marimo Options" — but if you have a better idea, please share!).
+The [name is still up for debate](https://github.com/yairchu/moops/issues/1) too (`moops` may stand for "Marimo Options" — but if you have a better idea, please share!).
