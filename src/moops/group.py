@@ -26,7 +26,6 @@ class Group:
         self._state = _parse.ParseState(args=_parse.ParsedArgs.from_options(rest))
         self._cli_map = _cli_map.CliMap()
         self._overrides: dict[str, typing.Any] = {}
-        self._return_interface: bool = False
         self._presets = presets
         self._preset_state = self._build_preset_state()
 
@@ -34,7 +33,6 @@ class Group:
     def with_overrides(cls, overrides: dict[str, typing.Any]) -> "Group":
         instance = cls(["run"])
         instance._overrides = overrides
-        instance._return_interface = True
         return instance
 
     def subgroup(
@@ -69,7 +67,7 @@ class Group:
         args = _parse.ParsedArgs.from_options(shlex.split(self._presets.selected_args))
         return _parse.ParseState(args=args)
 
-    def interface(self, *controls: typing.Any) -> mo.Html | interface.Interface | None:
+    def interface(self, *controls: typing.Any) -> interface.Interface:
         """
         group.interface() serves two purposes:
         * Display help text based on the defined flags and options.
@@ -86,8 +84,9 @@ class Group:
             notebook_name=pathlib.Path(inspect.stack()[1].filename).name,
             option_prefix=self.option,
             presets=self._presets,
+            command=self._command,
         )
-        if self.option or self._return_interface:
+        if self.option or not mo.running_in_notebook():
             missing_options = iface.missing_options()
             if missing_options:
                 warnings.warn(
@@ -95,8 +94,9 @@ class Group:
                     f"but not passed to interface(): {', '.join(missing_options)}",
                     stacklevel=2,
                 )
-            return iface
-        return iface.format_help(self._state, self._command)
+        if not self.option and not mo.running_in_notebook():
+            iface.validate_or_exit(self._state)
+        return iface
 
     def md(self, text: str) -> mo.Html | None:
         """Display markdown in notebooks or plain text in CLI."""

@@ -19,6 +19,7 @@ class Interface:
     notebook_name: str = ""
     option_prefix: str = ""
     presets: Presets | None = None
+    command: str = ""
 
     def __post_init__(self) -> None:
         seen_ids: set[int] = set()
@@ -48,12 +49,13 @@ class Interface:
             elif k not in _parse.help_flags:
                 yield f"{unexp_text}{k}"
 
-    def help(self, command: str) -> str:
+    def help(self) -> str:
         usage_parts = [
             p for cli in self._all_cli_controls() for p in cli.format_usage_parts()
         ]
         usage_parts.append("[-h/--help]")
-        segments = [f"Usage: {command.rsplit('/', 1)[-1]} {' '.join(usage_parts)}"]
+        name = self.command.rsplit("/", 1)[-1]
+        segments = [f"Usage: {name} {' '.join(usage_parts)}"]
         help_lines = [
             line for cli in self._all_cli_controls() for line in cli.format_help_lines()
         ]
@@ -130,9 +132,9 @@ class Interface:
             for arg in cli.format_value(values[cli.option])
         )
 
-    def format_current_command(self, command: str) -> str:
+    def format_current_command(self) -> str:
         args = self._current_args()
-        name = command.rsplit("/", 1)[-1]
+        name = self.command.rsplit("/", 1)[-1]
         return f"{name} {args}" if args else name
 
     def missing_options(self) -> list[str]:
@@ -143,9 +145,23 @@ class Interface:
             if ctrl_id not in interface_ids
         ]
 
+    def validate_or_exit(self, state: _parse.ParseState) -> None:
+        issues = list(self.validate(state))
+        if issues:
+            print("Argument errors:\n" + "\n".join(f"- {x}" for x in issues))
+            print()
+        if state.args.is_help or issues:
+            print(self.help())
+            sys.exit(1 if issues else 0)
+
     def _mime_(self) -> tuple[str, str]:
+        if self.option_prefix:
+            return self._subgroup_summary()._mime_()  # type: ignore
+        return self._root_panel()._mime_()  # type: ignore
+
+    def _subgroup_summary(self) -> mo.Html:
         if not self.notebook_name:
-            return mo.md("Cli bundle with no notebook name")._mime_()  # type: ignore
+            return mo.md("Cli bundle with no notebook name")
         has_exposed = any(
             not ctrl._component_args.get("disabled", False)
             for ctrl in self._flatten()
@@ -156,9 +172,47 @@ class Interface:
             if has_exposed
             else ""
         )
-        return mo.md(
-            f"An embedded instance of `{self.notebook_name}`{prefix_note}."
-        )._mime_()  # type: ignore
+        return mo.md(f"An embedded instance of `{self.notebook_name}`{prefix_note}.")
+
+    def _root_panel(self) -> mo.Html:
+        info = mo.md(
+            f"This notebook also works as a script:\n```\n{self.help()}\n```\n\n"
+            "To run the script with the current values in the notebook use:\n"
+            f"```\n{self.format_current_command()}\n```"
+        )
+        items: list[typing.Any] = [info]
+        if self.presets is not None:
+            current_args = self._current_args()
+            modified = current_args != (self.presets.selected_args or "")
+            name_input = mo.ui.text(
+                placeholder="preset name",
+                disabled=not modified,
+            )
+            save_btn = mo.ui.button(
+                label="Save preset",
+                on_click=lambda _: self.presets.save(  # type: ignore
+                    name_input.value, current_args
+                ),
+                disabled=not modified,
+            )
+            items.append(
+                mo.hstack(
+                    [self.presets, name_input, save_btn],
+                    justify="start",
+                )
+            )
+        missing_options = self.missing_options()
+        if missing_options:
+            items.append(
+                mo.callout(
+                    mo.md(
+                        "Missing options: "
+                        f"{', '.join(f'`{opt}`' for opt in missing_options)}"
+                    ),
+                    "warn",
+                )
+            )
+        return mo.vstack(items)
 
     def _flatten(self) -> typing.Iterator[typing.Any]:
         for ctrl in self.controls:
@@ -166,58 +220,6 @@ class Interface:
                 yield from ctrl._flatten()
             else:
                 yield ctrl
-
-    def format_help(self, state: _parse.ParseState, command: str) -> mo.Html | None:
-        help_text = self.help(command)
-        missing_options = self.missing_options()
-        if mo.running_in_notebook():
-            info = mo.md(
-                f"This notebook also works as a script:\n```\n{help_text}\n```\n\n"
-                "To run the script with the current values in the notebook use:\n"
-                f"```\n{self.format_current_command(command)}\n```"
-            )
-            items: list[typing.Any] = [info]
-            if self.presets is not None:
-                current_args = self._current_args()
-                modified = current_args != (self.presets.selected_args or "")
-                name_input = mo.ui.text(
-                    placeholder="preset name",
-                    disabled=not modified,
-                )
-                save_btn = mo.ui.button(
-                    label="Save preset",
-                    on_click=lambda _: self.presets.save(  # type: ignore
-                        name_input.value, current_args
-                    ),
-                    disabled=not modified,
-                )
-                items.append(
-                    mo.hstack(
-                        [self.presets, name_input, save_btn],
-                        justify="start",
-                    )
-                )
-            if missing_options:
-                items.append(
-                    mo.callout(
-                        mo.md(
-                            "Missing options: "
-                            f"{', '.join(f'`{opt}`' for opt in missing_options)}"
-                        ),
-                        "warn",
-                    )
-                )
-            return mo.vstack(items)
-
-        issues = list(self.validate(state))
-        if issues:
-            print("Argument errors:\n" + "\n".join(f"- {x}" for x in issues))
-            print()
-
-        if state.args.is_help or issues:
-            print(help_text)
-            sys.exit(1 if issues else 0)
-        return None
 
 
 def _ctrl_value(ctrl: typing.Any) -> typing.Any:
