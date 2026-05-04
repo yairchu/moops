@@ -56,7 +56,7 @@ If no overrides are provided, `moops.run` uses the notebook defaults.
 
 ## Property-based testing
 
-`moops.testing.from_notebook` generates a [Hypothesis](https://hypothesis.readthedocs.io/) strategy that produces valid `moops.run` kwargs by introspecting the notebook's interface — dropdowns yield their allowed keys, switches yield booleans, and text fields yield arbitrary strings.
+`moops.testing.notebook_interface` returns the notebook's `Interface`, from which `.strategy()` generates a [Hypothesis](https://hypothesis.readthedocs.io/) strategy that produces valid `moops.run` kwargs by introspecting the notebook's interface — dropdowns yield their allowed keys, switches yield booleans, and text fields yield arbitrary strings.
 
 ```python
 from examples import name_casing
