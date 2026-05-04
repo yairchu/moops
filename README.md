@@ -81,12 +81,6 @@ uv run examples/notebook.py
 
 Or `uv run marimo edit` to run as notebooks.
 
-## TODO
-
-* File inputs
-* More interfaces
-  * HTTP services, OpenAPI?
-
 ## Feedback welcome
 
 This is an early release — issues, ideas, and pull requests are very welcome on [GitHub](https://github.com/yairchu/moops).
