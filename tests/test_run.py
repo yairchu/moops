@@ -44,6 +44,16 @@ def test_defaults_supports_run_form() -> None:
     assert moops.run(notebook, **iface.default) is not None
 
 
+def test_cur_values_excludes_overridden_controls() -> None:
+    async def _run() -> typing.Any:
+        args = moops.Group.with_overrides({"style": "snake_case"})
+        result = await name_casing.app.embed(defs={"args": args})
+        return result.defs["interface"]
+
+    iface = asyncio.run(_run())
+    assert "--style" not in iface.cur_values()
+
+
 def test_overridden_control_is_disabled() -> None:
     async def _run() -> None:
         args = moops.Group(cli_args=["script.py"])
