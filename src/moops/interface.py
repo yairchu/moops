@@ -6,7 +6,7 @@ import marimo as mo
 from hypothesis import strategies as st
 
 from . import _cli_map, _options, _parse
-from ._presets import Presets
+from .presets import Presets
 
 
 @dataclasses.dataclass
@@ -179,28 +179,21 @@ class Interface:
             items: list[typing.Any] = [info]
             if self.presets is not None:
                 current_args = self._current_args()
+                modified = current_args != (self.presets.selected_args or "")
                 name_input = mo.ui.text(
                     placeholder="preset name",
-                    disabled=not current_args,
+                    disabled=not modified,
                 )
                 save_btn = mo.ui.button(
                     label="Save preset",
                     on_click=lambda _: self.presets.save(  # type: ignore
                         name_input.value, current_args
                     ),
-                    disabled=not current_args,
+                    disabled=not modified,
                 )
                 items.append(
                     mo.hstack(
-                        [
-                            name_input,
-                            save_btn,
-                            mo.md(
-                                "(preset changed)"
-                                if current_args
-                                else "(no changes to save)"
-                            ),
-                        ],
+                        [self.presets, name_input, save_btn],
                         justify="start",
                     )
                 )

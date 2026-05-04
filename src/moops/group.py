@@ -1,12 +1,13 @@
 import inspect
 import pathlib
+import shlex
 import typing
 import warnings
 
 import marimo as mo
 
 from . import _cli_map, _naming, _options, _parse, interface
-from ._presets import Presets
+from .presets import Presets
 
 
 class Group:
@@ -15,7 +16,7 @@ class Group:
     def __init__(
         self,
         cli_args: list[str] | None = None,
-        presets: str | None = None,
+        presets: Presets | None = None,
     ) -> None:
         """Initialize with command line arguments (defaults to sys.argv)."""
 
@@ -24,7 +25,8 @@ class Group:
         self._cli_map = _cli_map.CliMap()
         self._overrides: dict[str, typing.Any] = {}
         self._return_interface: bool = False
-        self._presets = Presets(presets) if presets else None
+        self._presets = presets
+        self._preset_state = self._build_preset_state()
 
     @classmethod
     def with_overrides(cls, overrides: dict[str, typing.Any]) -> "Group":
@@ -34,20 +36,36 @@ class Group:
         return instance
 
     def subgroup(
-        self, prefix: str, overrides: dict[str, typing.Any] | None = None
+        self,
+        prefix: str,
+        overrides: dict[str, typing.Any] | None = None,
+        presets: Presets | None = None,
     ) -> "Group":
         """Create a child Group that prefixes all its option names with '{prefix}-'.
 
         Pass a nested dict under the same key to moops.run() to override controls
         in this subgroup: moops.run(notebook, casing={"style": "snake_case"}).
         Explicit overrides take precedence over those passed via moops.run().
+
+        Pass `presets=` to give the subgroup its own preset selector; otherwise
+        it inherits the parent's preset state.
         """
         child = type(self)([prefix])
         child._state = self._state
         child._cli_map = _cli_map.CliMap()
         child._overrides = {**self._overrides.get(prefix, {}), **(overrides or {})}
         child.option = f"{self.option}-{prefix}" if self.option else f"--{prefix}"
+        child._presets = presets
+        child._preset_state = (
+            child._build_preset_state() if presets else self._preset_state
+        )
         return child
+
+    def _build_preset_state(self) -> _parse.ParseState | None:
+        if self._presets is None or self._presets.selected_args is None:
+            return None
+        args = ["preset", *shlex.split(self._presets.selected_args)]
+        return _parse.ParseState(args=_parse.ParsedArgs.parse(args))
 
     def interface(self, *controls: typing.Any) -> mo.Html | interface.Interface | None:
         """
@@ -303,6 +321,12 @@ class Group:
         key = self._override_key(control.option)
         if key in self._overrides:
             return self._overrides[key]
+        if self._preset_state is not None:
+            match control.parse(self._preset_state.args):
+                case _options.ParseResult(value=v):
+                    return v
+                case _:
+                    pass
         val = default
         match control.parse(self._state.args):
             case _options.ParseError(message=msg):

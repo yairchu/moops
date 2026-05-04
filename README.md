@@ -84,7 +84,6 @@ Or `uv run marimo edit` to run as notebooks.
 ## TODO
 
 * File inputs
-* Notebook inputs presets: allow saving and loading the current settings of an option group
 * More interfaces
   * HTTP services, OpenAPI?
 
