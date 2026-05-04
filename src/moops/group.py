@@ -6,12 +6,17 @@ import warnings
 import marimo as mo
 
 from . import _cli_map, _naming, _options, _parse, interface
+from ._presets import Presets
 
 
 class Group:
     """Unified CLI argument parser and marimo UI element generator."""
 
-    def __init__(self, cli_args: list[str] | None = None) -> None:
+    def __init__(
+        self,
+        cli_args: list[str] | None = None,
+        presets: str | None = None,
+    ) -> None:
         """Initialize with command line arguments (defaults to sys.argv)."""
 
         self.option: str = ""
@@ -19,6 +24,7 @@ class Group:
         self._cli_map = _cli_map.CliMap()
         self._overrides: dict[str, typing.Any] = {}
         self._return_interface: bool = False
+        self._presets = Presets(presets) if presets else None
 
     @classmethod
     def with_overrides(cls, overrides: dict[str, typing.Any]) -> "Group":
@@ -59,6 +65,7 @@ class Group:
             overrides=self._overrides,
             notebook_name=pathlib.Path(inspect.stack()[1].filename).name,
             option_prefix=self.option,
+            presets=self._presets,
         )
         if self.option or self._return_interface:
             missing_options = iface.missing_options()

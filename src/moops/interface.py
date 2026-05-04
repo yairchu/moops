@@ -6,6 +6,7 @@ import marimo as mo
 from hypothesis import strategies as st
 
 from . import _cli_map, _options, _parse
+from ._presets import Presets
 
 
 @dataclasses.dataclass
@@ -17,6 +18,7 @@ class Interface:
     overrides: dict[str, typing.Any] = dataclasses.field(default_factory=lambda: {})
     notebook_name: str = ""
     option_prefix: str = ""
+    presets: Presets | None = None
 
     def __post_init__(self) -> None:
         seen_ids: set[int] = set()
@@ -116,21 +118,22 @@ class Interface:
             else:
                 cli = self.cli_map.get(ctrl)
                 if cli is not None and not self._is_overridden(cli):
-                    value = (
-                        ctrl._selected_key
-                        if hasattr(ctrl, "_selected_key")
-                        else ctrl.value
-                    )
-                    result[cli.option] = value
+                    result[cli.option] = _ctrl_value(ctrl)
         return result
 
-    def format_current_command(self, command: str) -> str:
+    def _current_args(self) -> str:
         values = self.cur_values()
-        parts = [command.rsplit("/", 1)[-1]]
-        for cli in self._all_cli_controls():
-            if cli.option in values:
-                parts.extend(cli.format_value(values[cli.option]))
-        return " ".join(parts)
+        return " ".join(
+            arg
+            for cli in self._all_cli_controls()
+            if cli.option in values
+            for arg in cli.format_value(values[cli.option])
+        )
+
+    def format_current_command(self, command: str) -> str:
+        args = self._current_args()
+        name = command.rsplit("/", 1)[-1]
+        return f"{name} {args}" if args else name
 
     def missing_options(self) -> list[str]:
         interface_ids = {id(ctrl) for ctrl in self.controls}
@@ -173,20 +176,45 @@ class Interface:
                 "To run the script with the current values in the notebook use:\n"
                 f"```\n{self.format_current_command(state.args.command)}\n```"
             )
-            return mo.vstack(
-                [
-                    info,
+            items: list[typing.Any] = [info]
+            if self.presets is not None:
+                current_args = self._current_args()
+                name_input = mo.ui.text(
+                    placeholder="preset name",
+                    disabled=not current_args,
+                )
+                save_btn = mo.ui.button(
+                    label="Save preset",
+                    on_click=lambda _: self.presets.save(  # type: ignore
+                        name_input.value, current_args
+                    ),
+                    disabled=not current_args,
+                )
+                items.append(
+                    mo.hstack(
+                        [
+                            name_input,
+                            save_btn,
+                            mo.md(
+                                "(preset changed)"
+                                if current_args
+                                else "(no changes to save)"
+                            ),
+                        ],
+                        justify="start",
+                    )
+                )
+            if missing_options:
+                items.append(
                     mo.callout(
                         mo.md(
                             "Missing options: "
                             f"{', '.join(f'`{opt}`' for opt in missing_options)}"
                         ),
                         "warn",
-                    ),
-                ]
-                if missing_options
-                else [info]
-            )
+                    )
+                )
+            return mo.vstack(items)
 
         issues = list(self.validate(state))
         if issues:
@@ -197,3 +225,7 @@ class Interface:
             print(help_text)
             sys.exit(1 if issues else 0)
         return None
+
+
+def _ctrl_value(ctrl: typing.Any) -> typing.Any:
+    return ctrl._selected_key if hasattr(ctrl, "_selected_key") else ctrl.value

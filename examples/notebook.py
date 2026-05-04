@@ -39,7 +39,7 @@ def _():
 
 @app.cell
 def _(moops):
-    args = moops.Group()
+    args = moops.Group(presets="notebook_presets.json")
     return (args,)
 
 
