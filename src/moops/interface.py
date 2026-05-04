@@ -167,14 +167,14 @@ class Interface:
             else:
                 yield ctrl
 
-    def format_help(self, state: _parse.ParseState) -> mo.Html | None:
-        help_text = self.help(state.args.command)
+    def format_help(self, state: _parse.ParseState, command: str) -> mo.Html | None:
+        help_text = self.help(command)
         missing_options = self.missing_options()
         if mo.running_in_notebook():
             info = mo.md(
                 f"This notebook also works as a script:\n```\n{help_text}\n```\n\n"
                 "To run the script with the current values in the notebook use:\n"
-                f"```\n{self.format_current_command(state.args.command)}\n```"
+                f"```\n{self.format_current_command(command)}\n```"
             )
             items: list[typing.Any] = [info]
             if self.presets is not None:

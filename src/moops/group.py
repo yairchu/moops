@@ -21,7 +21,9 @@ class Group:
         """Initialize with command line arguments (defaults to sys.argv)."""
 
         self.option: str = ""
-        self._state = _parse.ParseState(args=_parse.ParsedArgs.parse(cli_args))
+        command, rest = _parse.split_argv(cli_args)
+        self._command = command
+        self._state = _parse.ParseState(args=_parse.ParsedArgs.from_options(rest))
         self._cli_map = _cli_map.CliMap()
         self._overrides: dict[str, typing.Any] = {}
         self._return_interface: bool = False
@@ -64,8 +66,8 @@ class Group:
     def _build_preset_state(self) -> _parse.ParseState | None:
         if self._presets is None or self._presets.selected_args is None:
             return None
-        args = ["preset", *shlex.split(self._presets.selected_args)]
-        return _parse.ParseState(args=_parse.ParsedArgs.parse(args))
+        args = _parse.ParsedArgs.from_options(shlex.split(self._presets.selected_args))
+        return _parse.ParseState(args=args)
 
     def interface(self, *controls: typing.Any) -> mo.Html | interface.Interface | None:
         """
@@ -94,7 +96,7 @@ class Group:
                     stacklevel=2,
                 )
             return iface
-        return iface.format_help(self._state)
+        return iface.format_help(self._state, self._command)
 
     def md(self, text: str) -> mo.Html | None:
         """Display markdown in notebooks or plain text in CLI."""

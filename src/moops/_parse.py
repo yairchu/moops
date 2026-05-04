@@ -8,7 +8,6 @@ help_flags = ["--help", "-h"]
 
 @dataclasses.dataclass
 class ParsedArgs:
-    command: str
     options: dict[str, str | None]
     unexpected: list[str]
 
@@ -17,35 +16,28 @@ class ParsedArgs:
         return any(x in self.options for x in help_flags)
 
     @classmethod
-    def parse(cls, args: list[str] | None) -> "ParsedArgs":
-        """Parse command line arguments into flags and options."""
+    def from_options(cls, args: list[str]) -> "ParsedArgs":
+        """Parse a pre-tokenized list of options (no command name)."""
 
-        if args is None:
-            args = sys.argv
-            if mo.running_in_notebook():
-                # When notebooks embed other notebooks,
-                # the outer notebook is the last argument in sys.argv
-                args = args[-1:]
-
-        cmd, *rest = args
-        result = cls(command=cmd, options={}, unexpected=[])
+        options: dict[str, str | None] = {}
+        unexpected: list[str] = []
         prev = None
-        for arg in rest:
+        for arg in args:
             is_negative_num = len(arg) > 1 and arg[0] == "-" and arg[1].isdigit()
             if arg.startswith("-") and not (prev is not None and is_negative_num):
                 if "=" in arg:
                     key, value = arg.split("=", 1)
-                    result.options[key] = value
+                    options[key] = value
                     prev = None
                 else:
-                    result.options[arg] = None
+                    options[arg] = None
                     prev = arg
             elif prev is not None and prev.startswith("-"):
-                result.options[prev] = arg
+                options[prev] = arg
                 prev = None
             else:
-                result.unexpected.append(arg)
-        return result
+                unexpected.append(arg)
+        return cls(options=options, unexpected=unexpected)
 
 
 @dataclasses.dataclass
@@ -56,3 +48,15 @@ class ParseState:
     validation_errors: dict[str, str] = dataclasses.field(
         default_factory=dict[str, str]
     )
+
+
+def split_argv(args: list[str] | None) -> tuple[str, list[str]]:
+    """Split argv-shaped input into (command, options)."""
+    if args is None:
+        args = sys.argv
+        if mo.running_in_notebook():
+            # When notebooks embed other notebooks,
+            # the outer notebook is the last argument in sys.argv
+            args = args[-1:]
+    cmd, *rest = args
+    return cmd, rest
