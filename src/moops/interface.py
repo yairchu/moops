@@ -115,7 +115,7 @@ class Interface:
                 result.update(ctrl.cur_values())
             else:
                 cli = self.cli_map.get(ctrl)
-                if cli is not None:
+                if cli is not None and not self._is_overridden(cli):
                     value = (
                         ctrl._selected_key
                         if hasattr(ctrl, "_selected_key")
