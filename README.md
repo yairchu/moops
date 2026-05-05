@@ -9,9 +9,7 @@ Using `moops`, both implementations are merged into one.
 
 ## Installation
 
-```sh
-uv add "moops @ git+https://github.com/yairchu/moops"
-```
+`uv add` (or `pip install`) `moops`
 
 ## Transition guide
 
