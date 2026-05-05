@@ -44,14 +44,15 @@ from examples import name_casing
 
 result = moops.run(
     name_casing,
-    input_text="Hello World",
+    text="Hello World",
     style="snake_case",
 )
 
 assert result == "hello_world"
 ```
 
-Keyword arguments override `moops.Group` inputs by their label names.
+Keyword arguments override `moops.Group` inputs by their option names,
+with leading dashes removed and dashes converted to underscores.
 If no overrides are provided, `moops.run` uses the notebook defaults.
 
 ## Property-based testing
