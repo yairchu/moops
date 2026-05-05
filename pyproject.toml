@@ -9,10 +9,29 @@ description = "Write Marimo notebooks that also work as CLI scripts, with unifie
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.10"
+authors = [
+    { name = "Yair Chuchem" },
+]
+keywords = ["marimo", "notebooks", "cli", "testing"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
 dependencies = [
     "marimo>=0.23.1",
     "hypothesis",
 ]
+
+[project.urls]
+Homepage = "https://github.com/yairchu/moops"
+Repository = "https://github.com/yairchu/moops"
+Issues = "https://github.com/yairchu/moops/issues"
 
 [tool.uv]
 dev-dependencies = [
