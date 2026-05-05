@@ -156,7 +156,16 @@ def test_validation_error_not_shown_for_unrendered_control(
     g = Group(cli_args=["script.py", "--count", "not-a-number"])
     _unrendered = g.number(option="--count", help_text="A count")
     other = g.switch(label="Verbose", help_text="Enable verbose output")
-    with pytest.raises(SystemExit):
+    warning_match = (
+        "Controls registered with this Group but not passed to interface.*--count"
+    )
+    with (
+        pytest.warns(
+            UserWarning,
+            match=warning_match,
+        ),
+        pytest.raises(SystemExit),
+    ):
         g.interface(other)
     assert "Unexpected argument: --count" in capsys.readouterr().out
 
