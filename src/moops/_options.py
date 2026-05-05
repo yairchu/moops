@@ -127,9 +127,8 @@ class TextAreaControl(ValueControl):
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         if not mo.running_in_notebook() and self._stdin_flag in args.options:
-            assert args.options[self._stdin_flag] is None, (
-                f"{self._stdin_flag} should not take a value"
-            )
+            if args.options[self._stdin_flag] is not None:
+                return None
             if self.option in args.options:
                 return ParseError(
                     f"Cannot use both {self.option} and {self._stdin_flag}"
