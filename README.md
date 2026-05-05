@@ -1,5 +1,8 @@
 # moops
 
+[![PyPI](https://img.shields.io/pypi/v/moops.svg)](https://pypi.org/project/moops/)
+[![Open in molab](https://marimo.io/molab-shield.svg)](https://molab.marimo.io/github/yairchu/moops/blob/main/examples/notebook.py)
+
 Easily write Marimo notebooks that work as CLI scripts (and more!) with minimal boilerplate.
 
 Marimo supports notebooks running as CLI scripts,
