@@ -1,3 +1,4 @@
+import html
 import inspect
 import pathlib
 import shlex
@@ -131,7 +132,7 @@ class Group:
         return self._cli_map.register(
             mo.ui.switch(
                 value=self._get_value(cli, value),
-                label=opt.label,
+                label=_label_with_help(opt.label, help_text),
                 disabled=self._is_overridden(opt.option),
                 **kwargs,
             ),
@@ -160,7 +161,7 @@ class Group:
         return self._cli_map.register(
             mo.ui.text(
                 value=self._get_value(cli, value),
-                label=opt.label,
+                label=_label_with_help(opt.label, help_text),
                 disabled=self._is_overridden(opt.option),
                 **kwargs,
             ),
@@ -189,7 +190,7 @@ class Group:
         return self._cli_map.register(
             mo.ui.text_area(
                 value=self._get_value(cli, value),
-                label=opt.label,
+                label=_label_with_help(opt.label, help_text),
                 disabled=self._is_overridden(opt.option),
                 **kwargs,
             ),
@@ -213,7 +214,7 @@ class Group:
             mo.ui.number(
                 start=start,
                 value=value,
-                label=opt.label,
+                label=_label_with_help(opt.label, help_text),
                 disabled=self._is_overridden(opt.option),
                 **kwargs,
             ),
@@ -237,7 +238,7 @@ class Group:
             mo.ui.slider(
                 start=start,
                 value=value,
-                label=opt.label,
+                label=_label_with_help(opt.label, help_text),
                 disabled=self._is_overridden(opt.option),
                 **kwargs,
             ),
@@ -302,7 +303,7 @@ class Group:
             mo.ui.dropdown(
                 options=options,
                 value=self._get_value(cli, value),
-                label=opt.label,
+                label=_label_with_help(opt.label, help_text),
                 allow_select_none=allow_select_none,
                 **kwargs,
             ),
@@ -352,3 +353,7 @@ class Group:
                 option=f"{self.option}-{opt.option.lstrip('-')}",
             )
         return opt
+
+
+def _label_with_help(label: str, help_text: str) -> str:
+    return f'<span title="{html.escape(help_text, quote=True)}">{label}</span>'
