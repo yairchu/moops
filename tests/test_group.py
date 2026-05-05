@@ -138,6 +138,18 @@ def test_dropdown_no_flag_and_value_is_error(capsys: pytest.CaptureFixture[str])
     assert "--no-style" in capsys.readouterr().out
 
 
+def test_text_area_from_stdin_flag_with_value_is_error(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    g = Group(cli_args=["script.py", "--text-from-stdin=oops"])
+    ctrl = g.text_area(option="--text", help_text="Input text")
+    with pytest.raises(SystemExit) as exc_info:
+        g.interface(ctrl)
+    assert exc_info.value.code != 0
+    output = capsys.readouterr().out
+    assert "--text-from-stdin does not take a value, but was given: oops" in output
+
+
 def test_validation_error_not_shown_for_unrendered_control(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
