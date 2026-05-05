@@ -1,8 +1,10 @@
 import asyncio
+import types
 import typing
 
 import hypothesis
 import marimo as mo
+import pytest
 
 import moops
 import moops.testing
@@ -17,6 +19,18 @@ def test_run_returns_result() -> None:
 def test_run_default_values() -> None:
     result = moops.run(name_casing)
     assert result == "LoremIpsum"
+
+
+class _AppWithoutResult:
+    def run(self, defs: dict[str, typing.Any]) -> tuple[None, dict[str, typing.Any]]:
+        return None, {}
+
+
+def test_run_requires_result_variable() -> None:
+    module = types.ModuleType("missing_result")
+    module.app = _AppWithoutResult()  # type: ignore[attr-defined]
+    with pytest.raises(RuntimeError, match=r"missing_result.*'result'"):
+        moops.run(module)
 
 
 _name_casing_interface: moops.Interface = moops.testing.notebook_interface(name_casing)
