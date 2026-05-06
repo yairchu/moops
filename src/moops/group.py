@@ -139,6 +139,31 @@ class Group:
             cli,
         )
 
+    def checkbox(
+        self,
+        value: bool = False,
+        flag: str | None = None,
+        *,
+        help_text: str,
+        label: str | None = None,
+        **kwargs: typing.Any,
+    ) -> mo.ui.checkbox:
+        """Create a checkbox UI element that maps to a CLI flag."""
+
+        opt = self._make_opt(label=label, option=flag, prefix="no-" if value else None)
+        cli = _options.FlagControl(
+            option=opt.option, help_text=help_text, default=value
+        )
+        return self._cli_map.register(
+            mo.ui.checkbox(
+                value=self._get_value(cli, value),
+                label=_label_with_help(opt.label, help_text),
+                disabled=self._is_overridden(opt.option),
+                **kwargs,
+            ),
+            cli,
+        )
+
     def text(
         self,
         value: str = "",

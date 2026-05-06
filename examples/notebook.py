@@ -7,7 +7,7 @@
 
 import marimo
 
-__generated_with = "0.23.4"
+__generated_with = "0.23.5"
 app = marimo.App(width="full")
 
 
@@ -58,7 +58,7 @@ def _(moops, presets):
 
 @app.cell
 def _(args):
-    polite_switch = args.switch(
+    polite_switch = args.checkbox(
         label="Be polite", help_text="Makes the greeting polite"
     )
     polite_switch
