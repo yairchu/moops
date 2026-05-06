@@ -10,6 +10,8 @@ import marimo as mo
 from . import _cli_map, _naming, _options, _parse, interface
 from .presets import Presets
 
+Numeric = int | float
+
 
 class Group:
     """Unified CLI argument parser and marimo UI element generator."""
@@ -270,6 +272,46 @@ class Group:
             cli,
         )
 
+    def range_slider(
+        self,
+        start: Numeric | None = None,
+        stop: Numeric | None = None,
+        step: Numeric | None = None,
+        value: typing.Sequence[Numeric] | None = None,
+        option: str | None = None,
+        *,
+        help_text: str,
+        label: str | None = None,
+        steps: typing.Sequence[Numeric] | None = None,
+        **kwargs: typing.Any,
+    ) -> mo.ui.range_slider:
+        """Create a range slider UI element that maps to a CLI option."""
+
+        default = _range_default(start=start, stop=stop, value=value, steps=steps)
+        opt = self._make_opt(label=label, option=option)
+        cli = _options.RangeControl(
+            option=opt.option,
+            metavar=opt.label.upper().replace(" ", "_"),
+            help_text=help_text,
+            default=default,
+            start=_range_start(start=start, steps=steps),
+            stop=_range_stop(stop=stop, steps=steps),
+            allowed_values=list(steps) if steps is not None else None,
+        )
+        return self._cli_map.register(
+            mo.ui.range_slider(
+                start=start,
+                stop=stop,
+                step=step,
+                value=self._get_value(cli, default),
+                label=_label_with_help(opt.label, help_text),
+                steps=steps,
+                disabled=self._is_overridden(opt.option),
+                **kwargs,
+            ),
+            cli,
+        )
+
     def _numeric_cli(
         self,
         start: float | None,
@@ -382,3 +424,36 @@ class Group:
 
 def _label_with_help(label: str, help_text: str) -> str:
     return f'<span title="{html.escape(help_text, quote=True)}">{label}</span>'
+
+
+def _range_default(
+    start: Numeric | None,
+    stop: Numeric | None,
+    value: typing.Sequence[Numeric] | None,
+    steps: typing.Sequence[Numeric] | None,
+) -> list[Numeric] | None:
+    if value is not None:
+        return list(value)
+    if steps:
+        return [steps[0], steps[-1]]
+    if start is not None and stop is not None:
+        return [start, stop]
+    return None
+
+
+def _range_start(
+    start: Numeric | None,
+    steps: typing.Sequence[Numeric] | None,
+) -> Numeric | None:
+    if steps:
+        return min(steps)
+    return start
+
+
+def _range_stop(
+    stop: Numeric | None,
+    steps: typing.Sequence[Numeric] | None,
+) -> Numeric | None:
+    if steps:
+        return max(steps)
+    return stop

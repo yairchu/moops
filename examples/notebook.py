@@ -12,11 +12,19 @@ app = marimo.App(width="full")
 
 
 @app.cell
-def _(args, casing_result, name_text, polite_switch, times_number):
+def _(
+    args,
+    casing_result,
+    name_text,
+    pause_range,
+    polite_switch,
+    times_number,
+):
     interface = args.interface(
         polite_switch,
         name_text,
         times_number,
+        pause_range,
         casing_result.defs["interface"],
     )
     interface
@@ -87,13 +95,37 @@ def _(args):
 
 
 @app.cell
-def _(name_text, polite_switch, times_number):
+def _(args):
+    pause_range = args.range_slider(
+        start=1,
+        stop=5,
+        step=1,
+        value=[3, 3],
+        label="Pause dots",
+        help_text="Range of dot counts between greeting parts",
+        show_value=True,
+    )
+    pause_range
+    return (pause_range,)
+
+
+@app.cell
+def _(name_text, pause_range, polite_switch, times_number):
     _greeting = "Good day!" if polite_switch.value else "Hey there!"
     _parts = [
         *([name_text.value] if name_text.value else []),
         *([_greeting] * times_number.value),
     ]
-    greeting_text = "... ".join(_parts)
+    _low, _high = sorted(int(value) for value in pause_range.value)
+    _dot_counts = list(range(_low, _high + 1))
+    greeting_text = "".join(
+        [
+            _part
+            if _idx == 0
+            else f"{'.' * _dot_counts[(_idx - 1) % len(_dot_counts)]} {_part}"
+            for _idx, _part in enumerate(_parts)
+        ]
+    )
     return (greeting_text,)
 
 

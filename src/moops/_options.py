@@ -10,6 +10,8 @@ from hypothesis import strategies as st
 
 from . import _parse
 
+Numeric = int | float
+
 
 @dataclasses.dataclass
 class ParseError:
@@ -155,17 +157,11 @@ class TextAreaControl(ValueControl):
 
 @dataclasses.dataclass
 class NumberControl(ValueControl):
-    default: float | int | None
+    default: Numeric | None
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         value = args.options.get(self.option)
-        if value is None:
-            return None
-        try:
-            num = float(value)
-        except ValueError:
-            return ParseError(f"Option {self.option} expects a number, got: {value!r}")
-        return ParseResult(int(num) if math.isfinite(num) and num == int(num) else num)
+        return None if value is None else _parse_number(self.option, value)
 
     def strategy(self) -> st.SearchStrategy:
         return st.one_of(
@@ -181,6 +177,82 @@ class NumberControl(ValueControl):
 
     def format_value(self, value: typing.Any) -> list[str]:
         return [] if value == self.default else [f"{self.option} {value}"]
+
+
+@dataclasses.dataclass
+class RangeControl(ValueControl):
+    default: list[Numeric] | None
+    start: Numeric | None = None
+    stop: Numeric | None = None
+    allowed_values: list[Numeric] | None = None
+
+    def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
+        raw = args.options.get(self.option)
+        if raw is None:
+            return None
+        values = raw.split(",")
+        if len(values) != 2 or not all(values):
+            return ParseError(
+                f"Option {self.option} expects two numbers separated by a comma, "
+                f"got: {raw!r}"
+            )
+        parsed: list[Numeric] = []
+        for value in values:
+            match _parse_number(self.option, value):
+                case ParseResult(value=num):
+                    parsed.append(num)
+                case ParseError() as err:
+                    return err
+        if parsed[1] < parsed[0]:
+            return ParseError(
+                f"Option {self.option} expects the second number to be greater "
+                f"than or equal to the first, got: {raw!r}"
+            )
+        if self.allowed_values is not None:
+            invalid = [value for value in parsed if value not in self.allowed_values]
+            if invalid:
+                return ParseError(
+                    f"Option {self.option} values must be one of "
+                    f"{self.allowed_values!r}, got: {invalid!r}"
+                )
+        elif (
+            self.start is not None
+            and self.stop is not None
+            and (parsed[0] < self.start or parsed[1] > self.stop)
+        ):
+            return ParseError(
+                f"Option {self.option} values must be between "
+                f"{self.start} and {self.stop}, got: {raw!r}"
+            )
+        return ParseResult(parsed)
+
+    def strategy(self) -> st.SearchStrategy:
+        return st.tuples(self._number_strategy(), self._number_strategy()).map(
+            lambda pair: sorted(pair)
+        )
+
+    def _number_strategy(self) -> st.SearchStrategy[Numeric]:
+        if self.allowed_values is not None:
+            return st.sampled_from(self.allowed_values)
+        if self.start is not None and self.stop is not None:
+            return st.floats(
+                min_value=float(self.start),
+                max_value=float(self.stop),
+                allow_nan=False,
+                allow_infinity=False,
+            )
+        return st.floats(allow_nan=False, allow_infinity=False)
+
+    def format_help_lines(self) -> list[str]:
+        line = f"  {self.option} {self.metavar}: {self.help_text}"
+        if self.default is not None:
+            line += f" (default: {_format_range(self.default)})"
+        return [line]
+
+    def format_value(self, value: typing.Any) -> list[str]:
+        if self.default is not None and list(value) == self.default:
+            return []
+        return [f"{self.option} {_format_range(value)}"]
 
 
 @dataclasses.dataclass
@@ -250,3 +322,15 @@ class DropdownControl(CliControl):
             assert self._no_flag
             return [self._no_flag]
         return [f"{self.option} {shlex.quote(value)}"]
+
+
+def _parse_number(option: str, value: str) -> ParseResult | ParseError:
+    try:
+        num = float(value)
+    except ValueError:
+        return ParseError(f"Option {option} expects a number, got: {value!r}")
+    return ParseResult(int(num) if math.isfinite(num) and num == int(num) else num)
+
+
+def _format_range(value: typing.Iterable[typing.Any]) -> str:
+    return ",".join(str(v) for v in value)
