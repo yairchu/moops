@@ -1,3 +1,4 @@
+import marimo as mo
 import pytest
 
 from moops import Group
@@ -186,3 +187,17 @@ def test_help_usage_line_has_no_double_spaces(
         g.interface(ctrl)  # no flags, only an option
     usage_line = capsys.readouterr().out.splitlines()[0]
     assert "  " not in usage_line
+
+
+@pytest.mark.xfail(
+    reason=(
+        "marimo composites clone child controls, so moops metadata registered "
+        "on the original control does not follow the clone"
+    ),
+)
+def test_composite_child_keeps_moops_metadata() -> None:
+    g = Group(cli_args=["script.py"])
+    ctrl = g.slider(start=0, stop=10, value=3, label="Count", help_text="A count")
+    cloned_ctrl = mo.ui.dictionary({"count": ctrl}).elements["count"]
+    assert cloned_ctrl is not ctrl
+    assert g.interface(cloned_ctrl).missing_options() == []
