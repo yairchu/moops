@@ -1,3 +1,6 @@
+import gc
+import weakref
+
 import marimo as mo
 import pytest
 
@@ -187,6 +190,20 @@ def test_help_usage_line_has_no_double_spaces(
         g.interface(ctrl)  # no flags, only an option
     usage_line = capsys.readouterr().out.splitlines()[0]
     assert "  " not in usage_line
+
+
+@pytest.mark.xfail(
+    reason="_registered holds the CliControl alive after its control is GC'd",
+)
+def test_cli_control_freed_when_control_gc_collected() -> None:
+    g = Group(cli_args=["script.py"])
+    ctrl = g.slider(start=0, stop=10, value=3, label="Count", help_text="A count")
+    cli = g.interface(ctrl).cli_map.get(ctrl)
+    assert cli is not None
+    cli_ref = weakref.ref(cli)
+    del cli, ctrl
+    gc.collect()
+    assert cli_ref() is None
 
 
 def test_composite_child_keeps_moops_metadata() -> None:
