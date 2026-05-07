@@ -192,9 +192,6 @@ def test_help_usage_line_has_no_double_spaces(
     assert "  " not in usage_line
 
 
-@pytest.mark.xfail(
-    reason="_registered holds the CliControl alive after its control is GC'd",
-)
 def test_cli_control_freed_when_control_gc_collected() -> None:
     g = Group(cli_args=["script.py"])
     ctrl = g.slider(start=0, stop=10, value=3, label="Count", help_text="A count")

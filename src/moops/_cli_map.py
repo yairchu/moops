@@ -1,4 +1,5 @@
 import typing
+import weakref
 
 from . import _options
 
@@ -7,7 +8,9 @@ class CliMap:
     """Maps UI controls to their CLI counterparts."""
 
     def __init__(self) -> None:
-        self._registered: dict[str, _options.CliControl] = {}
+        self._registered: weakref.WeakValueDictionary[str, _options.CliControl] = (
+            weakref.WeakValueDictionary()
+        )
 
     def register(self, control: typing.Any, cli: _options.CliControl) -> typing.Any:
         self._registered[cli.option] = cli
