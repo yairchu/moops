@@ -138,11 +138,17 @@ class Interface:
         return f"{name} {args}" if args else name
 
     def missing_options(self) -> list[str]:
-        interface_ids = {id(ctrl) for ctrl in self.controls}
+        covered = {
+            cli.option
+            for ctrl in self.controls
+            if not isinstance(ctrl, Interface)
+            for cli in [self.cli_map.get(ctrl)]
+            if cli is not None
+        }
         return [
             cli.option
-            for ctrl_id, cli in self.cli_map.items()
-            if ctrl_id not in interface_ids
+            for cli in self.cli_map.registered_options()
+            if cli.option not in covered
         ]
 
     def validate_or_exit(self, state: _parse.ParseState) -> None:
