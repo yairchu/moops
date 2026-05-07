@@ -1,4 +1,5 @@
 import dataclasses
+import html
 
 
 @dataclasses.dataclass
@@ -25,3 +26,6 @@ class OptionLabel:
             if label is None:
                 label = option.lstrip("-").replace("-", " ")
         return OptionLabel(label=label, option=option)
+
+    def label_with_tooltip(self, help_text: str) -> str:
+        return f'<span title="{html.escape(help_text, quote=True)}">{self.label}</span>'
