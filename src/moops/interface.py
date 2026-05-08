@@ -27,6 +27,11 @@ class Interface:
             if not isinstance(ctrl, Interface) and id(ctrl) in seen_ids:
                 raise ValueError("Duplicate control passed to interface")
             seen_ids.add(id(ctrl))
+        self._presets_ui = (
+            _PresetsUI(self.presets, self._current_args)
+            if self.presets is not None
+            else None
+        )
 
     def validate(self, state: _parse.ParseState) -> typing.Iterator[str]:
         flags: set[str] = set()
@@ -187,26 +192,8 @@ class Interface:
             f"```\n{self.format_current_command()}\n```"
         )
         items: list[typing.Any] = [info]
-        if self.presets is not None:
-            current_args = self._current_args()
-            modified = current_args != (self.presets.selected_args or "")
-            name_input = mo.ui.text(
-                placeholder="preset name",
-                disabled=not modified,
-            )
-            save_btn = mo.ui.button(
-                label="Save preset",
-                on_click=lambda _: self.presets.save(  # type: ignore
-                    name_input.value, current_args
-                ),
-                disabled=not modified,
-            )
-            items.append(
-                mo.hstack(
-                    [self.presets, name_input, save_btn],
-                    justify="start",
-                )
-            )
+        if self._presets_ui is not None:
+            items.append(self._presets_ui.layout())
         missing_options = self.missing_options()
         if missing_options:
             items.append(
@@ -226,6 +213,21 @@ class Interface:
                 yield from ctrl._flatten()
             else:
                 yield ctrl
+
+
+class _PresetsUI:
+    def __init__(self, presets: Presets, get_args: typing.Callable[[], str]) -> None:
+        self._presets = presets
+        self._name_input = mo.ui.text(placeholder="preset name")
+        self._save_btn = mo.ui.button(
+            label="Save preset",
+            on_click=lambda _: presets.save(self._name_input.value, get_args()),
+        )
+
+    def layout(self) -> mo.Html:
+        return mo.hstack(
+            [self._presets, self._name_input, self._save_btn], justify="start"
+        )
 
 
 def _ctrl_value(ctrl: typing.Any) -> typing.Any:
