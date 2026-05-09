@@ -223,16 +223,20 @@ class _PresetsUI:
         )
 
     def layout(self, args: str) -> mo.Html:
-        dropdown = mo.ui.dropdown(
+        # Stored on self so the dropdown isn't garbage-collected after layout()
+        # returns — mo.hstack only retains rendered HTML, not the elements, and
+        # marimo's UIElementRegistry holds weakrefs. If the element is GC'd,
+        # frontend interactions can't find it and on_change never fires.
+        self._dropdown = mo.ui.dropdown(
             label="Preset",
             options=list(self._presets.list()),
             allow_select_none=True,
             value=self._presets.get_current(),
-            on_change=lambda _: self._presets.select(dropdown.value),
+            on_change=self._presets.select,
         )
         return mo.hstack(
             [
-                dropdown,
+                self._dropdown,
                 *(
                     []
                     if args == self._presets.selected_args
