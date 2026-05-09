@@ -29,4 +29,4 @@ class Presets(mo.ui.dropdown):
         if not name:
             return
         self._data[name] = args
-        self._filename.write_text(json.dumps({"presets": self._data}, indent=2))
+        json.dump({"presets": self._data}, self._filename.open("w"), indent=2)
