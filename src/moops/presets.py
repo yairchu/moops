@@ -13,7 +13,7 @@ class Presets(mo.ui.dropdown):
         self._filename = pathlib.Path(filename)
         self._data: dict[str, str] = {}
         if self._filename.exists():
-            self._data = json.loads(self._filename.read_text()).get("presets", {})
+            self._data = json.load(self._filename.open()).get("presets", {})
         super().__init__(
             options=list(self._data),
             value=None,
