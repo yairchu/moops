@@ -137,11 +137,6 @@ class Interface:
             for arg in cli.format_value(values[cli.option])
         )
 
-    def format_current_command(self) -> str:
-        args = self._current_args()
-        name = self.command.rsplit("/", 1)[-1]
-        return f"{name} {args}" if args else name
-
     def missing_options(self) -> list[str]:
         covered = {
             cli.option
@@ -186,14 +181,17 @@ class Interface:
         return mo.md(f"An embedded instance of `{self.notebook_name}`{prefix_note}.")
 
     def _root_panel(self) -> mo.Html:
+        args = self._current_args()
+        name = self.command.rsplit("/", 1)[-1]
+        current_command = f"{name} {args}" if args else name
         info = mo.md(
             f"This notebook also works as a script:\n```\n{self.help()}\n```\n\n"
             "To run the script with the current values in the notebook use:\n"
-            f"```\n{self.format_current_command()}\n```"
+            f"```\n{current_command}\n```"
         )
         items: list[typing.Any] = [info]
         if self._presets_ui is not None:
-            items.append(self._presets_ui.layout())
+            items.append(self._presets_ui.layout(args))
         missing_options = self.missing_options()
         if missing_options:
             items.append(
@@ -224,9 +222,24 @@ class _PresetsUI:
             on_click=lambda _: presets.save(self._name_input.value, get_args()),
         )
 
-    def layout(self) -> mo.Html:
+    def layout(self, args: str) -> mo.Html:
+        dropdown = mo.ui.dropdown(
+            label="Preset",
+            options=list(self._presets.list()),
+            allow_select_none=True,
+            value=self._presets.get_current(),
+            on_change=lambda _: self._presets.select(dropdown.value),
+        )
         return mo.hstack(
-            [self._presets, self._name_input, self._save_btn], justify="start"
+            [
+                dropdown,
+                *(
+                    []
+                    if args == self._presets.selected_args
+                    else [self._name_input, self._save_btn]
+                ),
+            ],
+            justify="start",
         )
 
 

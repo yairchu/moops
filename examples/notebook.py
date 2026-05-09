@@ -35,7 +35,7 @@ def _(
 def _():
     import marimo as mo
 
-    return
+    return (mo,)
 
 
 @app.cell
@@ -53,14 +53,16 @@ def _():
 
 
 @app.cell
-def _(moops):
-    presets = moops.Presets("notebook_presets.json")
-    return (presets,)
+def _(mo):
+    get_preset_sel, set_preset_sel = mo.state(None)
+    return get_preset_sel, set_preset_sel
 
 
 @app.cell
-def _(moops, presets):
-    args = moops.Group(presets=presets)
+def _(get_preset_sel, moops, set_preset_sel):
+    args = moops.Group(
+        presets=moops.Presets("notebook_presets.json", get_preset_sel, set_preset_sel)
+    )
     return (args,)
 
 

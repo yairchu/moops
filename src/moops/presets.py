@@ -1,32 +1,37 @@
 import json
 import pathlib
+import typing
 
-import marimo as mo
 
+class Presets:
+    """Preset selector backed by a JSON file."""
 
-class Presets(mo.ui.dropdown):
-    """Preset selector backed by a JSON file. Subclass of mo.ui.dropdown so it
-    drives marimo reactivity: cells that reference a Presets re-run when the
-    selection changes."""
-
-    def __init__(self, filename: str | pathlib.Path) -> None:
+    def __init__(
+        self,
+        filename: str | pathlib.Path,
+        get_selected_preset: typing.Callable[[], str | None],
+        set_selected_preset: typing.Callable[[str | None], None],
+    ) -> None:
         self._filename = pathlib.Path(filename)
-        self._data: dict[str, str] = {}
-        if self._filename.exists():
-            self._data = json.load(self._filename.open()).get("presets", {})
-        super().__init__(
-            options=list(self._data),
-            value=None,
-            label="Preset",
-            allow_select_none=True,
+        self.get_current = get_selected_preset
+        self.select = set_selected_preset
+        self._data: dict[str, str] = (
+            json.load(self._filename.open()).get("presets", {})
+            if self._filename.exists()
+            else {}
         )
 
+    def list(self) -> typing.Iterable[str]:
+        return self._data.keys()
+
     @property
-    def selected_args(self) -> str | None:
-        return self._data.get(self.value) if self.value else None
+    def selected_args(self) -> str:
+        key = self.get_current()
+        return self._data.get(key, "") if key else ""
 
     def save(self, name: str, args: str) -> None:
         if not name:
             return
         self._data[name] = args
         json.dump({"presets": self._data}, self._filename.open("w"), indent=2)
+        self.select(name)

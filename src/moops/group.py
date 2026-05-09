@@ -64,7 +64,7 @@ class Group:
         return child
 
     def _build_preset_state(self) -> _parse.ParseState | None:
-        if self._presets is None or self._presets.selected_args is None:
+        if self._presets is None or not self._presets.selected_args:
             return None
         args = _parse.ParsedArgs.from_options(shlex.split(self._presets.selected_args))
         return _parse.ParseState(args=args)
