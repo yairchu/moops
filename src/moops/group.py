@@ -128,6 +128,7 @@ class Group:
         *,
         help_text: str,
         label: str | None = None,
+        on_change: typing.Callable[[bool], None] | None = None,
         **kwargs: typing.Any,
     ) -> mo.ui.switch:
         """Create a switch UI element that maps to a CLI flag."""
@@ -141,7 +142,8 @@ class Group:
                 value=self._get_value(cli, value),
                 label=opt.label_with_tooltip(help_text),
                 disabled=self._is_overridden(opt.option),
-                **self._with_query_sync(cli, kwargs),
+                on_change=self._query_on_change(cli, on_change),
+                **kwargs,
             ),
             cli,
         )
@@ -153,6 +155,7 @@ class Group:
         *,
         help_text: str,
         label: str | None = None,
+        on_change: typing.Callable[[bool], None] | None = None,
         **kwargs: typing.Any,
     ) -> mo.ui.checkbox:
         """Create a checkbox UI element that maps to a CLI flag."""
@@ -166,7 +169,8 @@ class Group:
                 value=self._get_value(cli, value),
                 label=opt.label_with_tooltip(help_text),
                 disabled=self._is_overridden(opt.option),
-                **self._with_query_sync(cli, kwargs),
+                on_change=self._query_on_change(cli, on_change),
+                **kwargs,
             ),
             cli,
         )
@@ -179,6 +183,7 @@ class Group:
         *,
         help_text: str,
         label: str | None = None,
+        on_change: typing.Callable[[str], None] | None = None,
         **kwargs: typing.Any,
     ) -> mo.ui.text:
         """Create a text input UI element that maps to a CLI option."""
@@ -195,7 +200,8 @@ class Group:
                 value=self._get_value(cli, value),
                 label=opt.label_with_tooltip(help_text),
                 disabled=self._is_overridden(opt.option),
-                **self._with_query_sync(cli, kwargs),
+                on_change=self._query_on_change(cli, on_change),
+                **kwargs,
             ),
             cli,
         )
@@ -208,6 +214,7 @@ class Group:
         *,
         help_text: str,
         label: str | None = None,
+        on_change: typing.Callable[[str], None] | None = None,
         **kwargs: typing.Any,
     ) -> mo.ui.text_area:
         """Create a text area UI element that maps to a CLI option."""
@@ -224,7 +231,8 @@ class Group:
                 value=self._get_value(cli, value),
                 label=opt.label_with_tooltip(help_text),
                 disabled=self._is_overridden(opt.option),
-                **self._with_query_sync(cli, kwargs),
+                on_change=self._query_on_change(cli, on_change),
+                **kwargs,
             ),
             cli,
         )
@@ -237,6 +245,7 @@ class Group:
         *,
         help_text: str,
         label: str | None = None,
+        on_change: typing.Callable[[Numeric | None], None] | None = None,
         **kwargs: typing.Any,
     ) -> mo.ui.number:
         """Create a number input UI element that maps to a CLI option."""
@@ -248,7 +257,8 @@ class Group:
                 value=value,
                 label=opt.label_with_tooltip(help_text),
                 disabled=self._is_overridden(opt.option),
-                **self._with_query_sync(cli, kwargs),
+                on_change=self._query_on_change(cli, on_change),
+                **kwargs,
             ),
             cli,
         )
@@ -261,6 +271,7 @@ class Group:
         *,
         help_text: str,
         label: str | None = None,
+        on_change: typing.Callable[[Numeric | None], None] | None = None,
         **kwargs: typing.Any,
     ) -> mo.ui.slider:
         """Create a slider UI element that maps to a CLI option."""
@@ -272,7 +283,8 @@ class Group:
                 value=value,
                 label=opt.label_with_tooltip(help_text),
                 disabled=self._is_overridden(opt.option),
-                **self._with_query_sync(cli, kwargs),
+                on_change=self._query_on_change(cli, on_change),
+                **kwargs,
             ),
             cli,
         )
@@ -288,6 +300,7 @@ class Group:
         help_text: str,
         label: str | None = None,
         steps: typing.Sequence[Numeric] | None = None,
+        on_change: typing.Callable[[typing.Sequence[Numeric]], None] | None = None,
         **kwargs: typing.Any,
     ) -> mo.ui.range_slider:
         """Create a range slider UI element that maps to a CLI option."""
@@ -311,7 +324,8 @@ class Group:
                 label=opt.label_with_tooltip(help_text),
                 steps=steps,
                 disabled=self._is_overridden(opt.option),
-                **self._with_query_sync(cli, kwargs),
+                on_change=self._query_on_change(cli, on_change),
+                **kwargs,
             ),
             cli,
         )
@@ -344,6 +358,7 @@ class Group:
         help_text: str,
         label: str | None = None,
         allow_select_none: bool = True,
+        on_change: typing.Callable[[typing.Any], None] | None = None,
         **kwargs: typing.Any,
     ) -> mo.ui.dropdown:
         """Create a dropdown UI element that maps to a CLI option."""
@@ -376,7 +391,8 @@ class Group:
                 value=self._get_value(cli, value),
                 label=opt.label_with_tooltip(help_text),
                 allow_select_none=allow_select_none,
-                **self._with_query_sync(cli, kwargs),
+                on_change=self._query_on_change(cli, on_change),
+                **kwargs,
             ),
             cli,
         )
@@ -426,22 +442,21 @@ class Group:
     def _is_overridden(self, option: str) -> bool:
         return self._override_key(option) in self._overrides
 
-    def _with_query_sync(
+    def _query_on_change(
         self,
         control: _options.CliControl,
-        kwargs: dict[str, typing.Any],
-    ) -> dict[str, typing.Any]:
+        on_change: typing.Callable[[typing.Any], None] | None,
+    ) -> typing.Callable[[typing.Any], None] | None:
         if self._query_params is None or self._is_overridden(control.option):
-            return kwargs
+            return on_change
         key = self._query_key(control)
-        existing = kwargs.get("on_change")
 
-        def on_change(value: typing.Any) -> None:
+        def synced_on_change(value: typing.Any) -> None:
             self._set_query_param(key, control.format_query_value(value))
-            if existing is not None:
-                existing(value)
+            if on_change is not None:
+                on_change(value)
 
-        return {**kwargs, "on_change": on_change}
+        return synced_on_change
 
     def _sync_query_param(
         self,
