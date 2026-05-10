@@ -431,24 +431,18 @@ def _range_default(
         return list(value)
     if steps:
         return [steps[0], steps[-1]]
-    if start is not None and stop is not None:
-        return [start, stop]
-    return None
+    return [start, stop] if start is not None and stop is not None else None
 
 
 def _range_start(
     start: Numeric | None,
     steps: typing.Sequence[Numeric] | None,
 ) -> Numeric | None:
-    if steps:
-        return min(steps)
-    return start
+    return min(steps) if steps else start
 
 
 def _range_stop(
     stop: Numeric | None,
     steps: typing.Sequence[Numeric] | None,
 ) -> Numeric | None:
-    if steps:
-        return max(steps)
-    return stop
+    return max(steps) if steps else stop
