@@ -286,23 +286,22 @@ class Group:
     ) -> mo.ui.range_slider:
         """Create a range slider UI element that maps to a CLI option."""
 
-        default = _range_default(start=start, stop=stop, value=value, steps=steps)
         opt = self._make_opt(label=label, option=option)
-        cli = _options.RangeControl(
+        cli = _options.RangeControl.from_slider(
             option=opt.option,
             metavar=opt.label.upper().replace(" ", "_"),
             help_text=help_text,
-            default=default,
-            start=_range_start(start=start, steps=steps),
-            stop=_range_stop(stop=stop, steps=steps),
-            allowed_values=list(steps) if steps is not None else None,
+            start=start,
+            stop=stop,
+            value=value,
+            steps=steps,
         )
         return self._cli_map.register(
             mo.ui.range_slider(
                 start=start,
                 stop=stop,
                 step=step,
-                value=self._get_value(cli, default),
+                value=self._get_value(cli, cli.default),
                 label=opt.label_with_tooltip(help_text),
                 steps=steps,
                 disabled=self._is_overridden(opt.option),
@@ -419,30 +418,3 @@ class Group:
                 option=f"{self.option}-{opt.option.lstrip('-')}",
             )
         return opt
-
-
-def _range_default(
-    start: Numeric | None,
-    stop: Numeric | None,
-    value: typing.Sequence[Numeric] | None,
-    steps: typing.Sequence[Numeric] | None,
-) -> list[Numeric] | None:
-    if value is not None:
-        return list(value)
-    if steps:
-        return [steps[0], steps[-1]]
-    return [start, stop] if start is not None and stop is not None else None
-
-
-def _range_start(
-    start: Numeric | None,
-    steps: typing.Sequence[Numeric] | None,
-) -> Numeric | None:
-    return min(steps) if steps else start
-
-
-def _range_stop(
-    stop: Numeric | None,
-    steps: typing.Sequence[Numeric] | None,
-) -> Numeric | None:
-    return max(steps) if steps else stop

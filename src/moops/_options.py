@@ -186,6 +186,28 @@ class RangeControl(ValueControl):
     stop: Numeric | None = None
     allowed_values: list[Numeric] | None = None
 
+    @classmethod
+    def from_slider(
+        cls,
+        *,
+        option: str,
+        metavar: str,
+        help_text: str,
+        start: Numeric | None,
+        stop: Numeric | None,
+        value: typing.Sequence[Numeric] | None,
+        steps: typing.Sequence[Numeric] | None,
+    ) -> "RangeControl":
+        return cls(
+            option=option,
+            metavar=metavar,
+            help_text=help_text,
+            default=_range_default(start=start, stop=stop, value=value, steps=steps),
+            start=_range_start(start=start, steps=steps),
+            stop=_range_stop(stop=stop, steps=steps),
+            allowed_values=list(steps) if steps is not None else None,
+        )
+
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         raw = args.options.get(self.option)
         if raw is None:
@@ -330,6 +352,33 @@ def _parse_number(option: str, value: str) -> ParseResult | ParseError:
     except ValueError:
         return ParseError(f"Option {option} expects a number, got: {value!r}")
     return ParseResult(int(num) if math.isfinite(num) and num == int(num) else num)
+
+
+def _range_default(
+    start: Numeric | None,
+    stop: Numeric | None,
+    value: typing.Sequence[Numeric] | None,
+    steps: typing.Sequence[Numeric] | None,
+) -> list[Numeric] | None:
+    if value is not None:
+        return list(value)
+    if steps:
+        return [steps[0], steps[-1]]
+    return [start, stop] if start is not None and stop is not None else None
+
+
+def _range_start(
+    start: Numeric | None,
+    steps: typing.Sequence[Numeric] | None,
+) -> Numeric | None:
+    return min(steps) if steps else start
+
+
+def _range_stop(
+    stop: Numeric | None,
+    steps: typing.Sequence[Numeric] | None,
+) -> Numeric | None:
+    return max(steps) if steps else stop
 
 
 def _format_range(value: typing.Iterable[typing.Any]) -> str:
