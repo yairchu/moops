@@ -395,6 +395,13 @@ class Group:
         key = self._override_key(control.option)
         if key in self._overrides:
             return self._overrides[key]
+        if self._preset_state is not None:
+            match control.parse(self._preset_state.args):
+                case _options.ParseResult(value=v):
+                    self._sync_query_param(control, v)
+                    return v
+                case _:
+                    pass
         if self._query_params is not None:
             raw = self._get_query_param(self._query_key(control))
             if raw is not None:
@@ -403,12 +410,6 @@ class Group:
                         self._state.validation_errors[control.option] = msg
                     case _options.ParseResult(value=v):
                         return v
-        if self._preset_state is not None:
-            match control.parse(self._preset_state.args):
-                case _options.ParseResult(value=v):
-                    return v
-                case _:
-                    pass
         val = default
         match control.parse(self._state.args):
             case _options.ParseError(message=msg):
@@ -438,6 +439,17 @@ class Group:
                 existing(value)
 
         return {**kwargs, "on_change": on_change}
+
+    def _sync_query_param(
+        self,
+        control: _options.CliControl,
+        value: typing.Any,
+    ) -> None:
+        if self._query_params is not None:
+            self._set_query_param(
+                self._query_key(control),
+                control.format_query_value(value),
+            )
 
     def _query_key(self, control: _options.CliControl) -> str:
         key = self._override_key(control.option)
