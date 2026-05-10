@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- Marimo browser notebooks now initialize `Group()` controls from URL query
+  parameters and keep later control changes reflected in the URL.
+
 ## [0.1.1] - 2026-05-09
 
 ### Added

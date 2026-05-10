@@ -56,6 +56,27 @@ Keyword arguments override `moops.Group` inputs by their option names,
 with leading dashes removed and dashes converted to underscores.
 If no overrides are provided, `moops.run` uses the notebook defaults.
 
+## URL query parameters
+
+In browser notebooks, `Group()` lets URL query parameters initialize controls
+and keeps later control changes reflected in the URL.
+
+```python
+args = moops.Group()
+input_text = args.text(value="", help_text="Input text")
+style = args.dropdown(
+    ["snake_case", "camel_case"],
+    value="snake_case",
+    help_text="Output style",
+    allow_select_none=False,
+)
+```
+
+Opening the notebook with `?input_text=Hello&style=camel_case` initializes
+those controls from the URL. Query keys use the same names as `moops.run`
+keyword arguments. For subgroups, use dot-separated names such as
+`?casing.style=camel_case`.
+
 ## Property-based testing
 
 `moops.testing.notebook_interface` returns the notebook's `Interface`, from which `.strategy()` generates a [Hypothesis](https://hypothesis.readthedocs.io/) strategy that produces valid `moops.run` kwargs by introspecting the notebook's interface — dropdowns yield their allowed keys, switches yield booleans, and text fields yield arbitrary strings.

@@ -42,6 +42,19 @@ class CliControl(abc.ABC):
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         """Parse from CLI args. Returns value, ParseError, or None if not provided."""
 
+    def parse_query_value(self, value: str) -> ParseResult | ParseError:
+        """Parse a value supplied by a URL query parameter."""
+
+        result = self.parse(
+            _parse.ParsedArgs(options={self.option: value}, unexpected=[])
+        )
+        assert result is not None
+        return result
+
+    @abc.abstractmethod
+    def format_query_value(self, value: typing.Any) -> str | None:
+        """Format a value for URL query parameters, or None to omit it."""
+
     @abc.abstractmethod
     def strategy(self) -> st.SearchStrategy:
         """Hypothesis strategy for generating override values."""
@@ -69,6 +82,18 @@ class FlagControl(CliControl):
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | None:
         return ParseResult(not self.default) if self.option in args.options else None
 
+    def parse_query_value(self, value: str) -> ParseResult | ParseError:
+        match value.lower():
+            case "1" | "true" | "yes" | "on":
+                return ParseResult(True)
+            case "0" | "false" | "no" | "off":
+                return ParseResult(False)
+            case _:
+                return ParseError(
+                    f"Query parameter for {self.option} must be a boolean, "
+                    f"got: {value!r}"
+                )
+
     def strategy(self) -> st.SearchStrategy:
         return st.booleans()
 
@@ -80,6 +105,9 @@ class FlagControl(CliControl):
 
     def format_value(self, value: typing.Any) -> list[str]:
         return [] if value == self.default else [self.option]
+
+    def format_query_value(self, value: typing.Any) -> str | None:
+        return None if value == self.default else str(bool(value)).lower()
 
 
 @dataclasses.dataclass
@@ -114,6 +142,9 @@ class TextControl(ValueControl):
 
     def format_value(self, value: typing.Any) -> list[str]:
         return [] if value == self.default else [f"{self.option} {shlex.quote(value)}"]
+
+    def format_query_value(self, value: typing.Any) -> str | None:
+        return None if value == self.default else str(value)
 
 
 @dataclasses.dataclass
@@ -154,6 +185,9 @@ class TextAreaControl(ValueControl):
     def format_value(self, value: typing.Any) -> list[str]:
         return [] if value == self.default else [f"{self.option} {shlex.quote(value)}"]
 
+    def format_query_value(self, value: typing.Any) -> str | None:
+        return None if value == self.default else str(value)
+
 
 @dataclasses.dataclass
 class NumberControl(ValueControl):
@@ -177,6 +211,9 @@ class NumberControl(ValueControl):
 
     def format_value(self, value: typing.Any) -> list[str]:
         return [] if value == self.default else [f"{self.option} {value}"]
+
+    def format_query_value(self, value: typing.Any) -> str | None:
+        return None if value == self.default else str(value)
 
 
 @dataclasses.dataclass
@@ -276,6 +313,11 @@ class RangeControl(ValueControl):
             return []
         return [f"{self.option} {_format_range(value)}"]
 
+    def format_query_value(self, value: typing.Any) -> str | None:
+        if self.default is not None and list(value) == self.default:
+            return None
+        return _format_range(value)
+
 
 @dataclasses.dataclass
 class DropdownControl(CliControl):
@@ -314,6 +356,16 @@ class DropdownControl(CliControl):
             )
         return ParseResult(raw)
 
+    def parse_query_value(self, value: str) -> ParseResult | ParseError:
+        if not value and self.supports_none:
+            return ParseResult(None)
+        if value not in self.allowed_values:
+            return ParseError(
+                f"Query parameter for {self.option} must be one of"
+                f" {self.allowed_values!r}, got: {value!r}"
+            )
+        return ParseResult(value)
+
     def strategy(self) -> st.SearchStrategy:
         return st.sampled_from(
             [None, *self.allowed_values] if self.supports_none else self.allowed_values
@@ -344,6 +396,11 @@ class DropdownControl(CliControl):
             assert self._no_flag
             return [self._no_flag]
         return [f"{self.option} {shlex.quote(value)}"]
+
+    def format_query_value(self, value: typing.Any) -> str | None:
+        if value == self.default:
+            return None
+        return "" if value is None else str(value)
 
 
 def _parse_number(option: str, value: str) -> ParseResult | ParseError:

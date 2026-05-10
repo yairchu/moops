@@ -30,6 +30,8 @@ class Group:
         self._overrides: dict[str, typing.Any] = {}
         self._presets = presets
         self._preset_state = self._build_preset_state()
+        self._query_params: typing.Any | None = self._resolve_query_params()
+        self._query_prefix = ""
 
     @classmethod
     def with_overrides(cls, overrides: dict[str, typing.Any]) -> "Group":
@@ -60,6 +62,10 @@ class Group:
         child._presets = presets
         child._preset_state = (
             child._build_preset_state() if presets else self._preset_state
+        )
+        child._query_params = self._query_params
+        child._query_prefix = (
+            f"{self._query_prefix}.{prefix}" if self._query_prefix else prefix
         )
         return child
 
@@ -135,7 +141,7 @@ class Group:
                 value=self._get_value(cli, value),
                 label=opt.label_with_tooltip(help_text),
                 disabled=self._is_overridden(opt.option),
-                **kwargs,
+                **self._with_query_sync(cli, kwargs),
             ),
             cli,
         )
@@ -160,7 +166,7 @@ class Group:
                 value=self._get_value(cli, value),
                 label=opt.label_with_tooltip(help_text),
                 disabled=self._is_overridden(opt.option),
-                **kwargs,
+                **self._with_query_sync(cli, kwargs),
             ),
             cli,
         )
@@ -189,7 +195,7 @@ class Group:
                 value=self._get_value(cli, value),
                 label=opt.label_with_tooltip(help_text),
                 disabled=self._is_overridden(opt.option),
-                **kwargs,
+                **self._with_query_sync(cli, kwargs),
             ),
             cli,
         )
@@ -218,7 +224,7 @@ class Group:
                 value=self._get_value(cli, value),
                 label=opt.label_with_tooltip(help_text),
                 disabled=self._is_overridden(opt.option),
-                **kwargs,
+                **self._with_query_sync(cli, kwargs),
             ),
             cli,
         )
@@ -242,7 +248,7 @@ class Group:
                 value=value,
                 label=opt.label_with_tooltip(help_text),
                 disabled=self._is_overridden(opt.option),
-                **kwargs,
+                **self._with_query_sync(cli, kwargs),
             ),
             cli,
         )
@@ -266,7 +272,7 @@ class Group:
                 value=value,
                 label=opt.label_with_tooltip(help_text),
                 disabled=self._is_overridden(opt.option),
-                **kwargs,
+                **self._with_query_sync(cli, kwargs),
             ),
             cli,
         )
@@ -305,7 +311,7 @@ class Group:
                 label=opt.label_with_tooltip(help_text),
                 steps=steps,
                 disabled=self._is_overridden(opt.option),
-                **kwargs,
+                **self._with_query_sync(cli, kwargs),
             ),
             cli,
         )
@@ -370,7 +376,7 @@ class Group:
                 value=self._get_value(cli, value),
                 label=opt.label_with_tooltip(help_text),
                 allow_select_none=allow_select_none,
-                **kwargs,
+                **self._with_query_sync(cli, kwargs),
             ),
             cli,
         )
@@ -389,6 +395,14 @@ class Group:
         key = self._override_key(control.option)
         if key in self._overrides:
             return self._overrides[key]
+        if self._query_params is not None:
+            raw = self._get_query_param(self._query_key(control))
+            if raw is not None:
+                match control.parse_query_value(raw):
+                    case _options.ParseError(message=msg):
+                        self._state.validation_errors[control.option] = msg
+                    case _options.ParseResult(value=v):
+                        return v
         if self._preset_state is not None:
             match control.parse(self._preset_state.args):
                 case _options.ParseResult(value=v):
@@ -407,6 +421,54 @@ class Group:
 
     def _is_overridden(self, option: str) -> bool:
         return self._override_key(option) in self._overrides
+
+    def _with_query_sync(
+        self,
+        control: _options.CliControl,
+        kwargs: dict[str, typing.Any],
+    ) -> dict[str, typing.Any]:
+        if self._query_params is None or self._is_overridden(control.option):
+            return kwargs
+        key = self._query_key(control)
+        existing = kwargs.get("on_change")
+
+        def on_change(value: typing.Any) -> None:
+            self._set_query_param(key, control.format_query_value(value))
+            if existing is not None:
+                existing(value)
+
+        return {**kwargs, "on_change": on_change}
+
+    def _query_key(self, control: _options.CliControl) -> str:
+        key = self._override_key(control.option)
+        return f"{self._query_prefix}.{key}" if self._query_prefix else key
+
+    def _get_query_param(self, key: str) -> str | None:
+        params = self._query_params
+        assert params is not None
+        raw: typing.Any = params.get(key)
+        if raw is None:
+            return None
+        if isinstance(raw, list):
+            return str(typing.cast(object, raw[-1])) if raw else None
+        return str(typing.cast(object, raw))
+
+    def _set_query_param(self, key: str, value: str | None) -> None:
+        params = self._query_params
+        assert params is not None
+        if value is None:
+            remove = getattr(params, "remove", None)
+            if callable(remove):
+                remove(key)
+            else:
+                typing.cast(typing.MutableMapping[str, typing.Any], params).pop(
+                    key, None
+                )
+        else:
+            params[key] = value
+
+    def _resolve_query_params(self) -> typing.Any | None:
+        return mo.query_params() if mo.running_in_notebook() else None
 
     def _make_opt(
         self, label: str | None, option: str | None, prefix: str | None = None
