@@ -6,7 +6,7 @@ import warnings
 
 import marimo as mo
 
-from . import _cli_map, _naming, _options, _parse, interface
+from . import _cli_map, _naming, _options, _parse, _query_params, interface
 from .presets import Presets
 
 Numeric = int | float
@@ -30,8 +30,7 @@ class Group:
         self._overrides: dict[str, typing.Any] = {}
         self._presets = presets
         self._preset_state = self._build_preset_state()
-        self._query_params: typing.Any | None = self._resolve_query_params()
-        self._query_prefix = ""
+        self._query_params = _query_params.QueryParams.from_notebook()
 
     @classmethod
     def with_overrides(cls, overrides: dict[str, typing.Any]) -> "Group":
@@ -63,10 +62,7 @@ class Group:
         child._preset_state = (
             child._build_preset_state() if presets else self._preset_state
         )
-        child._query_params = self._query_params
-        child._query_prefix = (
-            f"{self._query_prefix}.{prefix}" if self._query_prefix else prefix
-        )
+        child._query_params = self._query_params.subgroup(prefix)
         return child
 
     def _build_preset_state(self) -> _parse.ParseState | None:
@@ -414,21 +410,20 @@ class Group:
         if self._preset_state is not None:
             match control.parse(self._preset_state.args):
                 case _options.ParseResult(value=v):
-                    self._sync_query_param(control, v)
+                    self._sync_query_param(control, v, key)
                     return v
                 case None:
-                    self._sync_query_param(control, default)
+                    self._sync_query_param(control, default, key)
                     return default
                 case _:
                     pass
-        if self._query_params is not None:
-            raw = self._get_query_param(self._query_key(control))
-            if raw is not None:
-                match control.parse_query_value(raw):
-                    case _options.ParseError(message=msg):
-                        self._state.validation_errors[control.option] = msg
-                    case _options.ParseResult(value=v):
-                        return v
+        raw = self._query_params.get(key)
+        if raw is not None:
+            match control.parse_query_value(raw):
+                case _options.ParseError(message=msg):
+                    self._state.validation_errors[control.option] = msg
+                case _options.ParseResult(value=v):
+                    return v
         val = default
         match control.parse(self._state.args):
             case _options.ParseError(message=msg):
@@ -447,58 +442,20 @@ class Group:
         control: _options.CliControl,
         on_change: typing.Callable[[typing.Any], None] | None,
     ) -> typing.Callable[[typing.Any], None] | None:
-        if self._query_params is None or self._is_overridden(control.option):
-            return on_change
-        key = self._query_key(control)
-
-        def synced_on_change(value: typing.Any) -> None:
-            self._set_query_param(key, control.format_query_value(value))
-            if on_change is not None:
-                on_change(value)
-
-        return synced_on_change
+        return self._query_params.on_change(
+            control,
+            self._override_key(control.option),
+            on_change,
+            disabled=self._is_overridden(control.option),
+        )
 
     def _sync_query_param(
         self,
         control: _options.CliControl,
         value: typing.Any,
+        key: str,
     ) -> None:
-        if self._query_params is not None:
-            self._set_query_param(
-                self._query_key(control),
-                control.format_query_value(value),
-            )
-
-    def _query_key(self, control: _options.CliControl) -> str:
-        key = self._override_key(control.option)
-        return f"{self._query_prefix}.{key}" if self._query_prefix else key
-
-    def _get_query_param(self, key: str) -> str | None:
-        params = self._query_params
-        assert params is not None
-        raw: typing.Any = params.get(key)
-        if raw is None:
-            return None
-        if isinstance(raw, list):
-            return str(typing.cast(object, raw[-1])) if raw else None
-        return str(typing.cast(object, raw))
-
-    def _set_query_param(self, key: str, value: str | None) -> None:
-        params = self._query_params
-        assert params is not None
-        if value is None:
-            remove = getattr(params, "remove", None)
-            if callable(remove):
-                remove(key)
-            else:
-                typing.cast(typing.MutableMapping[str, typing.Any], params).pop(
-                    key, None
-                )
-        else:
-            params[key] = value
-
-    def _resolve_query_params(self) -> typing.Any | None:
-        return mo.query_params() if mo.running_in_notebook() else None
+        self._query_params.sync(control, key, value)
 
     def _make_opt(
         self, label: str | None, option: str | None, prefix: str | None = None
