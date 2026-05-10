@@ -400,6 +400,9 @@ class Group:
                 case _options.ParseResult(value=v):
                     self._sync_query_param(control, v)
                     return v
+                case None:
+                    self._sync_query_param(control, default)
+                    return default
                 case _:
                     pass
         if self._query_params is not None:
