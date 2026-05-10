@@ -43,3 +43,26 @@ def test_selected_preset_updates_query_params(
     assert text.value == "Preset"
     assert style.value == "snake"
     assert params == {"text": "Preset", "style": "snake"}
+
+
+def test_selected_preset_clears_unspecified_query_params(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    params = {"text": "Url", "style": "camel"}
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+
+    presets = typing.cast(Presets, mock.Mock(selected_args="--style snake"))
+    group = Group(cli_args=["script.py"], presets=presets)
+    text = group.text(value="Default", option="--text", help_text="Input text")
+    style = group.dropdown(
+        ["snake", "camel"],
+        value="camel",
+        option="--style",
+        help_text="Text style",
+        allow_select_none=False,
+    )
+
+    assert text.value == "Default"
+    assert style.value == "snake"
+    assert params == {"style": "snake"}
