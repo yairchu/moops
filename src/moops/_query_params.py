@@ -34,7 +34,7 @@ class QueryParams:
 
     def sync(
         self,
-        control: _options.CliControl,
+        control: _options.InputControl,
         key: str,
         value: typing.Any,
     ) -> None:
@@ -42,7 +42,7 @@ class QueryParams:
 
     def on_change(
         self,
-        control: _options.CliControl,
+        control: _options.InputControl,
         key: str,
         on_change: typing.Callable[[typing.Any], None] | None,
         *,

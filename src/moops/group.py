@@ -6,7 +6,7 @@ import warnings
 
 import marimo as mo
 
-from . import _cli_map, _naming, _options, _parse, _query_params, interface
+from . import _input_map, _naming, _options, _parse, _query_params, interface
 from .presets import Presets
 
 Numeric = int | float
@@ -26,7 +26,7 @@ class Group:
         command, rest = _parse.split_argv(cli_args)
         self._command = command
         self._state = _parse.ParseState(args=_parse.ParsedArgs.from_options(rest))
-        self._cli_map = _cli_map.CliMap()
+        self._cli_map = _input_map.InputMap()
         self._overrides: dict[str, typing.Any] = {}
         self._presets = presets
         self._preset_state = self._build_preset_state()
@@ -55,7 +55,7 @@ class Group:
         """
         child = type(self)([prefix])
         child._state = self._state
-        child._cli_map = _cli_map.CliMap()
+        child._cli_map = _input_map.InputMap()
         child._overrides = {**self._overrides.get(prefix, {}), **(overrides or {})}
         child.option = f"{self.option}-{prefix}" if self.option else f"--{prefix}"
         child._presets = presets
@@ -401,7 +401,7 @@ class Group:
 
     def _get_value(
         self,
-        control: _options.CliControl,
+        control: _options.InputControl,
         default: typing.Any,
     ) -> typing.Any:
         key = self._override_key(control.option)
@@ -439,7 +439,7 @@ class Group:
 
     def _query_on_change(
         self,
-        control: _options.CliControl,
+        control: _options.InputControl,
         on_change: typing.Callable[[typing.Any], None] | None,
     ) -> typing.Callable[[typing.Any], None] | None:
         return self._query_params.on_change(
@@ -451,7 +451,7 @@ class Group:
 
     def _sync_query_param(
         self,
-        control: _options.CliControl,
+        control: _options.InputControl,
         value: typing.Any,
         key: str,
     ) -> None:

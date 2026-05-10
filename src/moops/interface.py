@@ -5,7 +5,7 @@ import typing
 import marimo as mo
 from hypothesis import strategies as st
 
-from . import _cli_map, _options, _parse
+from . import _input_map, _options, _parse
 from .presets import Presets
 
 
@@ -14,7 +14,9 @@ class Interface:
     """Controls registered by a subgroup's interface, for passing to the parent."""
 
     controls: tuple[typing.Any]
-    cli_map: _cli_map.CliMap = dataclasses.field(default_factory=_cli_map.CliMap)
+    cli_map: _input_map.InputMap = dataclasses.field(
+        default_factory=_input_map.InputMap
+    )
     overrides: dict[str, typing.Any] = dataclasses.field(default_factory=lambda: {})
     notebook_name: str = ""
     option_prefix: str = ""
@@ -36,7 +38,7 @@ class Interface:
     def validate(self, state: _parse.ParseState) -> typing.Iterator[str]:
         flags: set[str] = set()
         value_options: set[str] = set()
-        for cli in self._all_cli_controls():
+        for cli in self._all_input_controls():
             flags.update(cli.flags())
             value_options.update(cli.options())
         rendered = flags | value_options
@@ -56,13 +58,15 @@ class Interface:
 
     def help(self) -> str:
         usage_parts = [
-            p for cli in self._all_cli_controls() for p in cli.format_usage_parts()
+            p for cli in self._all_input_controls() for p in cli.format_usage_parts()
         ]
         usage_parts.append("[-h/--help]")
         name = self.command.rsplit("/", 1)[-1]
         segments = [f"Usage: {name} {' '.join(usage_parts)}"]
         help_lines = [
-            line for cli in self._all_cli_controls() for line in cli.format_help_lines()
+            line
+            for cli in self._all_input_controls()
+            for line in cli.format_help_lines()
         ]
         if help_lines:
             segments.append("\n".join(help_lines))
@@ -99,22 +103,22 @@ class Interface:
             lambda d: {k: v for k, v in d.items() if v is not None}
         )
 
-    def _all_cli_controls(self) -> typing.Iterator[_options.CliControl]:
+    def _all_input_controls(self) -> typing.Iterator[_options.InputControl]:
         for ctrl in self.controls:
             if isinstance(ctrl, Interface):
-                yield from ctrl._all_cli_controls()
+                yield from ctrl._all_input_controls()
             else:
                 cli = self.cli_map.get(ctrl)
                 if cli is not None and not self._is_overridden(cli):
                     yield cli
 
-    def _key(self, cli: _options.CliControl) -> str:
+    def _key(self, cli: _options.InputControl) -> str:
         option = cli.option[len(self.option_prefix) :].lstrip("-")
         if option.startswith("no-"):
             option = option[3:]
         return option.replace("-", "_")
 
-    def _is_overridden(self, cli: _options.CliControl) -> bool:
+    def _is_overridden(self, cli: _options.InputControl) -> bool:
         return self._key(cli) in self.overrides
 
     def cur_values(self) -> dict[str, typing.Any]:
@@ -132,7 +136,7 @@ class Interface:
         values = self.cur_values()
         return " ".join(
             arg
-            for cli in self._all_cli_controls()
+            for cli in self._all_input_controls()
             if cli.option in values
             for arg in cli.format_value(values[cli.option])
         )

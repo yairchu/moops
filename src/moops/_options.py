@@ -24,8 +24,8 @@ class ParseResult:
 
 
 @dataclasses.dataclass
-class CliControl(abc.ABC):
-    """CLI interface for a single UI control."""
+class InputControl(abc.ABC):
+    """Input-channel behavior for a single UI control."""
 
     option: str
     help_text: str
@@ -73,7 +73,7 @@ class CliControl(abc.ABC):
 
 
 @dataclasses.dataclass
-class FlagControl(CliControl):
+class FlagControl(InputControl):
     default: bool = False
 
     def flags(self) -> set[str]:
@@ -111,7 +111,7 @@ class FlagControl(CliControl):
 
 
 @dataclasses.dataclass
-class ValueControl(CliControl):
+class ValueControl(InputControl):
     """Base class for controls that take a value, like text or dropdowns."""
 
     metavar: str
@@ -320,7 +320,7 @@ class RangeControl(ValueControl):
 
 
 @dataclasses.dataclass
-class DropdownControl(CliControl):
+class DropdownControl(InputControl):
     allowed_values: list[str]
     supports_none: bool
     default: str | None
