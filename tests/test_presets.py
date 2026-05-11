@@ -125,3 +125,40 @@ def test_default_preset_is_selected_in_dropdown(
     presets_ui.layout(iface._current_args())  # type: ignore[reportPrivateUsage]
 
     assert presets_ui._dropdown.value == "default"
+
+
+def test_factory_preset_selection_clears_query_params(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    params = {"text": "Preset", "style": "snake"}
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+    select = mock.Mock()
+    presets = typing.cast(
+        Presets,
+        mock.Mock(
+            selected_args="--text Preset --style snake",
+            default_args="--text DefaultPreset",
+            get_current=mock.Mock(return_value="saved"),
+            args_for=mock.Mock(return_value="--text Preset --style snake"),
+            list=mock.Mock(return_value=["default", "saved"]),
+            select=select,
+        ),
+    )
+    group = Group(cli_args=["script.py"], presets=presets)
+    text = group.text(value="Factory", option="--text", help_text="Input text")
+    style = group.dropdown(
+        ["snake", "camel"],
+        value="camel",
+        option="--style",
+        help_text="Text style",
+        allow_select_none=False,
+    )
+    iface = group.interface(text, style)
+    presets_ui = typing.cast(typing.Any, iface)._presets_ui
+    presets_ui.layout(iface._current_args())  # type: ignore[reportPrivateUsage]
+
+    presets_ui._dropdown._on_change(None)
+
+    select.assert_called_once_with("")
+    assert params == {}
