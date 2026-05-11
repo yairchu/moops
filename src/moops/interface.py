@@ -1,6 +1,8 @@
 import dataclasses
+import html
 import sys
 import typing
+import urllib.parse
 
 import marimo as mo
 from hypothesis import strategies as st
@@ -19,6 +21,7 @@ class Interface:
     )
     overrides: dict[str, typing.Any] = dataclasses.field(default_factory=lambda: {})
     notebook_name: str = ""
+    notebook_file: str = ""
     option_prefix: str = ""
     presets: Presets | None = None
     command: str = ""
@@ -172,17 +175,31 @@ class Interface:
     def _subgroup_summary(self) -> mo.Html:
         if not self.notebook_name:
             return mo.md("Cli bundle with no notebook name")
-        has_exposed = any(
-            not ctrl._component_args.get("disabled", False)
-            for ctrl in self._flatten()
-            if hasattr(ctrl, "_component_args")
+        notebook_name = html.escape(self.notebook_name)
+        href = html.escape(self._standalone_url(), quote=True)
+        return mo.md(
+            f'<a href="{href}" target="_blank" rel="noopener">'
+            f"An embedded instance of `{notebook_name}`</a>"
         )
-        prefix_note = (
-            f" (configured by the `{self.option_prefix}` options)"
-            if has_exposed
-            else ""
-        )
-        return mo.md(f"An embedded instance of `{self.notebook_name}`{prefix_note}.")
+
+    def _standalone_url(self) -> str:
+        values = self._standalone_query_values()
+        query = urllib.parse.urlencode({"file": self.notebook_file, **values})
+        return f"/?{query}"
+
+    def _standalone_query_values(self) -> dict[str, str]:
+        values: dict[str, str] = {}
+        for ctrl in self.controls:
+            if isinstance(ctrl, Interface):
+                values.update(ctrl._standalone_query_values())
+                continue
+            cli = self.cli_map.get(ctrl)
+            if cli is None:
+                continue
+            value = cli.format_query_value(_ctrl_value(ctrl))
+            if value is not None:
+                values[self._key(cli)] = value
+        return values
 
     def _root_panel(self) -> mo.Html:
         args = self._current_args()

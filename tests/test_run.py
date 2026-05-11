@@ -78,3 +78,20 @@ def test_overridden_control_is_disabled() -> None:
         return input_text._component_args["disabled"]  # type: ignore
 
     assert asyncio.run(_run()) is True
+
+
+def test_embedded_summary_links_to_current_standalone_query_params() -> None:
+    async def _run() -> str:
+        args = moops.Group(cli_args=["script.py", "--no-casing-style"])
+        casing = args.subgroup("casing", overrides={"text": "hello world"})
+        result = await name_casing.app.embed(defs={"args": casing})
+        interface = result.defs["interface"]
+        assert isinstance(interface, moops.Interface)
+        return typing.cast(typing.Any, interface)._subgroup_summary().text
+
+    html = asyncio.run(_run())
+    assert (
+        'href="/?file=examples%2Fname_casing.py&amp;style=&amp;text=hello+world"'
+        in html
+    )
+    assert 'target="_blank"' in html

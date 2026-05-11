@@ -81,11 +81,19 @@ class Group:
         sync with what is actually live (handles cell reruns and deletions).
         """
 
+        caller_path = pathlib.Path(inspect.stack()[1].filename)
+        try:
+            notebook_file = caller_path.resolve().relative_to(
+                pathlib.Path.cwd().resolve()
+            )
+        except ValueError:
+            notebook_file = caller_path
         iface = interface.Interface(
             controls,
             cli_map=self._cli_map,
             overrides=self._overrides,
-            notebook_name=pathlib.Path(inspect.stack()[1].filename).name,
+            notebook_name=caller_path.name,
+            notebook_file=notebook_file.as_posix(),
             option_prefix=self.option,
             presets=self._presets,
             command=self._command,
