@@ -214,12 +214,13 @@ class Interface:
         args = self._current_args()
         name = self.command.rsplit("/", 1)[-1]
         current_command = f"{name} {args}" if args else name
-        info = mo.md(
-            f"This notebook also works as a script:\n```\n{self.help()}\n```\n\n"
-            "To run the script with the current values in the notebook use:\n"
-            f"```\n{current_command}\n```"
-        )
-        items: list[typing.Any] = [info]
+        items: list[typing.Any] = [
+            mo.md(
+                f"This notebook also works as a script:\n```\n{self.help()}\n```\n\n"
+                "To run the script with the current values in the notebook use:\n"
+                f"```\n{current_command}\n```"
+            )
+        ]
         if self._presets_ui is not None:
             items.append(self._presets_ui.layout(args))
         missing_options = self.missing_options()
