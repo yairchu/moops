@@ -1,6 +1,7 @@
 import abc
 import dataclasses
 import math
+import pathlib
 import shlex
 import sys
 import typing
@@ -151,7 +152,7 @@ class ValueControl(InputControl):
 class TextControl(ValueControl):
     default: str
 
-    def parse(self, args: _parse.ParsedArgs) -> ParseResult | None:
+    def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         res = args.options.get(self.option)
         return None if res is None else ParseResult(res)
 
@@ -177,6 +178,31 @@ class TextControl(ValueControl):
         default_display = f" [{d}]" if d else ""
         response = input(f"{self.help_text}{default_display}: ")
         return {self.option: response} if response else {}
+
+
+@dataclasses.dataclass
+class FileControl(TextControl):
+    def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
+        result = super().parse(args)
+        match result:
+            case ParseResult(value=v) if not pathlib.Path(v).exists():
+                return ParseError(f"File not found: {v!r}")
+            case _:
+                pass
+        return result
+
+    def prompt_interactive(
+        self, effective_default: typing.Any = _UNSET
+    ) -> dict[str, str | None]:
+        while True:
+            result = super().prompt_interactive(effective_default)
+            if not result:
+                return result
+            v = result[self.option]
+            if v and not pathlib.Path(v).exists():
+                print(f"File not found: {v!r}")
+                continue
+            return result
 
 
 @dataclasses.dataclass

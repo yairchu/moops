@@ -8,6 +8,7 @@ import warnings
 import marimo as mo
 
 from . import _input_map, _naming, _options, _parse, _query_params, interface
+from .interface import FileBrowserWithInitialSelection
 from .presets import Presets
 
 Numeric = int | float
@@ -275,6 +276,51 @@ class Group:
                 on_change=self._query_on_change(cli, on_change),
                 **kwargs,
             ),
+            cli,
+        )
+
+    def file_browser(
+        self,
+        initial_path: str | pathlib.Path = "",
+        option: str | None = None,
+        *,
+        help_text: str,
+        label: str | None = None,
+        multiple: bool = True,
+        on_change: typing.Callable[[str], None] | None = None,
+        **kwargs: typing.Any,
+    ) -> FileBrowserWithInitialSelection | mo.ui.file_browser:
+        """Create a file browser UI element that maps to a CLI path option."""
+        if multiple:
+            raise NotImplementedError("multiple=True is not yet supported")
+
+        opt = self._make_opt(label=label, option=option)
+        initial_path = str(initial_path)
+        cli = _options.FileControl(
+            option=opt.option,
+            metavar="PATH",
+            help_text=help_text,
+            default=initial_path,
+        )
+        value = self._get_value(cli, initial_path)
+        raw_on_change = self._query_on_change(cli, on_change)
+
+        def _on_change(infos: typing.Sequence[interface.FileBrowserFileInfo]) -> None:
+            if raw_on_change is not None:
+                raw_on_change(str(infos[0].path) if infos else "")
+
+        p = pathlib.Path(value) if value else None
+        browser_kwargs: dict[str, typing.Any] = dict(
+            initial_path=str(p.parent) if (p and p.is_file()) else (value or ""),
+            label=opt.label_with_tooltip(help_text),
+            multiple=multiple,
+            on_change=_on_change,
+            **kwargs,
+        )
+        return self._cli_map.register(
+            FileBrowserWithInitialSelection(default=value, **browser_kwargs)
+            if value
+            else mo.ui.file_browser(**browser_kwargs),
             cli,
         )
 

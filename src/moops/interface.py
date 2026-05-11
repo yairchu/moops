@@ -1,11 +1,13 @@
 import dataclasses
 import html
+import pathlib
 import sys
 import typing
 import urllib.parse
 
 import marimo as mo
 from hypothesis import strategies as st
+from marimo._plugins.ui._impl.file_browser import FileBrowserFileInfo
 
 from . import _input_map, _options, _parse, _query_params
 from .presets import Presets
@@ -326,5 +328,46 @@ class _PresetsUI:
         )
 
 
+class FileBrowserWithInitialSelection(mo.ui.file_browser):
+    """Extends mo.ui.file_browser with a CLI path fallback when no file is selected."""
+
+    def __init__(self, default: str, **kwargs: typing.Any) -> None:
+        self._default = default
+        super().__init__(**kwargs)
+
+    @property
+    def value(self) -> list[FileBrowserFileInfo]:  # type: ignore[override]
+        if browser_value := list(super().value):
+            return browser_value
+        p = pathlib.Path(self._default)
+        return [
+            FileBrowserFileInfo(
+                id=self._default, path=p, name=p.name, is_directory=p.is_dir()
+            )
+        ]
+
+    @value.setter
+    def value(self, value: typing.Any) -> None:
+        del value
+        raise RuntimeError("Setting the value of a UIElement is not allowed.")
+
+    def _mime_(self) -> tuple[str, str]:  # type: ignore[override]
+        return mo.vstack(
+            [
+                mo.Html(super()._mime_()[1]),
+                mo.callout(
+                    mo.md(
+                        "marimo's file browser does not support "
+                        f"an initial selection — falling back to `{self._default}`"
+                    ),
+                    kind="info",
+                ),
+            ]
+        )._mime_()  # type: ignore
+
+
 def _ctrl_value(ctrl: typing.Any) -> typing.Any:
+    if isinstance(ctrl, mo.ui.file_browser):
+        p = ctrl.path()
+        return str(p) if p is not None else ""
     return ctrl._selected_key if hasattr(ctrl, "_selected_key") else ctrl.value

@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `group.file_browser()`: file browser UI in notebooks, maps to a CLI path option.
 - `--interactive` flag: when passed, prompts for any control not specified on
   the command line, so scripts can be driven interactively without a notebook.
 - Marimo browser notebooks now initialize `Group()` controls from URL query
