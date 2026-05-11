@@ -206,7 +206,7 @@ class TextAreaControl(ValueControl):
         return st.text()
 
     def format_usage_parts(self) -> list[str]:
-        return [f"[{self.option} {self.metavar}]", f"[{self._stdin_flag}]"]
+        return [f"[{self.option} {self.metavar} | {self._stdin_flag}]"]
 
     def format_help_lines(self) -> list[str]:
         line = f"  {self.option} {self.metavar}: {self.help_text}"
@@ -446,10 +446,9 @@ class DropdownControl(InputControl):
         )
 
     def format_usage_parts(self) -> list[str]:
-        parts = [f"[{self.option} {self._values_text()}]"]
         if self._no_flag:
-            parts.append(f"[{self._no_flag}]")
-        return parts
+            return [f"[{self.option} {self._values_text()} | {self._no_flag}]"]
+        return [f"[{self.option} {self._values_text()}]"]
 
     def _values_text(self) -> str:
         return "{" + "|".join(self.allowed_values) + "}"
