@@ -26,7 +26,11 @@ class Group:
 
         self.option: str = ""
         command, rest = _parse.split_argv(cli_args)
-        self._command = command
+        self._command = (
+            str(mo.query_params().get("file", command))
+            if mo.running_in_notebook()
+            else command
+        )
         self._state = _parse.ParseState(args=_parse.ParsedArgs.from_options(rest))
         self._cli_map = _input_map.InputMap()
         self._overrides: dict[str, typing.Any] = {}
