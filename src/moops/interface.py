@@ -272,7 +272,9 @@ class _PresetsUI:
         self._name_input = mo.ui.text(label="as", placeholder="default")
         self._save_btn = mo.ui.button(
             label="Save",
-            on_click=lambda _: presets.save(self._name_input.value, get_args()),
+            on_click=lambda _: presets.save(
+                self._name_input.value or "default", get_args()
+            ),
         )
         self._reset_btn = mo.ui.button(
             label="Clear changes",

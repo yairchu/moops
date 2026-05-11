@@ -205,8 +205,8 @@ def test_empty_save_name_saves_default_preset() -> None:
             save=save,
         ),
     )
-    group = Group(cli_args=["script.py"])
-    text = group.text(value="Edited", option="--text", help_text="Input text")
+    group = Group(cli_args=["script.py", "--text", "Edited"])
+    text = group.text(value="Factory", option="--text", help_text="Input text")
     iface = Interface(
         controls=(text,),
         cli_map=group._cli_map,  # type: ignore[reportPrivateUsage]
