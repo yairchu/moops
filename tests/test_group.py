@@ -192,6 +192,17 @@ def test_help_usage_line_has_no_double_spaces(
     assert "  " not in usage_line
 
 
+def test_dropdown_no_flag_shown_as_mutex_in_usage(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    g = Group(cli_args=["script.py", "--help"])
+    ctrl = g.dropdown(["a", "b"], value="a", label="Style", help_text="The style")
+    with pytest.raises(SystemExit):
+        g.interface(ctrl)
+    usage_line = capsys.readouterr().out.splitlines()[0]
+    assert "[--style {a|b} | --no-style]" in usage_line
+
+
 def test_cli_control_freed_when_control_gc_collected() -> None:
     g = Group(cli_args=["script.py"])
     ctrl = g.slider(start=0, stop=10, value=3, label="Count", help_text="A count")
