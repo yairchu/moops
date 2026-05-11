@@ -291,6 +291,10 @@ class _PresetsUI:
             label="Clear changes",
             on_click=lambda _: self._select_preset(self._active_preset),
         )
+        self._reset_default_btn = mo.ui.button(
+            label="Reset default",
+            on_click=lambda _: presets.delete("default"),
+        )
 
     def layout(self, args: str) -> mo.Html:
         # Stored on self so the dropdown isn't garbage-collected after layout()
@@ -310,6 +314,8 @@ class _PresetsUI:
             controls.extend([self._reset_btn, self._save_btn, self._name_input])
         elif self._active_preset:
             controls.extend([self._rename_btn, self._rename_input])
+        if self._active_preset is None and self._presets.default_args:
+            controls.append(self._reset_default_btn)
         return mo.hstack(
             controls,
             justify="start",

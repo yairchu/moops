@@ -55,5 +55,13 @@ class Presets:
         self._write()
         self.select(new_name)
 
+    def delete(self, name: str) -> None:
+        if name not in self._data:
+            return
+        del self._data[name]
+        self._write()
+        if self.get_current() == name:
+            self.select("")
+
     def _write(self) -> None:
         json.dump({"presets": self._data}, self._filename.open("w"), indent=2)
