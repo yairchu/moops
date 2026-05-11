@@ -60,8 +60,8 @@ class Presets:
             return
         del self._data[name]
         self._write()
-        if self.get_current() == name:
-            self.select("")
+        current = self.get_current()
+        self.select("" if current in (None, name) else current)
 
     def _write(self) -> None:
         json.dump({"presets": self._data}, self._filename.open("w"), indent=2)
