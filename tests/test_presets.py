@@ -281,3 +281,21 @@ def test_delete_calls_select_to_trigger_rerender(tmp_path: pathlib.Path) -> None
     presets.delete("default")
 
     assert selected == [""]
+
+
+def test_interactive_enter_uses_default_preset_value(
+    tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_input(_prompt: str) -> str:
+        return ""  # press Enter
+
+    monkeypatch.setattr("builtins.input", fake_input)
+    presets = Presets(tmp_path / "presets.json", lambda: None, lambda _: None)
+    presets.save("default", "--verbose")
+
+    g = Group(cli_args=["script.py", "--interactive"], presets=presets)
+    ctrl = g.switch(value=False, flag="--verbose", help_text="Enable verbose output")
+    g.interface(ctrl)
+
+    assert ctrl.value is True  # preset value, not hardcoded False
