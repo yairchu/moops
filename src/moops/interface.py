@@ -209,7 +209,7 @@ class Interface:
                 continue
             value = cli.format_query_value(_ctrl_value(ctrl))
             if value is not None:
-                values[self._key(cli)] = value
+                values[_query_params.escape_url_key(self._key(cli))] = value
         return values
 
     def _root_panel(self) -> mo.Html:

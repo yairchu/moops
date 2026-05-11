@@ -5,6 +5,12 @@ import marimo as mo
 
 from . import _options
 
+_MARIMO_RESERVED_PARAMS = frozenset({"file"})
+
+
+def escape_url_key(key: str) -> str:
+    return f"{key}_" if key in _MARIMO_RESERVED_PARAMS else key
+
 
 @dataclasses.dataclass
 class QueryParams:
@@ -68,7 +74,8 @@ class QueryParams:
         return synced_on_change
 
     def _key(self, key: str) -> str:
-        return f"{self.prefix}.{key}" if self.prefix else key
+        full = f"{self.prefix}.{key}" if self.prefix else key
+        return escape_url_key(full)
 
     def _is_user_key(self, key: str) -> bool:
         if key == "file":
