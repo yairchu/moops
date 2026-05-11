@@ -33,7 +33,7 @@ class Interface:
     def __post_init__(self) -> None:
         seen_ids: set[int] = set()
         for ctrl in self.controls:
-            if not isinstance(ctrl, Interface) and id(ctrl) in seen_ids:
+            if id(ctrl) in seen_ids:
                 raise ValueError("Duplicate control passed to interface")
             seen_ids.add(id(ctrl))
         self._presets_ui = (
