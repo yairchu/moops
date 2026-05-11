@@ -269,9 +269,9 @@ class _PresetsUI:
         self._presets = presets
         self._active_preset = active_preset
         self._select_preset = select_preset
-        self._name_input = mo.ui.text(placeholder="preset name")
+        self._name_input = mo.ui.text(label="as", placeholder="default")
         self._save_btn = mo.ui.button(
-            label="Save preset",
+            label="Save",
             on_click=lambda _: presets.save(self._name_input.value, get_args()),
         )
         self._reset_btn = mo.ui.button(
@@ -294,7 +294,7 @@ class _PresetsUI:
         active_args = self._presets.args_for(self._active_preset)
         controls: list[typing.Any] = [self._dropdown]
         if args != active_args:
-            controls.extend([self._reset_btn, self._name_input, self._save_btn])
+            controls.extend([self._reset_btn, self._save_btn, self._name_input])
         return mo.hstack(
             controls,
             justify="start",
