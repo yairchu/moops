@@ -192,3 +192,30 @@ def test_reset_button_reapplies_active_factory_preset(
 
     select.assert_called_once_with("")
     assert params == {}
+
+
+def test_empty_save_name_saves_default_preset() -> None:
+    save = mock.Mock()
+    presets = typing.cast(
+        Presets,
+        mock.Mock(
+            get_current=mock.Mock(return_value=None),
+            args_for=mock.Mock(return_value=""),
+            list=mock.Mock(return_value=[]),
+            save=save,
+        ),
+    )
+    group = Group(cli_args=["script.py"])
+    text = group.text(value="Edited", option="--text", help_text="Input text")
+    iface = Interface(
+        controls=(text,),
+        cli_map=group._cli_map,  # type: ignore[reportPrivateUsage]
+        presets=presets,
+        command="script.py",
+    )
+    presets_ui = typing.cast(typing.Any, iface)._presets_ui
+    presets_ui.layout("--text Edited")
+
+    presets_ui._save_btn._on_click(None)
+
+    save.assert_called_once_with("default", "--text Edited")
