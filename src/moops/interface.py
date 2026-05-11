@@ -7,7 +7,7 @@ import urllib.parse
 import marimo as mo
 from hypothesis import strategies as st
 
-from . import _input_map, _options, _parse
+from . import _input_map, _options, _parse, _query_params
 from .presets import Presets
 
 
@@ -25,6 +25,9 @@ class Interface:
     option_prefix: str = ""
     presets: Presets | None = None
     active_preset: str | None = None
+    query_params: _query_params.QueryParams = dataclasses.field(
+        default_factory=lambda: _query_params.QueryParams(None)
+    )
     command: str = ""
 
     def __post_init__(self) -> None:
@@ -34,7 +37,12 @@ class Interface:
                 raise ValueError("Duplicate control passed to interface")
             seen_ids.add(id(ctrl))
         self._presets_ui = (
-            _PresetsUI(self.presets, self.active_preset, self._current_args)
+            _PresetsUI(
+                self.presets,
+                self.active_preset,
+                self._select_preset,
+                self._current_args,
+            )
             if self.presets is not None
             else None
         )
@@ -227,6 +235,21 @@ class Interface:
             )
         return mo.vstack(items)
 
+    def _select_preset(self, preset: str | None) -> None:
+        assert self.presets is not None
+        self.presets.select("" if preset is None else preset)
+        if preset is None:
+            self._clear_query_params()
+
+    def _clear_query_params(self) -> None:
+        for ctrl in self.controls:
+            if isinstance(ctrl, Interface):
+                ctrl._clear_query_params()
+            else:
+                cli = self.cli_map.get(ctrl)
+                if cli is not None:
+                    self.query_params.clear(self._key(cli))
+
     def _flatten(self) -> typing.Iterator[typing.Any]:
         for ctrl in self.controls:
             if isinstance(ctrl, Interface):
@@ -240,10 +263,12 @@ class _PresetsUI:
         self,
         presets: Presets,
         active_preset: str | None,
+        select_preset: typing.Callable[[str | None], None],
         get_args: typing.Callable[[], str],
     ) -> None:
         self._presets = presets
         self._active_preset = active_preset
+        self._select_preset = select_preset
         self._name_input = mo.ui.text(placeholder="preset name")
         self._save_btn = mo.ui.button(
             label="Save preset",
@@ -260,7 +285,7 @@ class _PresetsUI:
             options=list(self._presets.list()),
             allow_select_none=True,
             value=self._active_preset,
-            on_change=self._presets.select,
+            on_change=self._select_preset,
         )
         active_args = self._presets.args_for(self._active_preset)
         return mo.hstack(

@@ -46,6 +46,9 @@ class QueryParams:
     ) -> None:
         self._set(key, control.format_query_value(value))
 
+    def clear(self, key: str) -> None:
+        self._set(key, None)
+
     def on_change(
         self,
         control: _options.InputControl,

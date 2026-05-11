@@ -85,7 +85,7 @@ class Group:
             self._presets is None
             or self._query_params.params is None
             or self._query_params.has_user_params()
-            or self._presets.get_current()
+            or self._presets.get_current() is not None
             or not self._presets.default_args
         ):
             return None
@@ -96,7 +96,7 @@ class Group:
             return None
         if self._default_preset_state is not None:
             return "default"
-        return self._presets.get_current()
+        return self._presets.get_current() or None
 
     def _parse_preset_args(self, args_text: str) -> _parse.ParseState:
         args = _parse.ParsedArgs.from_options(shlex.split(args_text))
@@ -128,6 +128,7 @@ class Group:
             option_prefix=self.option,
             presets=self._presets,
             active_preset=self._active_preset,
+            query_params=self._query_params,
             command=self._command,
         )
         if self.option or not mo.running_in_notebook():
