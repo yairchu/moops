@@ -276,7 +276,10 @@ class _PresetsUI:
                 self._name_input.value or "default", get_args()
             ),
         )
-        self._rename_input = mo.ui.text(label="to", placeholder="default")
+        rename_placeholder = (
+            "preset name" if self._active_preset == "default" else "default"
+        )
+        self._rename_input = mo.ui.text(label="to", placeholder=rename_placeholder)
         self._rename_btn = mo.ui.button(
             label="Rename",
             on_click=lambda _: presets.rename(
