@@ -162,3 +162,33 @@ def test_factory_preset_selection_clears_query_params(
 
     select.assert_called_once_with("")
     assert params == {}
+
+
+def test_reset_button_reapplies_active_factory_preset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    params = {"text": "Edited"}
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+    select = mock.Mock()
+    presets = typing.cast(
+        Presets,
+        mock.Mock(
+            selected_args="",
+            default_args="",
+            get_current=mock.Mock(return_value=""),
+            args_for=mock.Mock(return_value=""),
+            list=mock.Mock(return_value=["default", "saved"]),
+            select=select,
+        ),
+    )
+    group = Group(cli_args=["script.py"], presets=presets)
+    text = group.text(value="Factory", option="--text", help_text="Input text")
+    iface = group.interface(text)
+    presets_ui = typing.cast(typing.Any, iface)._presets_ui
+    presets_ui.layout(iface._current_args())  # type: ignore[reportPrivateUsage]
+
+    presets_ui._reset_btn._on_click(None)
+
+    select.assert_called_once_with("")
+    assert params == {}

@@ -274,6 +274,10 @@ class _PresetsUI:
             label="Save preset",
             on_click=lambda _: presets.save(self._name_input.value, get_args()),
         )
+        self._reset_btn = mo.ui.button(
+            label="Clear changes",
+            on_click=lambda _: self._select_preset(self._active_preset),
+        )
 
     def layout(self, args: str) -> mo.Html:
         # Stored on self so the dropdown isn't garbage-collected after layout()
@@ -288,11 +292,11 @@ class _PresetsUI:
             on_change=self._select_preset,
         )
         active_args = self._presets.args_for(self._active_preset)
+        controls: list[typing.Any] = [self._dropdown]
+        if args != active_args:
+            controls.extend([self._reset_btn, self._name_input, self._save_btn])
         return mo.hstack(
-            [
-                self._dropdown,
-                *([] if args == active_args else [self._name_input, self._save_btn]),
-            ],
+            controls,
             justify="start",
         )
 
