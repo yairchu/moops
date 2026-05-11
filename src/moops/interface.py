@@ -72,8 +72,7 @@ class Interface:
         usage_parts = [
             p for cli in self._all_input_controls() for p in cli.format_usage_parts()
         ]
-        usage_parts.append("[--interactive]")
-        usage_parts.append("[-h/--help]")
+        usage_parts.extend(("[--interactive]", "[-h/--help]"))
         name = self.command.rsplit("/", 1)[-1]
         segments = [f"Usage: {name} {' '.join(usage_parts)}"]
         help_lines = [

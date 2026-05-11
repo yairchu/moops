@@ -455,10 +455,10 @@ class Group:
         if self._preset_state is not None:
             match control.parse(self._preset_state.args):
                 case _options.ParseResult(value=v):
-                    self._sync_query_param(control, v, key)
+                    self._query_params.sync(control, key, v)
                     return v
                 case None:
-                    self._sync_query_param(control, default, key)
+                    self._query_params.sync(control, key, default)
                     return default
                 case _:
                     pass
@@ -498,7 +498,7 @@ class Group:
         if self._default_preset_state is not None:
             match control.parse(self._default_preset_state.args):
                 case _options.ParseResult(value=v):
-                    self._sync_query_param(control, v, key)
+                    self._query_params.sync(control, key, v)
                     return v
                 case _:
                     pass
@@ -518,14 +518,6 @@ class Group:
             on_change,
             disabled=self._is_overridden(control.option),
         )
-
-    def _sync_query_param(
-        self,
-        control: _options.InputControl,
-        value: typing.Any,
-        key: str,
-    ) -> None:
-        self._query_params.sync(control, key, value)
 
     def _make_opt(
         self, label: str | None, option: str | None, prefix: str | None = None

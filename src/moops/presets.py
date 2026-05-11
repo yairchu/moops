@@ -51,9 +51,7 @@ class Presets:
             return
         if old_name != new_name:
             del self._data[old_name]
-        self._data[new_name] = args
-        self._write()
-        self.select(new_name)
+        self.save(new_name, args)
 
     def delete(self, name: str) -> None:
         if name not in self._data:
