@@ -176,7 +176,7 @@ class TextControl(ValueControl):
         d = self.default if effective_default is _UNSET else effective_default
         default_display = f" [{d}]" if d else ""
         response = input(f"{self.help_text}{default_display}: ")
-        return {} if not response else {self.option: response}
+        return {self.option: response} if response else {}
 
 
 @dataclasses.dataclass
@@ -227,7 +227,7 @@ class TextAreaControl(ValueControl):
         default_display = f" [{d!r}]" if d else ""
         print(f"  (for multi-line input, use {self._stdin_flag} instead)")
         response = input(f"{self.help_text}{default_display}: ")
-        return {} if not response else {self.option: response}
+        return {self.option: response} if response else {}
 
 
 @dataclasses.dataclass
