@@ -96,3 +96,32 @@ def test_query_params_disable_default_preset(
     assert text.value == "Url"
     assert style.value == "camel"
     assert params == {"text": "Url"}
+
+
+def test_default_preset_is_selected_in_dropdown(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    params: dict[str, str] = {}
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+
+    def _args_for(name: str | None) -> str:
+        return "--text DefaultPreset" if name == "default" else ""
+
+    presets = typing.cast(
+        Presets,
+        mock.Mock(
+            selected_args="",
+            default_args="--text DefaultPreset",
+            get_current=mock.Mock(return_value=None),
+            args_for=mock.Mock(side_effect=_args_for),
+            list=mock.Mock(return_value=["default"]),
+        ),
+    )
+    group = Group(cli_args=["script.py"], presets=presets)
+    text = group.text(value="Default", option="--text", help_text="Input text")
+    iface = group.interface(text)
+    presets_ui = typing.cast(typing.Any, iface)._presets_ui
+    presets_ui.layout(iface._current_args())  # type: ignore[reportPrivateUsage]
+
+    assert presets_ui._dropdown.value == "default"
