@@ -1,10 +1,12 @@
 import gc
+import urllib.parse
 import weakref
 
 import marimo as mo
 import pytest
 
-from moops import Group
+import moops
+from moops import Group, _input_map, _options
 
 
 def test_help_exits_zero() -> None:
@@ -261,3 +263,25 @@ def test_composite_child_keeps_moops_metadata() -> None:
     cloned_ctrl = mo.ui.dictionary({"count": ctrl}).elements["count"]
     assert cloned_ctrl is not ctrl
     assert g.interface(cloned_ctrl).missing_options() == []
+
+
+def test_option_named_file_does_not_conflict_with_marimo_notebook_param() -> None:
+    class _MockCtrl:
+        value = "some_file.txt"
+
+    cli_map = _input_map.InputMap()
+    ctrl = _MockCtrl()
+    cli = _options.TextControl(
+        option="--file", metavar="PATH", default="", help_text="x"
+    )
+    cli_map.register(ctrl, cli)
+
+    interface = moops.Interface(
+        controls=(ctrl,),
+        cli_map=cli_map,
+        notebook_file="notebook.py",
+    )
+    url = interface._standalone_url()  # type: ignore[attr-defined]
+    params = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(url).query))
+    assert params["file"] == "notebook.py"
+    assert params.get("file_") == "some_file.txt"
