@@ -24,6 +24,7 @@ class Interface:
     notebook_file: str = ""
     option_prefix: str = ""
     presets: Presets | None = None
+    active_preset: str | None = None
     command: str = ""
 
     def __post_init__(self) -> None:
@@ -33,7 +34,7 @@ class Interface:
                 raise ValueError("Duplicate control passed to interface")
             seen_ids.add(id(ctrl))
         self._presets_ui = (
-            _PresetsUI(self.presets, self._current_args)
+            _PresetsUI(self.presets, self.active_preset, self._current_args)
             if self.presets is not None
             else None
         )
@@ -235,8 +236,14 @@ class Interface:
 
 
 class _PresetsUI:
-    def __init__(self, presets: Presets, get_args: typing.Callable[[], str]) -> None:
+    def __init__(
+        self,
+        presets: Presets,
+        active_preset: str | None,
+        get_args: typing.Callable[[], str],
+    ) -> None:
         self._presets = presets
+        self._active_preset = active_preset
         self._name_input = mo.ui.text(placeholder="preset name")
         self._save_btn = mo.ui.button(
             label="Save preset",
@@ -252,17 +259,14 @@ class _PresetsUI:
             label="Preset",
             options=list(self._presets.list()),
             allow_select_none=True,
-            value=self._presets.get_current(),
+            value=self._active_preset,
             on_change=self._presets.select,
         )
+        active_args = self._presets.args_for(self._active_preset)
         return mo.hstack(
             [
                 self._dropdown,
-                *(
-                    []
-                    if args == self._presets.selected_args
-                    else [self._name_input, self._save_btn]
-                ),
+                *([] if args == active_args else [self._name_input, self._save_btn]),
             ],
             justify="start",
         )

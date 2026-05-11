@@ -32,6 +32,7 @@ class Group:
         self._query_params = _query_params.QueryParams.from_notebook()
         self._preset_state = self._build_preset_state()
         self._default_preset_state = self._build_default_preset_state()
+        self._active_preset = self._build_active_preset()
 
     @classmethod
     def with_overrides(cls, overrides: dict[str, typing.Any]) -> "Group":
@@ -69,6 +70,9 @@ class Group:
             if presets
             else self._default_preset_state
         )
+        child._active_preset = (
+            child._build_active_preset() if presets else self._active_preset
+        )
         return child
 
     def _build_preset_state(self) -> _parse.ParseState | None:
@@ -86,6 +90,13 @@ class Group:
         ):
             return None
         return self._parse_preset_args(self._presets.default_args)
+
+    def _build_active_preset(self) -> str | None:
+        if self._presets is None:
+            return None
+        if self._default_preset_state is not None:
+            return "default"
+        return self._presets.get_current()
 
     def _parse_preset_args(self, args_text: str) -> _parse.ParseState:
         args = _parse.ParsedArgs.from_options(shlex.split(args_text))
@@ -116,6 +127,7 @@ class Group:
             notebook_file=notebook_file.as_posix(),
             option_prefix=self.option,
             presets=self._presets,
+            active_preset=self._active_preset,
             command=self._command,
         )
         if self.option or not mo.running_in_notebook():
