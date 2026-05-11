@@ -15,11 +15,11 @@ class Presets:
         self._filename = pathlib.Path(filename)
         self.get_current = get_selected_preset
         self.select = set_selected_preset
-        self._data: dict[str, str] = (
-            json.load(self._filename.open()).get("presets", {})
-            if self._filename.exists()
-            else {}
-        )
+        if self._filename.exists():
+            with self._filename.open() as f:
+                self._data: dict[str, str] = json.load(f).get("presets", {})
+        else:
+            self._data = {}
 
     def list(self) -> typing.Iterable[str]:
         return self._data.keys()
@@ -64,4 +64,5 @@ class Presets:
         self.select("" if current in (None, name) else current)
 
     def _write(self) -> None:
-        json.dump({"presets": self._data}, self._filename.open("w"), indent=2)
+        with self._filename.open("w") as f:
+            json.dump({"presets": self._data}, f, indent=2)
