@@ -266,3 +266,18 @@ def test_factory_preset_can_reset_saved_default() -> None:
     presets_ui._reset_default_btn._on_click(None)
 
     delete.assert_called_once_with("default")
+
+
+def test_delete_calls_select_to_trigger_rerender(tmp_path: pathlib.Path) -> None:
+    selected: list[str | None] = []
+    presets = Presets(
+        tmp_path / "presets.json",
+        get_selected_preset=lambda: None,
+        set_selected_preset=selected.append,
+    )
+    presets.save("default", "--foo bar")
+    selected.clear()
+
+    presets.delete("default")
+
+    assert selected == [""]
