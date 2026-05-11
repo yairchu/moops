@@ -203,6 +203,21 @@ def test_cli_control_freed_when_control_gc_collected() -> None:
     assert cli_ref() is None
 
 
+def test_interactive_ctrl_c_exits_cleanly(
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_input(_prompt: str) -> str:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr("builtins.input", fake_input)
+    g = Group(cli_args=["script.py", "--interactive"])
+    with pytest.raises(SystemExit) as exc_info:
+        g.switch(label="Verbose", help_text="Enable verbose output")
+    assert exc_info.value.code == 1
+    assert "Aborted." in capsys.readouterr().out
+
+
 def test_composite_child_keeps_moops_metadata() -> None:
     g = Group(cli_args=["script.py"])
     ctrl = g.slider(start=0, stop=10, value=3, label="Count", help_text="A count")
