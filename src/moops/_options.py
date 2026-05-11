@@ -387,8 +387,14 @@ class RangeControl(ValueControl):
             response = input(f"{self.help_text} (min,max){default_display}: ").strip()
             if not response:
                 return {}
-            if "," not in response or len(response.split(",")) != 2:
+            parts = response.split(",")
+            if len(parts) != 2 or not all(parts):
                 print("Please enter two numbers separated by a comma, e.g. 10,20")
+                continue
+            try:
+                [float(x) for x in parts]
+            except ValueError:
+                print("Please enter valid numbers, e.g. 10,20")
                 continue
             return {self.option: response}
 
