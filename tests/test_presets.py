@@ -219,3 +219,24 @@ def test_empty_save_name_saves_default_preset() -> None:
     presets_ui._save_btn._on_click(None)
 
     save.assert_called_once_with("default", "--text Edited")
+
+
+def test_default_preset_rename_placeholder_is_not_default() -> None:
+    presets = typing.cast(
+        Presets,
+        mock.Mock(
+            args_for=mock.Mock(return_value="--text DefaultPreset"),
+            get_current=mock.Mock(return_value="default"),
+            list=mock.Mock(return_value=["default"]),
+        ),
+    )
+    iface = Interface(
+        controls=typing.cast(tuple[typing.Any], ()),
+        presets=presets,
+        active_preset="default",
+        command="script.py",
+    )
+    presets_ui = typing.cast(typing.Any, iface)._presets_ui
+    presets_ui.layout("--text DefaultPreset")
+
+    assert presets_ui._rename_input._component_args["placeholder"] == "preset name"
