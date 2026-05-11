@@ -229,6 +229,32 @@ def test_interactive_ctrl_c_exits_cleanly(
     assert "Aborted." in capsys.readouterr().out
 
 
+def test_duplicate_subgroup_interface_raises_error() -> None:
+    g = Group(cli_args=["script.py"])
+    sub = g.subgroup("x")
+    ctrl = sub.switch(label="Verbose", help_text="Enable verbose output")
+    iface = sub.interface(ctrl)
+    with pytest.raises(ValueError, match="Duplicate"):
+        g.interface(iface, iface)
+
+
+def test_interactive_range_bad_numbers_reprompts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = iter(["10,abc", "20,80"])
+
+    def fake_input(_prompt: str) -> str:
+        return next(responses)
+
+    monkeypatch.setattr("builtins.input", fake_input)
+    g = Group(cli_args=["script.py", "--interactive"])
+    ctrl = g.range_slider(
+        start=0, stop=100, value=[10, 50], label="Range", help_text="A range"
+    )
+    g.interface(ctrl)
+    assert ctrl.value == [20, 80]
+
+
 def test_composite_child_keeps_moops_metadata() -> None:
     g = Group(cli_args=["script.py"])
     ctrl = g.slider(start=0, stop=10, value=3, label="Count", help_text="A count")
