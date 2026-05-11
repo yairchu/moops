@@ -1,6 +1,7 @@
 import inspect
 import pathlib
 import shlex
+import sys
 import typing
 import warnings
 
@@ -472,7 +473,11 @@ class Group:
                 return v
             case None:
                 if self._state.args.is_interactive and not mo.running_in_notebook():
-                    self._state.args.options.update(control.prompt_interactive())
+                    try:
+                        self._state.args.options.update(control.prompt_interactive())
+                    except KeyboardInterrupt:
+                        print("\nAborted.")
+                        sys.exit(1)
                     match control.parse(self._state.args):
                         case _options.ParseResult(value=v):
                             return v
