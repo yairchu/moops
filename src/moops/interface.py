@@ -7,6 +7,7 @@ import urllib.parse
 
 import marimo as mo
 from hypothesis import strategies as st
+from marimo._plugins.ui._core.ui_element import UIElement
 from marimo._plugins.ui._impl.file_browser import FileBrowserFileInfo
 
 from . import _input_map, _options, _parse, _query_params
@@ -366,8 +367,47 @@ class FileBrowserWithInitialSelection(mo.ui.file_browser):
         )._mime_()  # type: ignore
 
 
+class CustomControl(UIElement[typing.Any, typing.Any]):
+    """Wrap a notebook-only control with a CLI-compatible fallback control."""
+
+    def __init__(
+        self,
+        *,
+        active: typing.Any,
+        value: typing.Callable[[typing.Any], typing.Any] | None = None,
+    ) -> None:
+        if not isinstance(active, UIElement):
+            raise TypeError("custom controls must wrap a marimo UIElement")
+        self._active: UIElement[typing.Any, typing.Any] = active
+        self._value = value or _default_custom_value
+        # Deliberately skip super().__init__(): we reuse the wrapped element's
+        # identity so marimo's reactive DAG treats this as the same element.
+        # Calling super().__init__() would register a new element and ID.
+        self._id = active._id
+        self._lens = active._lens
+
+    @property
+    def value(self) -> typing.Any:
+        return self._value(self._active)
+
+    @value.setter
+    def value(self, value: typing.Any) -> None:
+        del value
+        raise RuntimeError("Setting the value of a UIElement is not allowed.")
+
+    def _mime_(self) -> tuple[str, str]:  # type: ignore[override]
+        return self._active._mime_()
+
+    def __getattr__(self, name: str) -> typing.Any:
+        return getattr(self._active, name)
+
+
 def _ctrl_value(ctrl: typing.Any) -> typing.Any:
     if isinstance(ctrl, mo.ui.file_browser):
         p = ctrl.path()
         return str(p) if p is not None else ""
     return ctrl._selected_key if hasattr(ctrl, "_selected_key") else ctrl.value
+
+
+def _default_custom_value(ctrl: typing.Any) -> typing.Any:
+    return ctrl.value

@@ -77,6 +77,31 @@ those controls from the URL. Query keys use the same names as `moops.run`
 keyword arguments. For subgroups, use dot-separated names such as
 `?casing.style=camel_case`.
 
+## Custom notebook controls
+
+Use `args.custom()` when the notebook needs an interactive control that moops
+does not wrap directly, while the CLI should use a supported fallback control.
+The fallback supplies the CLI parser, help text, defaults, and query-parameter
+format.
+
+```python
+plot_selection = mo.ui.matplotlib(ax)
+fallback_slider = args.range_slider(
+    start=0,
+    stop=100,
+    value=[10, 50],
+    option="--x-range",
+    help_text="X axis range",
+)
+x_range = args.custom(
+    plot_selection,
+    fallback_slider,
+    value=lambda plot:
+        [plot.value.x_min, plot.value.x_max]
+        if plot.value else fallback_slider.value,
+)
+```
+
 ## Property-based testing
 
 `moops.testing.notebook_interface` returns the notebook's `Interface`, from which `.strategy()` generates a [Hypothesis](https://hypothesis.readthedocs.io/) strategy that produces valid `moops.run` kwargs by introspecting the notebook's interface — dropdowns yield their allowed keys, switches yield booleans, and text fields yield arbitrary strings.
@@ -100,6 +125,7 @@ From the project root:
 
 ```sh
 uv run examples/notebook.py
+uv run --with matplotlib --with numpy examples/custom_control.py --x-range 30,70
 ```
 
 Or `uv run marimo edit` to run as notebooks.

@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   current parameters into the standalone notebook.
 - Notebook presets named `default` now initialize controls when no explicit
   preset or query parameter is selected.
+- `group.custom()`: use a custom notebook control with an existing moops
+  control as the CLI fallback.
 
 ## [0.1.1] - 2026-05-09
 

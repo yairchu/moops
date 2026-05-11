@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import inspect
 import pathlib
 import shlex
@@ -41,7 +43,7 @@ class Group:
         self._active_preset = self._build_active_preset()
 
     @classmethod
-    def with_overrides(cls, overrides: dict[str, typing.Any]) -> "Group":
+    def with_overrides(cls, overrides: dict[str, typing.Any]) -> Group:
         instance = cls(["run"])
         instance._overrides = overrides
         return instance
@@ -51,7 +53,7 @@ class Group:
         prefix: str,
         overrides: dict[str, typing.Any] | None = None,
         presets: Presets | None = None,
-    ) -> "Group":
+    ) -> Group:
         """Create a child Group that prefixes all its option names with '{prefix}-'.
 
         Pass a nested dict under the same key to moops.run() to override controls
@@ -420,6 +422,34 @@ class Group:
             ),
             cli,
         )
+
+    def custom(
+        self,
+        control: typing.Any,
+        fallback: typing.Any,
+        *,
+        value: typing.Callable[[typing.Any], typing.Any] | None = None,
+    ) -> interface.CustomControl:
+        """Use a custom notebook control with a moops control as the CLI fallback.
+
+        `fallback` must be a control created by this group, such as
+        `group.range_slider(...)`. In notebooks, `control` is rendered and its
+        value is used. Outside notebooks, `fallback` is used so CLI parsing,
+        help text, and interactive prompts keep their normal behavior.
+
+        Pass `value=` when the notebook control's `.value` does not match the
+        fallback control's value shape. It is only applied to the notebook
+        control; outside notebooks, the fallback's value is used directly.
+        """
+
+        cli = self._cli_map.get(fallback)
+        if cli is None:
+            raise ValueError("fallback must be a control created by this Group")
+        wrapped = interface.CustomControl(
+            active=control if mo.running_in_notebook() else fallback,
+            value=value if mo.running_in_notebook() else None,
+        )
+        return self._cli_map.register(wrapped, cli)
 
     def _numeric_cli(
         self,

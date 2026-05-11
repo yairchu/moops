@@ -1,9 +1,11 @@
 import gc
+import typing
 import urllib.parse
 import weakref
 
 import marimo as mo
 import pytest
+from marimo._plugins.ui._core.ui_element import UIElement
 
 import moops
 from moops import Group, _input_map, _options
@@ -285,3 +287,19 @@ def test_option_named_file_does_not_conflict_with_marimo_notebook_param() -> Non
     params = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(url).query))
     assert params["file"] == "notebook.py"
     assert params.get("file_") == "some_file.txt"
+
+
+def test_custom_control_is_bound_to_wrapped_ui_element() -> None:
+    g = Group(cli_args=["script.py"])
+    fallback = g.range_slider(
+        start=0,
+        stop=10,
+        value=[1, 9],
+        option="--window",
+        help_text="Window",
+    )
+
+    ctrl = g.custom(fallback, fallback)
+
+    assert isinstance(ctrl, UIElement)
+    assert typing.cast(typing.Any, ctrl)._id == typing.cast(typing.Any, fallback)._id
