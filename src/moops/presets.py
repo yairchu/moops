@@ -27,7 +27,14 @@ class Presets:
     @property
     def selected_args(self) -> str:
         key = self.get_current()
-        return self._data.get(key, "") if key else ""
+        return self.args_for(key) if key else ""
+
+    @property
+    def default_args(self) -> str:
+        return self.args_for("default")
+
+    def args_for(self, name: str | None) -> str:
+        return self._data.get(name, "") if name else ""
 
     def save(self, name: str, args: str) -> None:
         if not name:

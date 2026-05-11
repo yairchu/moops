@@ -32,6 +32,12 @@ class QueryParams:
             return str(typing.cast(object, raw[-1])) if raw else None
         return str(typing.cast(object, raw))
 
+    def has_user_params(self) -> bool:
+        params = self.params
+        if params is None:
+            return False
+        return any(self._is_user_key(str(key)) for key in params)
+
     def sync(
         self,
         control: _options.InputControl,
@@ -60,6 +66,13 @@ class QueryParams:
 
     def _key(self, key: str) -> str:
         return f"{self.prefix}.{key}" if self.prefix else key
+
+    def _is_user_key(self, key: str) -> bool:
+        if key == "file":
+            return False
+        if not self.prefix:
+            return True
+        return key.startswith(f"{self.prefix}.")
 
     def _set(self, key: str, value: str | None) -> None:
         params = self.params

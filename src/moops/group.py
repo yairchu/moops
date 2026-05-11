@@ -29,8 +29,9 @@ class Group:
         self._cli_map = _input_map.InputMap()
         self._overrides: dict[str, typing.Any] = {}
         self._presets = presets
-        self._preset_state = self._build_preset_state()
         self._query_params = _query_params.QueryParams.from_notebook()
+        self._preset_state = self._build_preset_state()
+        self._default_preset_state = self._build_default_preset_state()
 
     @classmethod
     def with_overrides(cls, overrides: dict[str, typing.Any]) -> "Group":
@@ -63,12 +64,31 @@ class Group:
             child._build_preset_state() if presets else self._preset_state
         )
         child._query_params = self._query_params.subgroup(prefix)
+        child._default_preset_state = (
+            child._build_default_preset_state()
+            if presets
+            else self._default_preset_state
+        )
         return child
 
     def _build_preset_state(self) -> _parse.ParseState | None:
         if self._presets is None or not self._presets.selected_args:
             return None
-        args = _parse.ParsedArgs.from_options(shlex.split(self._presets.selected_args))
+        return self._parse_preset_args(self._presets.selected_args)
+
+    def _build_default_preset_state(self) -> _parse.ParseState | None:
+        if (
+            self._presets is None
+            or self._query_params.params is None
+            or self._query_params.has_user_params()
+            or self._presets.get_current()
+            or not self._presets.default_args
+        ):
+            return None
+        return self._parse_preset_args(self._presets.default_args)
+
+    def _parse_preset_args(self, args_text: str) -> _parse.ParseState:
+        args = _parse.ParsedArgs.from_options(shlex.split(args_text))
         return _parse.ParseState(args=args)
 
     def interface(self, *controls: typing.Any) -> interface.Interface:
@@ -432,15 +452,21 @@ class Group:
                     self._state.validation_errors[control.option] = msg
                 case _options.ParseResult(value=v):
                     return v
-        val = default
         match control.parse(self._state.args):
             case _options.ParseError(message=msg):
                 self._state.validation_errors[control.option] = msg
             case _options.ParseResult(value=v):
-                val = v
+                return v
             case None:
                 pass
-        return val
+        if self._default_preset_state is not None:
+            match control.parse(self._default_preset_state.args):
+                case _options.ParseResult(value=v):
+                    self._sync_query_param(control, v, key)
+                    return v
+                case _:
+                    pass
+        return default
 
     def _is_overridden(self, option: str) -> bool:
         return self._override_key(option) in self._overrides

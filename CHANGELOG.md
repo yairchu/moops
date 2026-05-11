@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   parameters and keep later control changes reflected in the URL.
 - Embedded notebooks now include an "Open in new tab" link that carries their
   current parameters into the standalone notebook.
+- Notebook presets named `default` now initialize controls when no explicit
+  preset or query parameter is selected.
 
 ## [0.1.1] - 2026-05-09
 
