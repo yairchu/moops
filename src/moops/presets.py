@@ -40,5 +40,20 @@ class Presets:
         if not name:
             return
         self._data[name] = args
-        json.dump({"presets": self._data}, self._filename.open("w"), indent=2)
+        self._write()
         self.select(name)
+
+    def rename(self, old_name: str, new_name: str) -> None:
+        if not old_name or not new_name:
+            return
+        args = self._data.get(old_name)
+        if args is None:
+            return
+        if old_name != new_name:
+            del self._data[old_name]
+        self._data[new_name] = args
+        self._write()
+        self.select(new_name)
+
+    def _write(self) -> None:
+        json.dump({"presets": self._data}, self._filename.open("w"), indent=2)

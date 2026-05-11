@@ -276,6 +276,14 @@ class _PresetsUI:
                 self._name_input.value or "default", get_args()
             ),
         )
+        self._rename_input = mo.ui.text(label="to", placeholder="default")
+        self._rename_btn = mo.ui.button(
+            label="Rename",
+            on_click=lambda _: presets.rename(
+                self._active_preset or "",
+                self._rename_input.value or "default",
+            ),
+        )
         self._reset_btn = mo.ui.button(
             label="Clear changes",
             on_click=lambda _: self._select_preset(self._active_preset),
@@ -297,6 +305,8 @@ class _PresetsUI:
         controls: list[typing.Any] = [self._dropdown]
         if args != active_args:
             controls.extend([self._reset_btn, self._save_btn, self._name_input])
+        elif self._active_preset:
+            controls.extend([self._rename_btn, self._rename_input])
         return mo.hstack(
             controls,
             justify="start",
