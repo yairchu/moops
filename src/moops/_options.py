@@ -12,6 +12,8 @@ from . import _parse
 
 Numeric = int | float
 
+_UNSET: typing.Any = object()
+
 
 @dataclasses.dataclass
 class ParseError:
@@ -72,8 +74,14 @@ class InputControl(abc.ABC):
         """Format the command line arguments for a given value."""
 
     @abc.abstractmethod
-    def prompt_interactive(self) -> dict[str, str | None]:
-        """Prompt the user for a value. Returns entries to inject into args.options."""
+    def prompt_interactive(
+        self, effective_default: typing.Any = _UNSET
+    ) -> dict[str, str | None]:
+        """Prompt the user for a value. Returns entries to inject into args.options.
+
+        effective_default overrides self.default for display when the caller
+        has a better default (e.g. from a preset).
+        """
 
 
 @dataclasses.dataclass
@@ -113,8 +121,11 @@ class FlagControl(InputControl):
     def format_query_value(self, value: typing.Any) -> str | None:
         return None if value == self.default else str(bool(value)).lower()
 
-    def prompt_interactive(self) -> dict[str, str | None]:
-        default_str = "y" if self.default else "n"
+    def prompt_interactive(
+        self, effective_default: typing.Any = _UNSET
+    ) -> dict[str, str | None]:
+        d = self.default if effective_default is _UNSET else effective_default
+        default_str = "y" if d else "n"
         response = input(f"{self.help_text} [y/n] (default: {default_str}): ")
         response = response.strip().lower()
         if not response:
@@ -159,8 +170,11 @@ class TextControl(ValueControl):
     def format_query_value(self, value: typing.Any) -> str | None:
         return None if value == self.default else str(value)
 
-    def prompt_interactive(self) -> dict[str, str | None]:
-        default_display = f" [{self.default}]" if self.default else ""
+    def prompt_interactive(
+        self, effective_default: typing.Any = _UNSET
+    ) -> dict[str, str | None]:
+        d = self.default if effective_default is _UNSET else effective_default
+        default_display = f" [{d}]" if d else ""
         response = input(f"{self.help_text}{default_display}: ")
         return {} if not response else {self.option: response}
 
@@ -206,8 +220,11 @@ class TextAreaControl(ValueControl):
     def format_query_value(self, value: typing.Any) -> str | None:
         return None if value == self.default else str(value)
 
-    def prompt_interactive(self) -> dict[str, str | None]:
-        default_display = f" [{self.default!r}]" if self.default else ""
+    def prompt_interactive(
+        self, effective_default: typing.Any = _UNSET
+    ) -> dict[str, str | None]:
+        d = self.default if effective_default is _UNSET else effective_default
+        default_display = f" [{d!r}]" if d else ""
         print(f"  (for multi-line input, use {self._stdin_flag} instead)")
         response = input(f"{self.help_text}{default_display}: ")
         return {} if not response else {self.option: response}
@@ -239,8 +256,11 @@ class NumberControl(ValueControl):
     def format_query_value(self, value: typing.Any) -> str | None:
         return None if value == self.default else str(value)
 
-    def prompt_interactive(self) -> dict[str, str | None]:
-        default_display = f" [{self.default}]" if self.default is not None else ""
+    def prompt_interactive(
+        self, effective_default: typing.Any = _UNSET
+    ) -> dict[str, str | None]:
+        d = self.default if effective_default is _UNSET else effective_default
+        default_display = f" [{d}]" if d is not None else ""
         while True:
             response = input(f"{self.help_text}{default_display}: ").strip()
             if not response:
@@ -354,12 +374,15 @@ class RangeControl(ValueControl):
             return None
         return _format_range(value)
 
-    def prompt_interactive(self) -> dict[str, str | None]:
+    def prompt_interactive(
+        self, effective_default: typing.Any = _UNSET
+    ) -> dict[str, str | None]:
+        d = self.default if effective_default is _UNSET else effective_default
         if self.allowed_values:
             print(f"  Allowed values: {', '.join(str(v) for v in self.allowed_values)}")
         elif self.start is not None and self.stop is not None:
             print(f"  Range: {self.start} to {self.stop}")
-        default_display = f" [{_format_range(self.default)}]" if self.default else ""
+        default_display = f" [{_format_range(d)}]" if d else ""
         while True:
             response = input(f"{self.help_text} (min,max){default_display}: ").strip()
             if not response:
@@ -453,11 +476,14 @@ class DropdownControl(InputControl):
             return None
         return "" if value is None else str(value)
 
-    def prompt_interactive(self) -> dict[str, str | None]:
+    def prompt_interactive(
+        self, effective_default: typing.Any = _UNSET
+    ) -> dict[str, str | None]:
+        d = self.default if effective_default is _UNSET else effective_default
         choices = (["none"] if self.supports_none else []) + self.allowed_values
         for i, v in enumerate(choices, 1):
             print(f"  {i}) {v}")
-        default_display = f" [{self.default if self.default is not None else 'none'}]"
+        default_display = f" [{d if d is not None else 'none'}]"
         while True:
             response = input(f"{self.help_text}{default_display}: ").strip()
             if not response:

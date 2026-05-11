@@ -84,7 +84,10 @@ class Group:
     def _build_default_preset_state(self) -> _parse.ParseState | None:
         if (
             self._presets is None
-            or self._query_params.params is None
+            or (
+                self._query_params.params is None
+                and not self._state.args.is_interactive
+            )
             or self._query_params.has_user_params()
             or self._presets.get_current() is not None
             or not self._presets.default_args
@@ -473,8 +476,17 @@ class Group:
                 return v
             case None:
                 if self._state.args.is_interactive and not mo.running_in_notebook():
+                    effective_default = default
+                    if self._default_preset_state is not None:
+                        match control.parse(self._default_preset_state.args):
+                            case _options.ParseResult(value=v):
+                                effective_default = v
+                            case _:
+                                pass
                     try:
-                        self._state.args.options.update(control.prompt_interactive())
+                        self._state.args.options.update(
+                            control.prompt_interactive(effective_default)
+                        )
                     except KeyboardInterrupt:
                         print("\nAborted.")
                         sys.exit(1)
