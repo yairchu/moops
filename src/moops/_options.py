@@ -71,6 +71,10 @@ class InputControl(abc.ABC):
     def format_value(self, value: typing.Any) -> list[str]:
         """Format the command line arguments for a given value."""
 
+    @abc.abstractmethod
+    def prompt_interactive(self) -> dict[str, str | None]:
+        """Prompt the user for a value. Returns entries to inject into args.options."""
+
 
 @dataclasses.dataclass
 class FlagControl(InputControl):
@@ -109,6 +113,15 @@ class FlagControl(InputControl):
     def format_query_value(self, value: typing.Any) -> str | None:
         return None if value == self.default else str(bool(value)).lower()
 
+    def prompt_interactive(self) -> dict[str, str | None]:
+        default_str = "y" if self.default else "n"
+        response = input(f"{self.help_text} [y/n] (default: {default_str}): ")
+        response = response.strip().lower()
+        if not response:
+            return {}
+        wants = response in ("y", "yes", "1", "true")
+        return {} if wants == self.default else {self.option: None}
+
 
 @dataclasses.dataclass
 class ValueControl(InputControl):
@@ -145,6 +158,11 @@ class TextControl(ValueControl):
 
     def format_query_value(self, value: typing.Any) -> str | None:
         return None if value == self.default else str(value)
+
+    def prompt_interactive(self) -> dict[str, str | None]:
+        default_display = f" [{self.default}]" if self.default else ""
+        response = input(f"{self.help_text}{default_display}: ")
+        return {} if not response else {self.option: response}
 
 
 @dataclasses.dataclass
@@ -188,6 +206,12 @@ class TextAreaControl(ValueControl):
     def format_query_value(self, value: typing.Any) -> str | None:
         return None if value == self.default else str(value)
 
+    def prompt_interactive(self) -> dict[str, str | None]:
+        default_display = f" [{self.default!r}]" if self.default else ""
+        print(f"  (for multi-line input, use {self._stdin_flag} instead)")
+        response = input(f"{self.help_text}{default_display}: ")
+        return {} if not response else {self.option: response}
+
 
 @dataclasses.dataclass
 class NumberControl(ValueControl):
@@ -214,6 +238,18 @@ class NumberControl(ValueControl):
 
     def format_query_value(self, value: typing.Any) -> str | None:
         return None if value == self.default else str(value)
+
+    def prompt_interactive(self) -> dict[str, str | None]:
+        default_display = f" [{self.default}]" if self.default is not None else ""
+        while True:
+            response = input(f"{self.help_text}{default_display}: ").strip()
+            if not response:
+                return {}
+            try:
+                float(response)
+                return {self.option: response}
+            except ValueError:
+                print("Please enter a valid number.")
 
 
 @dataclasses.dataclass
@@ -318,6 +354,21 @@ class RangeControl(ValueControl):
             return None
         return _format_range(value)
 
+    def prompt_interactive(self) -> dict[str, str | None]:
+        if self.allowed_values:
+            print(f"  Allowed values: {', '.join(str(v) for v in self.allowed_values)}")
+        elif self.start is not None and self.stop is not None:
+            print(f"  Range: {self.start} to {self.stop}")
+        default_display = f" [{_format_range(self.default)}]" if self.default else ""
+        while True:
+            response = input(f"{self.help_text} (min,max){default_display}: ").strip()
+            if not response:
+                return {}
+            if "," not in response or len(response.split(",")) != 2:
+                print("Please enter two numbers separated by a comma, e.g. 10,20")
+                continue
+            return {self.option: response}
+
 
 @dataclasses.dataclass
 class DropdownControl(InputControl):
@@ -401,6 +452,29 @@ class DropdownControl(InputControl):
         if value == self.default:
             return None
         return "" if value is None else str(value)
+
+    def prompt_interactive(self) -> dict[str, str | None]:
+        choices = (["none"] if self.supports_none else []) + self.allowed_values
+        for i, v in enumerate(choices, 1):
+            print(f"  {i}) {v}")
+        default_display = f" [{self.default if self.default is not None else 'none'}]"
+        while True:
+            response = input(f"{self.help_text}{default_display}: ").strip()
+            if not response:
+                return {}
+            if response.isdigit() and 1 <= int(response) <= len(choices):
+                chosen = choices[int(response) - 1]
+            elif response in self.allowed_values:
+                chosen = response
+            elif response.lower() == "none" and self.supports_none:
+                chosen = "none"
+            else:
+                print(f"Please choose from: {', '.join(choices)}")
+                continue
+            if chosen == "none":
+                no_flag = self._no_flag
+                return {no_flag: None} if no_flag else {}
+            return {self.option: chosen}
 
 
 def _parse_number(option: str, value: str) -> ParseResult | ParseError:

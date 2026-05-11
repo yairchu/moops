@@ -471,7 +471,13 @@ class Group:
             case _options.ParseResult(value=v):
                 return v
             case None:
-                pass
+                if self._state.args.is_interactive and not mo.running_in_notebook():
+                    self._state.args.options.update(control.prompt_interactive())
+                    match control.parse(self._state.args):
+                        case _options.ParseResult(value=v):
+                            return v
+                        case _:
+                            pass
         if self._default_preset_state is not None:
             match control.parse(self._default_preset_state.args):
                 case _options.ParseResult(value=v):

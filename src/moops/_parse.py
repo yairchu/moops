@@ -4,6 +4,7 @@ import sys
 import marimo as mo
 
 help_flags = ["--help", "-h"]
+interactive_flag = "--interactive"
 
 
 @dataclasses.dataclass
@@ -14,6 +15,10 @@ class ParsedArgs:
     @property
     def is_help(self) -> bool:
         return any(x in self.options for x in help_flags)
+
+    @property
+    def is_interactive(self) -> bool:
+        return interactive_flag in self.options
 
     @classmethod
     def from_options(cls, args: list[str]) -> "ParsedArgs":

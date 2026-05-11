@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `--interactive` flag: when passed, prompts for any control not specified on
+  the command line, so scripts can be driven interactively without a notebook.
 - Marimo browser notebooks now initialize `Group()` controls from URL query
   parameters and keep later control changes reflected in the URL.
 - Embedded notebooks now include an "Open in new tab" link that carries their
