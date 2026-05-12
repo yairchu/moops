@@ -7,4 +7,5 @@ uv run ruff format --check .
 uv run pyright
 uv run vulture src/ tests/ vulture_whitelist.py
 uv run pytest -q
+uv run marimo check examples
 uv run pymarkdown --config .pymarkdown.json scan -r -e .pytest_cache -e .venv -e .claude .
