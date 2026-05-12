@@ -217,29 +217,25 @@ class Interface:
         args = self._current_args()
         name = self.command.rsplit("/", 1)[-1]
         current_command = f"{name} {args}" if args else name
+        missing_options = self.missing_options()
+        missing_options_msg = (
+            f"\nMissing options: {', '.join(f'`{opt}`' for opt in missing_options)}"
+            if missing_options
+            else ""
+        )
         items: list[typing.Any] = [
             mo.callout(
                 mo.md(
                     f"This notebook also works as a script:\n```\n{self.help()}\n```\n"
                     "To run the script with the current values in the notebook use:\n"
                     f"```\n{current_command}\n```"
+                    f"{missing_options_msg}"
                 ),
-                "info",
+                "warn" if missing_options else "info",
             )
         ]
         if self._presets_ui is not None:
             items.append(self._presets_ui.layout(args))
-        missing_options = self.missing_options()
-        if missing_options:
-            items.append(
-                mo.callout(
-                    mo.md(
-                        "Missing options: "
-                        f"{', '.join(f'`{opt}`' for opt in missing_options)}"
-                    ),
-                    "warn",
-                )
-            )
         return mo.vstack(items)
 
     def _select_preset(self, preset: str | None) -> None:
