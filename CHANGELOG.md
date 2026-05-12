@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-12
+
 ### Added
 
 - `group.file_browser()`: file browser UI in notebooks, maps to a CLI path option.
@@ -21,6 +23,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   preset or query parameter is selected.
 - `group.custom()`: use a custom notebook control with an existing moops
   control as the CLI fallback.
+
+### Fixed
+
+- Missing option warnings now include omitted subgroup interfaces.
 
 ## [0.1.1] - 2026-05-09
 
