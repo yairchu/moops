@@ -196,7 +196,8 @@ class FileControl(TextControl):
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         result = super().parse(args)
         match result:
-            case ParseResult(value=v) if not pathlib.Path(v).exists():
+            case ParseResult(value=v) if v and not pathlib.Path(v).exists():
+                # Empty string means no file selected; skip existence check.
                 return ParseError(f"File not found: {v!r}")
             case _:
                 pass
