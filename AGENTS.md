@@ -19,6 +19,18 @@ For bug fixes where a new or changed test documents the bug, prefer two commits:
 first commit the focused failing regression test, then commit the fix that makes
 the test pass.
 
+## Changelog
+
+Update `CHANGELOG.md` for user-visible behavior changes, API changes, bug fixes,
+and new features that should be mentioned in release notes.
+
+Do not update the changelog for test-only commits, internal refactors,
+formatting-only changes, or documentation-only changes unless the documentation
+change itself is release-relevant.
+
+Bug fixes for bugs introduced after the last release do not require changelog
+entries.
+
 ## Tests
 
 Only add or change tests when they document a bug or surprising behavior discovered while working on the task.
