@@ -9,6 +9,7 @@ import pytest
 from marimo._plugins.ui._core.ui_element import UIElement
 
 import moops
+import moops.group as group_module
 from moops import Group, _input_map, _options, _parse
 
 
@@ -98,6 +99,41 @@ def test_subgroup_controls_visible_in_parent_help(capsys: pytest.CaptureFixture[
     with pytest.raises(SystemExit):
         g.interface(casing.interface(ctrl))
     assert "--casing-style" in capsys.readouterr().out
+
+
+def test_subgroup_markdown_demotes_headings_in_notebooks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rendered: list[str] = []
+
+    def fake_md(text: str) -> mo.Html:
+        rendered.append(text)
+        return typing.cast(mo.Html, object())
+
+    g = Group(cli_args=["script.py"])
+    sub = g.subgroup("embedded")
+
+    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
+    monkeypatch.setattr(group_module.mo, "md", fake_md)
+
+    sub.md("# Title\n## Section\n```\n# Not a title\n```\n####### Not a heading\n")
+
+    assert rendered == [
+        "## Title\n### Section\n```\n# Not a title\n```\n####### Not a heading\n"
+    ]
+
+
+def test_subgroup_markdown_demotes_headings_in_cli(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    g = Group(cli_args=["script.py"])
+    sub = g.subgroup("embedded")
+
+    sub.md("# Title\n## Section\n```\n# Not a title\n```")
+
+    assert (
+        capsys.readouterr().out == "## Title\n### Section\n```\n# Not a title\n```\n\n"
+    )
 
 
 def test_missing_subgroup_interface_warns_when_not_passed_to_parent() -> None:
