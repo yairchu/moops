@@ -51,7 +51,11 @@ class InputControl(abc.ABC):
         result = self.parse(
             _parse.ParsedArgs(options={self.option: value}, unexpected=[])
         )
-        assert result is not None
+        if result is None:
+            raise RuntimeError(
+                f"parse() returned None for option {self.option!r} even though"
+                " it was present in args — this is a bug in the control implementation"
+            )
         return result
 
     @abc.abstractmethod
@@ -127,12 +131,19 @@ class FlagControl(InputControl):
     ) -> dict[str, str | None]:
         d = self.default if effective_default is _UNSET else effective_default
         default_str = "y" if d else "n"
-        response = input(f"{self.help_text} [y/n] (default: {default_str}): ")
-        response = response.strip().lower()
-        if not response:
-            return {}
-        wants = response in ("y", "yes", "1", "true")
-        return {} if wants == self.default else {self.option: None}
+        while True:
+            response = input(f"{self.help_text} [y/n] (default: {default_str}): ")
+            response = response.strip().lower()
+            if not response:
+                return {}
+            if response in ("y", "yes", "1", "true"):
+                wants = True
+            elif response in ("n", "no", "0", "false"):
+                wants = False
+            else:
+                print("Please enter y or n.")
+                continue
+            return {} if wants == self.default else {self.option: None}
 
 
 @dataclasses.dataclass
@@ -519,16 +530,24 @@ class DropdownControl(InputControl):
             response = input(f"{self.help_text}{default_display}: ").strip()
             if not response:
                 return {}
+            select_none = False
+            chosen = ""
             if response.isdigit() and 1 <= int(response) <= len(choices):
-                chosen = choices[int(response) - 1]
+                idx = int(response) - 1
+                select_none = self.supports_none and idx == 0
+                chosen = choices[idx]
             elif response in self.allowed_values:
                 chosen = response
-            elif response.lower() == "none" and self.supports_none:
-                chosen = "none"
+            elif (
+                response.lower() == "none"
+                and self.supports_none
+                and "none" not in self.allowed_values
+            ):
+                select_none = True
             else:
                 print(f"Please choose from: {', '.join(choices)}")
                 continue
-            if chosen == "none":
+            if select_none:
                 no_flag = self._no_flag
                 return {no_flag: None} if no_flag else {}
             return {self.option: chosen}
