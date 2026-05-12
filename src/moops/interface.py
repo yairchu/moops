@@ -32,6 +32,7 @@ class Interface:
         default_factory=lambda: _query_params.QueryParams(None)
     )
     command: str = ""
+    extra_missing_options: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         seen_ids: set[int] = set()
@@ -127,6 +128,9 @@ class Interface:
                 if cli is not None and not self._is_overridden(cli):
                     yield cli
 
+    def input_options(self) -> list[str]:
+        return [cli.option for cli in self._all_input_controls()]
+
     def _key(self, cli: _options.InputControl) -> str:
         option = cli.option[len(self.option_prefix) :].lstrip("-")
         if option.startswith("no-"):
@@ -168,7 +172,7 @@ class Interface:
             cli.option
             for cli in self.cli_map.registered_options()
             if cli.option not in covered
-        ]
+        ] + list(self.extra_missing_options)
 
     def validate_or_exit(self, state: _parse.ParseState) -> None:
         issues = list(self.validate(state))

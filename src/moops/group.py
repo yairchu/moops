@@ -6,6 +6,7 @@ import shlex
 import sys
 import typing
 import warnings
+import weakref
 
 import marimo as mo
 
@@ -41,6 +42,10 @@ class Group:
         self._preset_state = self._build_preset_state()
         self._default_preset_state = self._build_default_preset_state()
         self._active_preset = self._build_active_preset()
+        self._parent_group: Group | None = None
+        self._subgroup_interfaces: dict[
+            str, weakref.ReferenceType[interface.Interface]
+        ] = {}
 
     @classmethod
     def with_overrides(cls, overrides: dict[str, typing.Any]) -> Group:
@@ -66,6 +71,7 @@ class Group:
         child = type(self)([prefix])
         child._state = self._state
         child._cli_map = _input_map.InputMap()
+        child._parent_group = self
         child._overrides = {**self._overrides.get(prefix, {}), **(overrides or {})}
         child.option = f"{self.option}-{prefix}" if self.option else f"--{prefix}"
         child._presets = presets
@@ -130,6 +136,9 @@ class Group:
             )
         except ValueError:
             notebook_file = caller_path
+        extra_missing_options = tuple(
+            self._missing_subgroup_interface_options(controls)
+        )
         iface = interface.Interface(
             controls,
             cli_map=self._cli_map,
@@ -141,7 +150,10 @@ class Group:
             active_preset=self._active_preset,
             query_params=self._query_params,
             command=self._command,
+            extra_missing_options=extra_missing_options,
         )
+        if self._parent_group is not None:
+            self._parent_group._register_subgroup_interface(iface)
         if self.option or not mo.running_in_notebook():
             missing_options = iface.missing_options()
             if missing_options:
@@ -153,6 +165,33 @@ class Group:
         if not self.option and not mo.running_in_notebook():
             iface.validate_or_exit(self._state)
         return iface
+
+    def _register_subgroup_interface(self, iface: interface.Interface) -> None:
+        self._subgroup_interfaces = {
+            prefix: ref
+            for prefix, ref in self._subgroup_interfaces.items()
+            if ref() is not None
+        }
+        self._subgroup_interfaces[iface.option_prefix] = weakref.ref(iface)
+
+    def _missing_subgroup_interface_options(
+        self, controls: typing.Sequence[typing.Any]
+    ) -> list[str]:
+        covered_ids = {
+            id(ctrl) for ctrl in controls if isinstance(ctrl, interface.Interface)
+        }
+        missing: list[str] = []
+        live_refs: dict[str, weakref.ReferenceType[interface.Interface]] = {}
+        for prefix, ref in self._subgroup_interfaces.items():
+            iface = ref()
+            if iface is None:
+                continue
+            live_refs[prefix] = ref
+            if id(iface) in covered_ids:
+                continue
+            missing.extend(iface.input_options())
+        self._subgroup_interfaces = live_refs
+        return missing
 
     def md(self, text: str) -> mo.Html | None:
         """Display markdown in notebooks or plain text in CLI."""
