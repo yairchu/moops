@@ -253,9 +253,11 @@ class Group:
         self._subgroup_interfaces = live_refs
         return missing
 
-    def md(self, text: str) -> mo.Html | None:
+    def md(self, text: str, *, notebook_only: bool = False) -> mo.Html | None:
         """Display markdown in notebooks or plain text in CLI."""
 
+        if notebook_only and not mo.running_in_notebook():
+            return None
         text = _demote_markdown_headings(text, self._markdown_heading_offset)
         if mo.running_in_notebook():
             return mo.md(text)

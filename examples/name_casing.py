@@ -7,8 +7,19 @@
 
 import marimo
 
-__generated_with = "0.23.5"
+__generated_with = "0.23.6"
 app = marimo.App(width="full")
+
+
+@app.cell(hide_code=True)
+def _(args):
+    args.md(
+        r"""
+    # Name casing
+    """,
+        notebook_only=True,
+    )
+    return
 
 
 @app.cell
