@@ -136,6 +136,19 @@ def test_subgroup_markdown_demotes_headings_in_cli(
     )
 
 
+def test_subgroup_markdown_heading_offset_is_configurable(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    g = Group(cli_args=["script.py"])
+    same_level = g.subgroup("same", markdown_heading_offset=0)
+    deeper = g.subgroup("deeper", markdown_heading_offset=2)
+
+    same_level.md("# Same")
+    deeper.md("# Deeper")
+
+    assert capsys.readouterr().out == "# Same\n\n### Deeper\n\n"
+
+
 def test_missing_subgroup_interface_warns_when_not_passed_to_parent() -> None:
     g = Group(cli_args=["script.py"])
     casing = g.subgroup("casing")

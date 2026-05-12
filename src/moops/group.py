@@ -108,6 +108,7 @@ class Group:
         prefix: str,
         overrides: dict[str, typing.Any] | None = None,
         presets: Presets | None = None,
+        markdown_heading_offset: int = 1,
     ) -> Group:
         """Create a child Group that prefixes all its option names with '{prefix}-'.
 
@@ -117,12 +118,20 @@ class Group:
 
         Pass `presets=` to give the subgroup its own preset selector; otherwise
         it inherits the parent's preset state.
+
+        Markdown headings emitted by the subgroup are demoted by one level by
+        default. Pass `markdown_heading_offset=` to customize how many levels
+        this subgroup adds relative to its parent.
         """
+        if markdown_heading_offset < 0:
+            raise ValueError("markdown_heading_offset must be non-negative")
         child = type(self)([prefix])
         child._state = self._state
         child._cli_map = _input_map.InputMap()
         child._parent_group = self
-        child._markdown_heading_offset = self._markdown_heading_offset + 1
+        child._markdown_heading_offset = (
+            self._markdown_heading_offset + markdown_heading_offset
+        )
         child._overrides = {**self._overrides.get(prefix, {}), **(overrides or {})}
         child.option = f"{self.option}-{prefix}" if self.option else f"--{prefix}"
         child._presets = presets
