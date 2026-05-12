@@ -3,17 +3,14 @@ import json
 import pathlib
 import typing
 
-PresetGetter = typing.Callable[[], str | None]
-PresetSetter = typing.Callable[[str | None], None]
-
 
 class Presets:
     """Preset selector backed by a JSON file."""
 
     def __init__(
         self,
-        get_selected_preset: PresetGetter,
-        set_selected_preset: PresetSetter,
+        get_selected_preset: typing.Callable[[], str | None],
+        set_selected_preset: typing.Callable[[str | None], None],
         *,
         filename: str | pathlib.Path | None = None,
     ) -> None:
