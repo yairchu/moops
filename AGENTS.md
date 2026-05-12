@@ -1,5 +1,12 @@
 # Agent Instructions
 
+## Commits
+
+When committing changes made with AI assistant help, add the appropriate
+co-author trailer for the assistant involved. For Codex, use:
+
+`Co-authored-by: OpenAI Codex <codex@openai.com>`
+
 ## Tests
 
 Only add or change tests when they document a bug or surprising behavior discovered while working on the task.
