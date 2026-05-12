@@ -1,3 +1,4 @@
+import dataclasses
 import gc
 import typing
 import urllib.parse
@@ -8,7 +9,7 @@ import pytest
 from marimo._plugins.ui._core.ui_element import UIElement
 
 import moops
-from moops import Group, _input_map, _options
+from moops import Group, _input_map, _options, _parse
 
 
 def test_help_exits_zero() -> None:
@@ -289,6 +290,80 @@ def test_interactive_range_bad_numbers_reprompts(
     )
     g.interface(ctrl)
     assert ctrl.value == [20, 80]
+
+
+def test_interactive_flag_invalid_input_reprompts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = iter(["maybe", "y"])
+
+    def fake_input(_prompt: str) -> str:
+        return next(responses)
+
+    monkeypatch.setattr("builtins.input", fake_input)
+    g = Group(cli_args=["script.py", "--interactive"])
+    ctrl = g.switch(label="Verbose", help_text="Enable verbose output")
+    g.interface(ctrl)
+    assert ctrl.value is True
+
+
+def test_interactive_dropdown_none_value_not_treated_as_sentinel(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Dropdown with "none" as an allowed value: selecting it by text should not
+    be treated as the no-selection sentinel."""
+    responses = iter(["none"])
+
+    def fake_input(_prompt: str) -> str:
+        return next(responses)
+
+    monkeypatch.setattr("builtins.input", fake_input)
+    g = Group(cli_args=["script.py", "--interactive"])
+    ctrl = g.dropdown(
+        ["none", "some"],
+        value="some",
+        label="Mode",
+        help_text="Mode",
+        allow_select_none=False,
+    )
+    g.interface(ctrl)
+    assert ctrl.value == "none"
+
+
+def test_parse_query_value_raises_runtime_error_for_broken_control() -> None:
+    """A control whose parse() returns None despite the option being present
+    should raise RuntimeError, not AssertionError."""
+
+    @dataclasses.dataclass
+    class BrokenControl(_options.InputControl):
+        def parse(
+            self, args: _parse.ParsedArgs
+        ) -> _options.ParseResult | _options.ParseError | None:
+            return None  # always broken
+
+        def format_help_lines(self) -> list[str]:
+            return []
+
+        def format_value(self, value: typing.Any) -> list[str]:
+            return []
+
+        def format_query_value(self, value: typing.Any) -> str | None:
+            return None
+
+        def format_usage_parts(self) -> list[str]:
+            return []
+
+        def prompt_interactive(
+            self, effective_default: typing.Any = None
+        ) -> dict[str, str | None]:
+            return {}
+
+        def strategy(self):  # type: ignore[override]
+            return None
+
+    ctrl = BrokenControl(option="--foo", help_text="foo")
+    with pytest.raises(RuntimeError, match="bug in the control implementation"):
+        ctrl.parse_query_value("bar")
 
 
 def test_composite_child_keeps_moops_metadata() -> None:

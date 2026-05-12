@@ -1,5 +1,9 @@
 # Agent Instructions
 
+## Before committing
+
+Run `bash check.sh` and fix any errors before committing.
+
 ## Commits
 
 When committing changes made with AI assistant help, add the appropriate
