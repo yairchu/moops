@@ -4,12 +4,20 @@
 
 Run `bash check.sh` and fix any errors before committing.
 
+Exception: when committing a regression test that intentionally demonstrates a
+bug before the fix, run the focused test that shows the failure instead of
+`bash check.sh`, and mention that expected failure in the commit message.
+
 ## Commits
 
 When committing changes made with AI assistant help, add the appropriate
 co-author trailer for the assistant involved. For Codex, use:
 
 `Co-authored-by: OpenAI Codex <codex@openai.com>`
+
+For bug fixes where a new or changed test documents the bug, prefer two commits:
+first commit the focused failing regression test, then commit the fix that makes
+the test pass.
 
 ## Tests
 
