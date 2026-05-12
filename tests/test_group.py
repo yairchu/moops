@@ -99,6 +99,38 @@ def test_subgroup_controls_visible_in_parent_help(capsys: pytest.CaptureFixture[
     assert "--casing-style" in capsys.readouterr().out
 
 
+def test_missing_subgroup_interface_warns_when_not_passed_to_parent() -> None:
+    g = Group(cli_args=["script.py"])
+    casing = g.subgroup("casing")
+    ctrl = casing.dropdown(
+        ["snake_case", "camel_case"], label="Style", help_text="Text style"
+    )
+    _iface = casing.interface(ctrl)
+
+    with pytest.warns(
+        UserWarning,
+        match=(
+            "Controls registered with this Group "
+            "but not passed to interface.*--casing-style"
+        ),
+    ):
+        g.interface()
+
+
+def test_missing_subgroup_interface_options_are_on_parent_interface() -> None:
+    g = Group(cli_args=["script.py"])
+    casing = g.subgroup("casing")
+    ctrl = casing.dropdown(
+        ["snake_case", "camel_case"], label="Style", help_text="Text style"
+    )
+    _iface = casing.interface(ctrl)
+
+    with pytest.warns(UserWarning, match="--casing-style"):
+        iface = g.interface()
+
+    assert iface.missing_options() == ["--casing-style"]
+
+
 def test_overridden_control_not_in_help(capsys: pytest.CaptureFixture[str]):
     g = Group(cli_args=["script.py", "--help"])
     casing = g.subgroup("casing", overrides={"style": "snake_case"})
