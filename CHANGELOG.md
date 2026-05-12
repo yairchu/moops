@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- `Presets` now infers its JSON filename from the calling notebook or script by
+  default. Pass `filename=` to customize where presets are stored.
 - Markdown headings emitted by subgroups are demoted by one level by default,
   with `markdown_heading_offset` available to customize the offset.
 

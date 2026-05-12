@@ -77,6 +77,16 @@ those controls from the URL. Query keys use the same names as `moops.run`
 keyword arguments. For subgroups, use dot-separated names such as
 `?casing.style=camel_case`.
 
+## Presets
+
+Presets save and restore named groups of control values from a JSON file stored
+next to the calling notebook as `<notebook>_presets.json`.
+
+```python
+get_preset, set_preset = mo.state(None)
+args = moops.Group(presets=moops.Presets(get_preset, set_preset))
+```
+
 ## Custom notebook controls
 
 Use `args.custom()` when the notebook needs an interactive control that moops

@@ -9,8 +9,22 @@ from moops.interface import Interface
 from moops.presets import Presets
 
 
-def test_preset_ui_elements_stable_across_renders(tmp_path: pathlib.Path) -> None:
-    presets = Presets(tmp_path / "presets.json", lambda: None, lambda _: None)
+def _mock_preset_caller(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: pathlib.Path,
+    filename: str = "notebook.py",
+) -> None:
+    caller = mock.Mock(filename=str(tmp_path / filename))
+    frame = mock.Mock(filename=str(tmp_path / "test.py"))
+    monkeypatch.setattr("moops.presets.inspect.stack", lambda: [frame, frame, caller])
+
+
+def test_preset_ui_elements_stable_across_renders(
+    tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _mock_preset_caller(monkeypatch, tmp_path)
+    presets = Presets(lambda: None, lambda _: None)
     iface = Interface(controls=(), presets=presets, command="script.py")  # type: ignore[arg-type]
     assert iface._presets_ui is not None  # type: ignore[reportPrivateUsage]
     iface._mime_()  # type: ignore[misc]
@@ -268,12 +282,15 @@ def test_factory_preset_can_reset_saved_default() -> None:
     delete.assert_called_once_with("default")
 
 
-def test_delete_calls_select_to_trigger_rerender(tmp_path: pathlib.Path) -> None:
+def test_delete_calls_select_to_trigger_rerender(
+    tmp_path: pathlib.Path,
+) -> None:
     selected: list[str | None] = []
+    filename = tmp_path / "presets.json"
     presets = Presets(
-        tmp_path / "presets.json",
         get_selected_preset=lambda: None,
         set_selected_preset=selected.append,
+        filename=filename,
     )
     presets.save("default", "--foo bar")
     selected.clear()
@@ -281,6 +298,40 @@ def test_delete_calls_select_to_trigger_rerender(tmp_path: pathlib.Path) -> None
     presets.delete("default")
 
     assert selected == [""]
+    assert filename.exists()
+
+
+def test_presets_can_infer_filename_from_caller(
+    tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _mock_preset_caller(monkeypatch, tmp_path)
+    selected: list[str | None] = []
+    presets = Presets(lambda: None, selected.append)
+
+    presets.save("default", "--foo bar")
+
+    assert (tmp_path / "notebook_presets.json").read_text() == (
+        '{\n  "presets": {\n    "default": "--foo bar"\n  }\n}'
+    )
+    assert selected == ["default"]
+
+
+def test_presets_prefer_marimo_notebook_filename(
+    tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    notebook = tmp_path / "notebook.py"
+    generated_cell = tmp_path / "marimo_123" / "__marimo__cell_Xref__presets.py"
+    frame = mock.Mock(filename=str(generated_cell))
+    monkeypatch.setattr("moops.presets.inspect.stack", lambda: [frame, frame, frame])
+    monkeypatch.setattr("moops.presets._marimo_notebook_filename", lambda: notebook)
+
+    presets = Presets(lambda: None, lambda _: None)
+    presets.save("default", "--foo bar")
+
+    assert (tmp_path / "notebook_presets.json").exists()
+    assert not (generated_cell.parent / "__marimo__cell_Xref__presets.json").exists()
 
 
 def test_interactive_enter_uses_default_preset_value(
@@ -291,7 +342,8 @@ def test_interactive_enter_uses_default_preset_value(
         return ""  # press Enter
 
     monkeypatch.setattr("builtins.input", fake_input)
-    presets = Presets(tmp_path / "presets.json", lambda: None, lambda _: None)
+    _mock_preset_caller(monkeypatch, tmp_path)
+    presets = Presets(lambda: None, lambda _: None)
     presets.save("default", "--verbose")
 
     g = Group(cli_args=["script.py", "--interactive"], presets=presets)

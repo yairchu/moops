@@ -40,9 +40,7 @@ def _(mo):
 
 @app.cell
 def _(get_preset_sel, moops, set_preset_sel):
-    args = moops.Group(
-        presets=moops.Presets("file_info_presets.json", get_preset_sel, set_preset_sel)
-    )
+    args = moops.Group(presets=moops.Presets(get_preset_sel, set_preset_sel))
     return (args,)
 
 

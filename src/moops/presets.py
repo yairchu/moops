@@ -1,6 +1,10 @@
+import inspect
 import json
 import pathlib
 import typing
+
+PresetGetter = typing.Callable[[], str | None]
+PresetSetter = typing.Callable[[str | None], None]
 
 
 class Presets:
@@ -8,11 +12,14 @@ class Presets:
 
     def __init__(
         self,
-        filename: str | pathlib.Path,
-        get_selected_preset: typing.Callable[[], str | None],
-        set_selected_preset: typing.Callable[[str | None], None],
+        get_selected_preset: PresetGetter,
+        set_selected_preset: PresetSetter,
+        *,
+        filename: str | pathlib.Path | None = None,
     ) -> None:
-        self._filename = pathlib.Path(filename)
+        self._filename = (
+            pathlib.Path(filename) if filename is not None else _infer_filename()
+        )
         self.get_current = get_selected_preset
         self.select = set_selected_preset
         if self._filename.exists():
@@ -64,3 +71,32 @@ class Presets:
     def _write(self) -> None:
         with self._filename.open("w") as f:
             json.dump({"presets": self._data}, f, indent=2)
+
+
+def _infer_filename() -> pathlib.Path:
+    caller = _marimo_notebook_filename() or _stack_filename()
+    return caller.with_name(f"{caller.stem}_presets.json")
+
+
+def _marimo_notebook_filename() -> pathlib.Path | None:
+    try:
+        from marimo._runtime.context import ContextNotInitializedError, get_context
+    except ImportError:
+        return None
+
+    try:
+        filename = get_context().filename
+    except ContextNotInitializedError:
+        return None
+    if filename is None:
+        return None
+
+    path = pathlib.Path(filename)
+    return None if path.name.startswith("<") else path
+
+
+def _stack_filename() -> pathlib.Path:
+    caller = pathlib.Path(inspect.stack()[2].filename)
+    if caller.name.startswith("<"):
+        raise ValueError("Presets filename could not be inferred; pass a filename")
+    return caller
