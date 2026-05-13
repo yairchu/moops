@@ -328,6 +328,20 @@ def test_renamed_control_with_same_ui_id_replaces_old_option() -> None:
     assert old_ctrl.value is False
 
 
+def test_helper_can_make_multiple_label_derived_controls() -> None:
+    g = Group(cli_args=["script.py"])
+
+    def make_control(label: str) -> mo.ui.switch:
+        # Both controls are created from this same source line; the stale-option
+        # cleanup must key off UI identity, not the Python callsite.
+        return g.switch(label=label, help_text="Enable option")
+
+    first = make_control("First")
+    second = make_control("Second")
+
+    assert g.interface(first, second).missing_options() == []
+
+
 def test_interactive_ctrl_c_exits_cleanly(
     capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,

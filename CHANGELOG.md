@@ -20,6 +20,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Markdown headings emitted by subgroups are demoted by one level by default,
   with `markdown_heading_offset` available to customize the offset.
 
+### Fixed
+
+- Renaming a label-derived option in a notebook no longer leaves the old option
+  reported as missing while marimo still retains the previous control object.
+
 ## [0.2.0] - 2026-05-12
 
 ### Added
