@@ -314,6 +314,20 @@ def test_cli_control_freed_when_control_gc_collected() -> None:
     assert cli_ref() is None
 
 
+def test_renamed_control_with_same_ui_id_replaces_old_option() -> None:
+    g = Group(cli_args=["script.py"])
+
+    old_ctrl = g.switch(label="Be polite", help_text="Enable option")
+    ctrl = g.switch(label="Use manners", help_text="Enable option")
+    ctrl._id = old_ctrl._id  # type: ignore[reportPrivateUsage]
+    cli = g._cli_map.get(ctrl)  # type: ignore[reportPrivateUsage]
+    assert cli is not None
+    g._cli_map.register(ctrl, cli)  # type: ignore[reportPrivateUsage]
+
+    assert g.interface(ctrl).missing_options() == []
+    assert old_ctrl.value is False
+
+
 def test_interactive_ctrl_c_exits_cleanly(
     capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
