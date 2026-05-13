@@ -352,22 +352,17 @@ class Group:
         """Create a file browser UI element that maps to a CLI path option."""
         opt = self._make_opt(label=label, option=option)
         initial_path = str(initial_path)
+        ctrl_opts = {
+            "option": opt.option,
+            "metavar": "PATH",
+            "help_text": help_text,
+        }
         if multiple:
             default: str | list[str] = [initial_path] if initial_path else []
-            cli = _options.MultiFileControl(
-                option=opt.option,
-                metavar="PATH",
-                help_text=help_text,
-                default=default,
-            )
+            cli = _options.MultiFileControl(default=default, **ctrl_opts)
         else:
             default = initial_path
-            cli = _options.FileControl(
-                option=opt.option,
-                metavar="PATH",
-                help_text=help_text,
-                default=default,
-            )
+            cli = _options.FileControl(default=default, **ctrl_opts)
         value = self._get_value(cli, default)
         raw_on_change = self._query_on_change(cli, on_change)
 
