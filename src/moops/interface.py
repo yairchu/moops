@@ -361,14 +361,17 @@ class FileBrowserWithInitialSelection(mo.ui.file_browser):
         raise RuntimeError("Setting the value of a UIElement is not allowed.")
 
     def _mime_(self) -> tuple[str, str]:  # type: ignore[override]
+        files = "\n".join({f"- `{p}`" for p in self._default})
         return mo.vstack(
             [
                 mo.Html(super()._mime_()[1]),
                 mo.callout(
                     mo.md(
-                        "marimo's file browser does not support "
-                        "an initial selection — falling back to "
-                        f"`{', '.join(self._default)}`"
+                        "marimo's file browser "
+                        "[does not yet support an initial selection]"
+                        "(https://github.com/marimo-team/marimo/issues/7468). "
+                        "Falling back to:\n\n"
+                        f"{files}"
                     ),
                     kind="info",
                 ),
