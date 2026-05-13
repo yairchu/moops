@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "moops"
-version = "0.2.0"
+version = "0.3.0"
 description = "Write Marimo notebooks that also work as CLI scripts, with unified UI controls"
 license = "MIT"
 readme = "README.md"
