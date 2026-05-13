@@ -37,4 +37,9 @@ Only add or change tests when they document a bug or surprising behavior discove
 
 Do not add tests just to prove straightforward wrapper behavior, mirror an existing test for a nearly identical control, or satisfy a generic expectation that every change needs a test. Prefer using existing tests and examples for routine coverage.
 
+It is fine to write temporary tests while working if they help validate or debug
+the implementation. Before finishing, remove those temporary tests or reshape
+them into focused tests that document a real bug, surprising behavior, or
+important contract.
+
 When adding a test for a newly discovered bug, keep it focused on the observed failure. Only mark it `xfail` if the fix is not planned soon; for bugs being fixed in the same session, leave the test failing until the fix lands.
