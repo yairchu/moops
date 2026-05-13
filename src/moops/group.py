@@ -346,39 +346,49 @@ class Group:
         help_text: str,
         label: str | None = None,
         multiple: bool = True,
-        on_change: typing.Callable[[str], None] | None = None,
+        on_change: typing.Callable[[typing.Any], None] | None = None,
         **kwargs: typing.Any,
     ) -> FileBrowserWithInitialSelection | mo.ui.file_browser:
         """Create a file browser UI element that maps to a CLI path option."""
-        if multiple:
-            raise NotImplementedError("multiple=True is not yet supported")
-
         opt = self._make_opt(label=label, option=option)
         initial_path = str(initial_path)
-        cli = _options.FileControl(
-            option=opt.option,
-            metavar="PATH",
-            help_text=help_text,
-            default=initial_path,
-        )
-        value = self._get_value(cli, initial_path)
+        if multiple:
+            default: str | list[str] = [initial_path] if initial_path else []
+            cli = _options.MultiFileControl(
+                option=opt.option,
+                metavar="PATH",
+                help_text=help_text,
+                default=default,
+            )
+        else:
+            default = initial_path
+            cli = _options.FileControl(
+                option=opt.option,
+                metavar="PATH",
+                help_text=help_text,
+                default=default,
+            )
+        value = self._get_value(cli, default)
         raw_on_change = self._query_on_change(cli, on_change)
 
         def _on_change(infos: typing.Sequence[interface.FileBrowserFileInfo]) -> None:
             if raw_on_change is not None:
-                raw_on_change(str(infos[0].path) if infos else "")
+                paths = [str(info.path) for info in infos]
+                raw_on_change(paths if multiple else (paths[0] if paths else ""))
 
-        p = pathlib.Path(value) if value else None
+        paths = list(value) if multiple else ([value] if value else [])
+        first = paths[0] if paths else ""
+        p = pathlib.Path(first) if first else None
         browser_kwargs: dict[str, typing.Any] = dict(
-            initial_path=str(p.parent) if (p and p.is_file()) else (value or ""),
+            initial_path=str(p.parent) if (p and p.is_file()) else first,
             label=opt.label_with_tooltip(help_text),
             multiple=multiple,
             on_change=_on_change,
             **kwargs,
         )
         return self._cli_map.register(
-            FileBrowserWithInitialSelection(default=value, **browser_kwargs)
-            if value
+            FileBrowserWithInitialSelection(default=paths, **browser_kwargs)
+            if paths
             else mo.ui.file_browser(**browser_kwargs),
             cli,
         )
@@ -617,12 +627,12 @@ class Group:
                             case _:
                                 pass
                     try:
-                        self._state.args.options.update(
-                            control.prompt_interactive(effective_default)
-                        )
+                        prompted = control.prompt_interactive(effective_default)
                     except KeyboardInterrupt:
                         print("\nAborted.")
                         sys.exit(1)
+                    for option, value in prompted.items():
+                        self._state.args.set_value(option, value)
                     match control.parse(self._state.args):
                         case _options.ParseResult(value=v):
                             return v

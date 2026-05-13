@@ -1,5 +1,6 @@
 import abc
 import dataclasses
+import json
 import math
 import pathlib
 import shlex
@@ -49,7 +50,7 @@ class InputControl(abc.ABC):
         """Parse a value supplied by a URL query parameter."""
 
         result = self.parse(
-            _parse.ParsedArgs(options={self.option: value}, unexpected=[])
+            _parse.ParsedArgs(options={self.option: [value]}, unexpected=[])
         )
         if result is None:
             raise RuntimeError(
@@ -82,7 +83,7 @@ class InputControl(abc.ABC):
     def prompt_interactive(
         self, effective_default: typing.Any = _UNSET
     ) -> dict[str, str | None]:
-        """Prompt the user for a value. Returns entries to inject into args.options.
+        """Prompt the user for a value. Returns option values to inject into args.
 
         effective_default overrides self.default for display when the caller
         has a better default (e.g. from a preset).
@@ -97,7 +98,7 @@ class FlagControl(InputControl):
         return {self.option}
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | None:
-        return ParseResult(not self.default) if self.option in args.options else None
+        return ParseResult(not self.default) if args.has(self.option) else None
 
     def parse_query_value(self, value: str) -> ParseResult | ParseError:
         match value.lower():
@@ -164,7 +165,7 @@ class TextControl(ValueControl):
     default: str
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
-        res = args.options.get(self.option)
+        res = args.value_for(self.option)
         return None if res is None else ParseResult(res)
 
     def strategy(self) -> st.SearchStrategy:
@@ -218,6 +219,95 @@ class FileControl(TextControl):
 
 
 @dataclasses.dataclass
+class MultiFileControl(ValueControl):
+    default: list[str]
+
+    def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
+        values = args.values_for(self.option)
+        if not values:
+            return None
+        flattened = [
+            part
+            for value in values
+            for part in (
+                value.splitlines()
+                if isinstance(value, str) and "\n" in value
+                else [value]
+            )
+            if part or part is None
+        ]
+        paths: list[str] = []
+        for value in flattened:
+            if value is None:
+                return ParseError(f"Option {self.option} requires a value")
+            if value and not pathlib.Path(value).exists():
+                return ParseError(f"File not found: {value!r}")
+            paths.append(value)
+        return ParseResult(paths)
+
+    def parse_query_value(self, value: str) -> ParseResult | ParseError:
+        try:
+            raw: typing.Any = json.loads(value)
+        except json.JSONDecodeError:
+            raw = [value] if value else []
+        if not isinstance(raw, list):
+            return ParseError(
+                f"Query parameter for {self.option} must be a JSON list of paths"
+            )
+        paths: list[str] = []
+        for item in typing.cast(list[typing.Any], raw):
+            if not isinstance(item, str):
+                return ParseError(
+                    f"Query parameter for {self.option} must be a JSON list of paths"
+                )
+            if item and not pathlib.Path(item).exists():
+                return ParseError(f"File not found: {item!r}")
+            paths.append(item)
+        return ParseResult(paths)
+
+    def strategy(self) -> st.SearchStrategy:
+        return st.lists(st.text())
+
+    def format_usage_parts(self) -> list[str]:
+        return [f"[{self.option} {self.metavar} ...]"]
+
+    def format_help_lines(self) -> list[str]:
+        line = f"  {self.option} {self.metavar}: {self.help_text}"
+        if self.default:
+            line += f" (default: {', '.join(self.default)})"
+        line += f" (repeat {self.option} to select multiple files)"
+        return [line]
+
+    def format_value(self, value: typing.Any) -> list[str]:
+        values = list(value)
+        if values == self.default:
+            return []
+        return [f"{self.option} {shlex.quote(v)}" for v in values]
+
+    def format_query_value(self, value: typing.Any) -> str | None:
+        values = list(value)
+        return None if values == self.default else json.dumps(values)
+
+    def prompt_interactive(
+        self, effective_default: typing.Any = _UNSET
+    ) -> dict[str, str | None]:
+        d = self.default if effective_default is _UNSET else effective_default
+        default_display = f" [{', '.join(d)}]" if d else ""
+        while True:
+            response = input(
+                f"{self.help_text} (comma-separated paths){default_display}: "
+            )
+            if not response:
+                return {}
+            paths = [part.strip() for part in response.split(",") if part.strip()]
+            missing = [path for path in paths if not pathlib.Path(path).exists()]
+            if missing:
+                print(f"File not found: {missing[0]!r}")
+                continue
+            return {self.option: "\n".join(paths)}
+
+
+@dataclasses.dataclass
 class TextAreaControl(ValueControl):
     default: str
 
@@ -229,15 +319,15 @@ class TextAreaControl(ValueControl):
         return {self._stdin_flag}
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
-        if not mo.running_in_notebook() and self._stdin_flag in args.options:
-            if args.options[self._stdin_flag] is not None:
+        if not mo.running_in_notebook() and args.has(self._stdin_flag):
+            if args.value_for(self._stdin_flag) is not None:
                 return None
-            if self.option in args.options:
+            if args.has(self.option):
                 return ParseError(
                     f"Cannot use both {self.option} and {self._stdin_flag}"
                 )
             return ParseResult(sys.stdin.read())
-        res = args.options.get(self.option)
+        res = args.value_for(self.option)
         return None if res is None else ParseResult(res)
 
     def strategy(self) -> st.SearchStrategy:
@@ -273,7 +363,7 @@ class NumberControl(ValueControl):
     default: Numeric | None
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
-        value = args.options.get(self.option)
+        value = args.value_for(self.option)
         return None if value is None else _parse_number(self.option, value)
 
     def strategy(self) -> st.SearchStrategy:
@@ -340,7 +430,7 @@ class RangeControl(ValueControl):
         )
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
-        raw = args.options.get(self.option)
+        raw = args.value_for(self.option)
         if raw is None:
             return None
         values = raw.split(",")
@@ -460,11 +550,11 @@ class DropdownControl(InputControl):
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         no_flag = self._no_flag
-        if no_flag and no_flag in args.options:
-            if self.option in args.options:
+        if no_flag and args.has(no_flag):
+            if args.has(self.option):
                 return ParseError(f"Cannot use both {self.option} and {no_flag}")
             return ParseResult(None)
-        raw = args.options.get(self.option)
+        raw = args.value_for(self.option)
         if raw is None:
             return None
         if raw not in self.allowed_values:

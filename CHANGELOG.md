@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `group.file_browser(multiple=True)` now maps to repeated CLI options, e.g.
+  `--file a.txt --file b.txt`.
+
 ### Changed
 
 - `Presets` now infers its JSON filename from the calling notebook or script by

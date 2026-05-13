@@ -9,22 +9,35 @@ interactive_flag = "--interactive"
 
 @dataclasses.dataclass
 class ParsedArgs:
-    options: dict[str, str | None]
+    options: dict[str, list[str | None]]
     unexpected: list[str]
+
+    def values_for(self, option: str) -> list[str | None]:
+        return self.options.get(option, [])
+
+    def value_for(self, option: str) -> str | None:
+        values = self.values_for(option)
+        return values[-1] if values else None
+
+    def has(self, option: str) -> bool:
+        return option in self.options
+
+    def set_value(self, option: str, value: str | None) -> None:
+        self.options[option] = [value]
 
     @property
     def is_help(self) -> bool:
-        return any(x in self.options for x in help_flags)
+        return any(self.has(x) for x in help_flags)
 
     @property
     def is_interactive(self) -> bool:
-        return interactive_flag in self.options
+        return self.has(interactive_flag)
 
     @classmethod
     def from_options(cls, args: list[str]) -> "ParsedArgs":
         """Parse a pre-tokenized list of options (no command name)."""
 
-        options: dict[str, str | None] = {}
+        options: dict[str, list[str | None]] = {}
         unexpected: list[str] = []
         prev = None
         for arg in args:
@@ -32,13 +45,13 @@ class ParsedArgs:
             if arg.startswith("-") and not (prev is not None and is_negative_num):
                 if "=" in arg:
                     key, value = arg.split("=", 1)
-                    options[key] = value
+                    options.setdefault(key, []).append(value)
                     prev = None
                 else:
-                    options[arg] = None
+                    options.setdefault(arg, []).append(None)
                     prev = arg
             elif prev is not None and prev.startswith("-"):
-                options[prev] = arg
+                options[prev][-1] = arg
                 prev = None
             else:
                 unexpected.append(arg)

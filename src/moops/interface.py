@@ -62,13 +62,15 @@ class Interface:
         unexp_text = "Unexpected argument: "
         for x in state.args.unexpected:
             yield f"{unexp_text}{x}"
-        for k, v in state.args.options.items():
+        for k, values in state.args.options.items():
             if k in flags:
-                if v is not None:
-                    yield f"{k} does not take a value, but was given: {v}"
+                for v in values:
+                    if v is not None:
+                        yield f"{k} does not take a value, but was given: {v}"
             elif k in value_options:
-                if v is None:
-                    yield f"Option {k} requires a value"
+                for v in values:
+                    if v is None:
+                        yield f"Option {k} requires a value"
             elif k not in _parse.help_flags and k != _parse.interactive_flag:
                 yield f"{unexp_text}{k}"
 
@@ -332,19 +334,22 @@ class _PresetsUI:
 class FileBrowserWithInitialSelection(mo.ui.file_browser):
     """Extends mo.ui.file_browser with a CLI path fallback when no file is selected."""
 
-    def __init__(self, default: str, **kwargs: typing.Any) -> None:
-        self._default = default
+    def __init__(
+        self, default: str | typing.Sequence[str], **kwargs: typing.Any
+    ) -> None:
+        self._default = [default] if isinstance(default, str) else list(default)
         super().__init__(**kwargs)
 
     @property
     def value(self) -> list[FileBrowserFileInfo]:  # type: ignore[override]
         if browser_value := list(super().value):
             return browser_value
-        p = pathlib.Path(self._default)
         return [
             FileBrowserFileInfo(
-                id=self._default, path=p, name=p.name, is_directory=p.is_dir()
+                id=default, path=p, name=p.name, is_directory=p.is_dir()
             )
+            for default in self._default
+            for p in [pathlib.Path(default)]
         ]
 
     @value.setter
@@ -359,7 +364,8 @@ class FileBrowserWithInitialSelection(mo.ui.file_browser):
                 mo.callout(
                     mo.md(
                         "marimo's file browser does not support "
-                        f"an initial selection — falling back to `{self._default}`"
+                        "an initial selection — falling back to "
+                        f"`{', '.join(self._default)}`"
                     ),
                     kind="info",
                 ),
@@ -404,6 +410,9 @@ class CustomControl(UIElement[typing.Any, typing.Any]):
 
 def _ctrl_value(ctrl: typing.Any) -> typing.Any:
     if isinstance(ctrl, mo.ui.file_browser):
+        multiple = getattr(ctrl, "_component_args", {}).get("multiple", True)
+        if multiple:
+            return [str(info.path) for info in ctrl.value]
         p = ctrl.path()
         return str(p) if p is not None else ""
     return ctrl._selected_key if hasattr(ctrl, "_selected_key") else ctrl.value

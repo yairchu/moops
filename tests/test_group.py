@@ -1,5 +1,6 @@
 import dataclasses
 import gc
+import pathlib
 import typing
 import urllib.parse
 import weakref
@@ -459,3 +460,51 @@ def test_custom_control_is_bound_to_wrapped_ui_element() -> None:
 
     assert isinstance(ctrl, UIElement)
     assert typing.cast(typing.Any, ctrl)._id == typing.cast(typing.Any, fallback)._id
+
+
+def test_file_browser_multiple_accepts_repeated_cli_option(
+    tmp_path: pathlib.Path,
+) -> None:
+    first = tmp_path / "first.txt"
+    second = tmp_path / "second.txt"
+    first.write_text("first")
+    second.write_text("second")
+
+    g = Group(
+        cli_args=[
+            "script.py",
+            "--file",
+            str(first),
+            "--file",
+            str(second),
+        ]
+    )
+    ctrl = g.file_browser(option="--file", help_text="Files to inspect")
+    g.interface(ctrl)
+
+    assert [str(info.path) for info in ctrl.value] == [str(first), str(second)]
+
+
+def test_file_browser_multiple_current_args_repeats_option(
+    tmp_path: pathlib.Path,
+) -> None:
+    first = tmp_path / "first.txt"
+    second = tmp_path / "second with space.txt"
+    first.write_text("first")
+    second.write_text("second")
+
+    g = Group(
+        cli_args=[
+            "script.py",
+            "--file",
+            str(first),
+            "--file",
+            str(second),
+        ]
+    )
+    ctrl = g.file_browser(option="--file", help_text="Files to inspect")
+    iface = g.interface(ctrl)
+
+    assert iface._current_args() == (  # type: ignore[attr-defined]
+        f"--file {first} --file '{second}'"
+    )
