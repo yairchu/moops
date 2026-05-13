@@ -42,6 +42,10 @@ class InputControl(abc.ABC):
         """Flags for this control."""
         return set()
 
+    def allows_repeated_values(self) -> bool:
+        """Whether this control accepts repeated CLI values for the same option."""
+        return False
+
     @abc.abstractmethod
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         """Parse from CLI args. Returns value, ParseError, or None if not provided."""
@@ -221,6 +225,9 @@ class FileControl(TextControl):
 @dataclasses.dataclass
 class MultiFileControl(ValueControl):
     default: list[str]
+
+    def allows_repeated_values(self) -> bool:
+        return True
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         values = args.values_for(self.option)

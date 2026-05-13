@@ -53,11 +53,12 @@ class Interface:
 
     def validate(self, state: _parse.ParseState) -> typing.Iterator[str]:
         flags: set[str] = set()
-        value_options: set[str] = set()
+        value_options: dict[str, _options.InputControl] = {}
         for cli in self._all_input_controls():
             flags.update(cli.flags())
-            value_options.update(cli.options())
-        rendered = flags | value_options
+            for option in cli.options():
+                value_options[option] = cli
+        rendered = flags | set(value_options)
         yield from (v for k, v in state.validation_errors.items() if k in rendered)
         unexp_text = "Unexpected argument: "
         for x in state.args.unexpected:
@@ -68,6 +69,8 @@ class Interface:
                     if v is not None:
                         yield f"{k} does not take a value, but was given: {v}"
             elif k in value_options:
+                if len(values) > 1 and not value_options[k].allows_repeated_values():
+                    yield f"{k} was provided multiple times"
                 for v in values:
                     if v is None:
                         yield f"Option {k} requires a value"
