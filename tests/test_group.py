@@ -204,6 +204,19 @@ def test_equals_flag_not_consumed_as_prefix_for_next_arg(
     assert "unexpected" in capsys.readouterr().out
 
 
+def test_single_value_option_rejects_repeated_values(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    g = Group(cli_args=["script.py", "--name", "Alice", "--name", "Bob"])
+    ctrl = g.text(label="Name", help_text="A name")
+
+    with pytest.raises(SystemExit) as exc_info:
+        g.interface(ctrl)
+
+    assert exc_info.value.code != 0
+    assert "--name was provided multiple times" in capsys.readouterr().out
+
+
 def test_dropdown_no_flag_selects_none() -> None:
     g = Group(cli_args=["script.py", "--no-style"])
     ctrl = g.dropdown(
