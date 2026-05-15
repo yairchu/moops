@@ -31,6 +31,10 @@ change itself is release-relevant.
 Bug fixes for bugs introduced after the last release do not require changelog
 entries.
 
+## Notebook cell ordering
+
+Place the `interface` cell second in each notebook — immediately after the title cell — even though it depends on controls and results defined later. Marimo's DAG handles execution order; the early position ensures the CLI callout and control summary are visible at the top when editing.
+
 ## Tests
 
 Only add or change tests when they document a bug or surprising behavior discovered while working on the task.
