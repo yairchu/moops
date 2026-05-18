@@ -75,8 +75,8 @@ def _(text_source):
 
 
 @app.cell
-def _(word_report):
-    word_report_instance = word_report.app.clone()
+def _(moops, word_report):
+    word_report_instance = moops.embed.App(word_report.app)
     return (word_report_instance,)
 
 

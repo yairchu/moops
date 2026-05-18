@@ -20,12 +20,6 @@ def _notebook_scripts() -> list[pathlib.Path]:
 def test_example_notebooks_run_as_scripts(
     script: pathlib.Path, args: tuple[str, ...]
 ) -> None:
-    if script.name == "passthrough_example.py":
-        pytest.xfail(
-            "Nested embeds fail in marimo script mode: "
-            "https://github.com/marimo-team/marimo/issues/9572"
-        )
-
     result = subprocess.run(
         [sys.executable, str(script), *args],
         cwd=ROOT,

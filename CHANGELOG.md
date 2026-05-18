@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - `moops.embed.Passthrough`, a utility for reusing the result of one embedded
   notebook as input to another.
+- `moops.embed.App`, a wrapper for nested marimo embeds that retains only the
+  embedded notebook's `result` definition in script mode and works around
+  marimo script-mode nested embed failures.
 
 ## [0.3.0] - 2026-05-13
 
