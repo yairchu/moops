@@ -465,6 +465,36 @@ def test_composite_child_keeps_moops_metadata() -> None:
     assert g.interface(cloned_ctrl).missing_options() == []
 
 
+def test_dict_dropdown_on_change_sets_key_not_value_in_query_params(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_params: dict[str, str] = {}
+    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
+    monkeypatch.setattr(group_module.mo, "query_params", lambda: fake_params)
+
+    def snake_fn(text: str) -> str:
+        return "_".join(x.lower() for x in text.split())
+
+    def camel_fn(text: str) -> str:
+        return text
+
+    g = Group(cli_args=["script.py"])
+    ctrl = g.dropdown(
+        {"snake_case": snake_fn, "camel_case": camel_fn},
+        value="camel_case",
+        label="Style",
+        help_text="Text style",
+    )
+
+    # marimo passes the dict VALUE to on_change; before the fix this set the
+    # query param to str(snake_fn) instead of the key "snake_case".
+    on_change = ctrl._on_change  # type: ignore[reportPrivateUsage]
+    assert on_change is not None
+    on_change(snake_fn)
+
+    assert fake_params.get("style") == "snake_case"
+
+
 def test_option_named_file_does_not_conflict_with_marimo_notebook_param() -> None:
     class _MockCtrl:
         value = "some_file.txt"
