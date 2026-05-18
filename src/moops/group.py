@@ -544,12 +544,13 @@ class Group:
 
         assert len(options) > 0, "Dropdown options cannot be empty"
         opt = self._make_opt(label=label, option=option)
-        keys = list(options)
         if value is None and not allow_select_none:
-            value, *_ = keys
+            value, *_ = [*options]
         cli = _options.DropdownControl(
             option=opt.option,
-            allowed_values=keys,
+            dropdown_opts=options
+            if isinstance(options, dict)
+            else {opt: opt for opt in options},
             supports_none=allow_select_none,
             default=value,
             help_text=help_text,

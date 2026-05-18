@@ -536,7 +536,7 @@ class RangeControl(ValueControl):
 
 @dataclasses.dataclass
 class DropdownControl(InputControl):
-    allowed_values: list[str]
+    dropdown_opts: dict[str, typing.Any]
     supports_none: bool
     default: str | None
 
@@ -561,26 +561,28 @@ class DropdownControl(InputControl):
         raw = args.value_for(self.option)
         if raw is None:
             return None
-        if raw not in self.allowed_values:
+        if raw not in self.dropdown_opts:
             return ParseError(
                 f"Option {self.option} must be one of"
-                f" {self.allowed_values!r}, got: {raw!r}"
+                f" {list(self.dropdown_opts)!r}, got: {raw!r}"
             )
         return ParseResult(raw)
 
     def parse_query_value(self, value: str) -> ParseResult | ParseError:
         if not value and self.supports_none:
             return ParseResult(None)
-        if value not in self.allowed_values:
+        if value not in self.dropdown_opts:
             return ParseError(
                 f"Query parameter for {self.option} must be one of"
-                f" {self.allowed_values!r}, got: {value!r}"
+                f" {list(self.dropdown_opts)!r}, got: {value!r}"
             )
         return ParseResult(value)
 
     def strategy(self) -> st.SearchStrategy:
         return st.sampled_from(
-            [None, *self.allowed_values] if self.supports_none else self.allowed_values
+            [None, *self.dropdown_opts.keys()]
+            if self.supports_none
+            else list(self.dropdown_opts.keys())
         )
 
     def format_usage_parts(self) -> list[str]:
@@ -589,7 +591,7 @@ class DropdownControl(InputControl):
         return [f"[{self.option} {self._values_text()}]"]
 
     def _values_text(self) -> str:
-        return "{" + "|".join(self.allowed_values) + "}"
+        return "{" + "|".join(self.dropdown_opts) + "}"
 
     def format_help_lines(self) -> list[str]:
         line = f"  {self.option} {self._values_text()}: {self.help_text}"
@@ -611,13 +613,16 @@ class DropdownControl(InputControl):
     def format_query_value(self, value: typing.Any) -> str | None:
         if value == self.default:
             return None
-        return "" if value is None else str(value)
+        return next(
+            (k for k, v in self.dropdown_opts.items() if v == value),
+            "" if value is None else str(value),
+        )
 
     def prompt_interactive(
         self, effective_default: typing.Any = _UNSET
     ) -> dict[str, str | None]:
         d = self.default if effective_default is _UNSET else effective_default
-        choices = (["none"] if self.supports_none else []) + self.allowed_values
+        choices = [*(["none"] if self.supports_none else []), *self.dropdown_opts]
         for i, v in enumerate(choices, 1):
             print(f"  {i}) {v}")
         default_display = f" [{d if d is not None else 'none'}]"
@@ -631,12 +636,12 @@ class DropdownControl(InputControl):
                 idx = int(response) - 1
                 select_none = self.supports_none and idx == 0
                 chosen = choices[idx]
-            elif response in self.allowed_values:
+            elif response in self.dropdown_opts:
                 chosen = response
             elif (
                 response.lower() == "none"
                 and self.supports_none
-                and "none" not in self.allowed_values
+                and "none" not in self.dropdown_opts
             ):
                 select_none = True
             else:
