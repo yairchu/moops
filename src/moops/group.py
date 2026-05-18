@@ -76,6 +76,21 @@ class Group:
         """
         if markdown_heading_offset < 0:
             raise ValueError("markdown_heading_offset must be non-negative")
+        _frame = inspect.currentframe()
+        _caller = _frame.f_back if _frame else None
+        if (
+            _caller is not None
+            and mo.running_in_notebook()
+            and bool(_caller.f_code.co_flags & inspect.CO_COROUTINE)
+        ):
+            warnings.warn(
+                f"args.subgroup('{prefix}') called inside an async cell, "
+                "likely the cell making the embed it is used for. "
+                "Each cell re-run creates a new Group object, "
+                "which causes the embedded notebook to reload and lose widget state. "
+                "Move args.subgroup() to a separate sync cell instead.",
+                stacklevel=2,
+            )
         child = type(self)([prefix])
         child._state = self._state
         child._cli_map = _input_map.InputMap()
