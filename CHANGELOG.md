@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-05-18
+
 ### Added
 
 - `moops.embed.Passthrough`, a utility for reusing the result of one embedded
