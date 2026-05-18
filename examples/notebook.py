@@ -154,19 +154,9 @@ def _(name_casing):
 @app.cell
 async def _(casing, name_casing_instance):
     casing_result = await name_casing_instance.embed(defs={"args": casing})
-    return (casing_result,)
-
-
-@app.cell
-def _(casing_result):
-    casing_result.output
-    return
-
-
-@app.cell
-def _(casing_result):
     result = casing_result.defs.get("result")
-    return
+    casing_result.output
+    return (casing_result,)
 
 
 if __name__ == "__main__":
