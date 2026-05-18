@@ -51,23 +51,17 @@ def _(moops):
 
 @app.cell
 def _():
-    name_casings = {}
-
-    def _add(func):
-        name_casings[func.__name__] = func
-
-    @_add
-    def snake_case(text):
-        return "_".join(x.lower() for x in text.split())
-
-    @_add
-    def camel_case(text):
+    def _camel_case(text):
         def cap(word):
             x, *xs = word
             return f"{x.upper()}{''.join(xs).lower()}"
 
         return "".join(cap(x) for x in text.split())
 
+    name_casings = {
+        "snake_case": lambda text: "_".join(x.lower() for x in text.split()),
+        "camel_case": _camel_case,
+    }
     return (name_casings,)
 
 
