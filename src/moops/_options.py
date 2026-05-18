@@ -36,7 +36,7 @@ class InputControl(abc.ABC):
 
     def options(self) -> set[str]:
         """Value options for this control."""
-        return set()
+        return {self.option}
 
     def flags(self) -> set[str]:
         """Flags for this control."""
@@ -98,6 +98,9 @@ class InputControl(abc.ABC):
 class FlagControl(InputControl):
     default: bool = False
 
+    def options(self) -> set[str]:
+        return set()
+
     def flags(self) -> set[str]:
         return {self.option}
 
@@ -156,9 +159,6 @@ class ValueControl(InputControl):
     """Base class for controls that take a value, like text or dropdowns."""
 
     metavar: str
-
-    def options(self) -> set[str]:
-        return {self.option}
 
     def format_usage_parts(self) -> list[str]:
         return [f"[{self.option} {self.metavar}]"]
@@ -539,9 +539,6 @@ class DropdownControl(InputControl):
     allowed_values: list[str]
     supports_none: bool
     default: str | None
-
-    def options(self) -> set[str]:
-        return {self.option}
 
     @property
     def has_no_flag(self) -> bool:

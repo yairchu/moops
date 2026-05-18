@@ -555,9 +555,10 @@ class Group:
             help_text=help_text,
         )
         if self._is_overridden(opt.option):
-            # mo.ui.dropdown doesn't support disabled; filter to one option as a
-            # workaround so the user can't change the value. Remove once marimo adds
-            # disabled support for dropdowns.
+            # mo.ui.dropdown doesn't support disabled;
+            # (see https://github.com/marimo-team/marimo/issues/9579)
+            # So we filter to one option as a workaround
+            # so the user can't change the value.
             override = self._overrides[self._override_key(opt.option)]
             options = (
                 {override: None if override is None else options[override]}

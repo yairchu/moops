@@ -80,9 +80,7 @@ class QueryParams:
     def _is_user_key(self, key: str) -> bool:
         if key == "file":
             return False
-        if not self.prefix:
-            return True
-        return key.startswith(f"{self.prefix}.")
+        return not self.prefix or key.startswith(f"{self.prefix}.")
 
     def _set(self, key: str, value: str | None) -> None:
         params = self.params
