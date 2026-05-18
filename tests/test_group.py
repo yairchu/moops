@@ -1,3 +1,4 @@
+import asyncio
 import dataclasses
 import gc
 import pathlib
@@ -100,6 +101,22 @@ def test_subgroup_controls_visible_in_parent_help(capsys: pytest.CaptureFixture[
     with pytest.raises(SystemExit):
         g.interface(casing.interface(ctrl))
     assert "--casing-style" in capsys.readouterr().out
+
+
+def test_subgroup_warns_when_called_from_async_cell(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
+    fake_qp: typing.Any = {}
+    monkeypatch.setattr(group_module.mo, "query_params", lambda: fake_qp)
+
+    g = Group(cli_args=["script.py"])
+
+    async def _async_cell() -> None:
+        g.subgroup("casing")
+
+    with pytest.warns(UserWarning, match="async cell"):
+        asyncio.run(_async_cell())
 
 
 def test_subgroup_markdown_demotes_headings_in_notebooks(
