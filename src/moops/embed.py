@@ -31,10 +31,10 @@ class App:
     """
 
     def __init__(self, app: _App) -> None:
-        self._app = app.clone()
+        self._app = app
 
     def clone(self) -> "App":
-        return App(self._app)
+        return App(self._app.clone())
 
     async def embed(self, defs: dict[str, typing.Any] | None = None) -> typing.Any:
         if mo.running_in_notebook():
@@ -47,9 +47,9 @@ class Passthrough:
     Override an inner embed with the results of an existing embed.
     """
 
-    def __init__(self, input: _Embed | dict[str, typing.Any]) -> None:
+    def __init__(self, source: _Embed | dict[str, typing.Any]) -> None:
         self.defs = {
-            "result": (input if isinstance(input, dict) else input.defs)["result"],
+            "result": (source if isinstance(source, dict) else source.defs)["result"],
             "interface": None,
         }
         self.output = None

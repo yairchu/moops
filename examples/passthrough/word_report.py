@@ -29,13 +29,6 @@ def _(args, source_result):
 
 @app.cell
 def _():
-    import marimo as mo
-
-    return
-
-
-@app.cell
-def _():
     import moops
 
     return (moops,)
