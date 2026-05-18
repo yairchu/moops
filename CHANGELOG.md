@@ -8,6 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `group.subgroup()` now warns when called from an async marimo cell, as each
+  re-run creates a new `Group` object and causes the embedded notebook to reload
+  and lose widget state. Move `subgroup()` to a separate sync cell instead.
+
+### Fixed
+
+- Dict-options dropdowns now correctly reflect the selected key in URL query
+  parameters instead of the string representation of the mapped value.
+
 ## [0.3.1] - 2026-05-18
 
 ### Added
