@@ -59,37 +59,28 @@ def test_defaults_supports_run_form() -> None:
 
 
 def test_cur_values_excludes_overridden_controls() -> None:
-    async def _run() -> typing.Any:
-        args = moops.Group.with_overrides({"style": "snake_case"})
-        result = await name_casing.app.embed(defs={"args": args})
-        return result.defs["interface"]
-
-    iface = asyncio.run(_run())
+    args = moops.Group.with_overrides({"style": "snake_case"})
+    result = asyncio.run(name_casing.app.embed(defs={"args": args}))
+    iface = typing.cast(moops.Interface, result.defs["interface"])
     assert "--style" not in iface.cur_values()
 
 
 def test_overridden_control_is_disabled() -> None:
-    async def _run() -> None:
-        args = moops.Group(cli_args=["script.py"])
-        casing = args.subgroup("casing", overrides={"text": "hello"})
-        result = await name_casing.app.embed(defs={"args": casing})
-        input_text = result.defs["input_text"]
-        assert isinstance(input_text, mo.ui.text_area)
-        return input_text._component_args["disabled"]  # type: ignore
-
-    assert asyncio.run(_run()) is True
+    args = moops.Group(cli_args=["script.py"])
+    casing = args.subgroup("casing", overrides={"text": "hello"})
+    result = asyncio.run(name_casing.app.embed(defs={"args": casing}))
+    input_text = result.defs["input_text"]
+    assert isinstance(input_text, mo.ui.text_area)
+    assert input_text._component_args["disabled"] is True  # type: ignore
 
 
 def test_embedded_summary_links_to_current_standalone_query_params() -> None:
-    async def _run() -> str:
-        args = moops.Group(cli_args=["script.py", "--no-casing-style"])
-        casing = args.subgroup("casing", overrides={"text": "hello world"})
-        result = await name_casing.app.embed(defs={"args": casing})
-        interface = result.defs["interface"]
-        assert isinstance(interface, moops.Interface)
-        return typing.cast(typing.Any, interface)._subgroup_summary().text
-
-    html = asyncio.run(_run())
+    args = moops.Group(cli_args=["script.py", "--no-casing-style"])
+    casing = args.subgroup("casing", overrides={"text": "hello world"})
+    result = asyncio.run(name_casing.app.embed(defs={"args": casing}))
+    interface = result.defs["interface"]
+    assert isinstance(interface, moops.Interface)
+    html = typing.cast(typing.Any, interface)._subgroup_summary().text
     assert (
         'href="/?file=examples%2Fname_casing.py&amp;style=&amp;text=hello+world"'
         in html
