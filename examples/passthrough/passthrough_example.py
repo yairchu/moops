@@ -27,7 +27,8 @@ def _(mo):
 @app.cell
 def _(args, report_result, source_result):
     interface = args.interface(
-        source_result.defs["interface"], report_result.defs["interface"]
+        source_result.defs["interface"],
+        report_result.defs["interface"],
     )
     interface
     return
@@ -69,14 +70,14 @@ def _(moops):
 
 
 @app.cell
-def _(text_source):
-    text_source_instance = text_source.app.clone()
+def _(moops, text_source):
+    text_source_instance = moops.embed.App(text_source.app).clone()
     return (text_source_instance,)
 
 
 @app.cell
 def _(moops, word_report):
-    word_report_instance = moops.embed.App(word_report.app)
+    word_report_instance = moops.embed.App(word_report.app).clone()
     return (word_report_instance,)
 
 
