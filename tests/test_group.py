@@ -106,7 +106,6 @@ def test_subgroup_controls_visible_in_parent_help(capsys: pytest.CaptureFixture[
 def test_subgroup_warns_when_called_from_async_cell(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
     fake_qp: typing.Any = {}
     monkeypatch.setattr(group_module.mo, "query_params", lambda: fake_qp)
 

@@ -30,5 +30,6 @@ def test_example_notebooks_run_as_scripts(
     )
 
     assert result.returncode == 0, result.stderr
+    assert "UserWarning: " not in result.stderr, result.stderr
     if args == ("--help",):
         assert "Usage:" in result.stdout
