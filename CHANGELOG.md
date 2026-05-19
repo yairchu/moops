@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-05-19
+
 ### Added
 
 - `moops.run_button()` (also available as `group.run_button()`) creates a
