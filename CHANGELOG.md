@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `moops.run_button()` (also available as `group.run_button()`) creates a
+  `mo.ui.run_button` in notebooks and returns a stub with `.value = True` in
+  CLI context, so `mo.stop(not btn.value)` gates notebook execution while
+  always running in scripts.
 - `group.subgroup()` now warns when called from an async marimo cell, as each
   re-run creates a new `Group` object and causes the embedded notebook to reload
   and lose widget state. Move `subgroup()` to a separate sync cell instead.

@@ -11,6 +11,7 @@ import weakref
 import marimo as mo
 
 from . import _input_map, _markdown, _naming, _options, _parse, _query_params, interface
+from ._run_button import run_button
 from .interface import FileBrowserWithInitialSelection
 from .presets import Presets
 
@@ -523,6 +524,17 @@ class Group:
             value=value if mo.running_in_notebook() else None,
         )
         return self._cli_map.register(wrapped, cli)
+
+    @staticmethod
+    def run_button(
+        **kwargs: typing.Any,
+    ):
+        """Create a run button that gates notebook execution.
+
+        In CLI context, always returns a stub with .value = True so code that
+        checks `mo.stop(not btn.value)` runs unconditionally.
+        """
+        return run_button(**kwargs)
 
     def _numeric_cli(
         self,
