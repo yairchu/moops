@@ -1,8 +1,8 @@
 # Agent Instructions
 
-## Before committing
+## After making changes
 
-Run `bash check.sh` and fix any errors before committing.
+Run `bash check.sh` after making changes and fix any errors before committing.
 
 Exception: when committing a regression test that intentionally demonstrates a
 bug before the fix, run the focused test that shows the failure instead of
