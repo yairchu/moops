@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed a crash when running a notebook as a CLI script that embeds more than
+  one notebook via `moops.embed.App` and passes all child interfaces to
+  `args.interface()`.
+
 ## [0.3.2] - 2026-05-19
 
 ### Added

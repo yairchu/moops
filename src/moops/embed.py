@@ -3,6 +3,8 @@ import typing
 
 import marimo as mo
 
+from . import interface
+
 
 class _Embed(typing.Protocol):
     defs: typing.Mapping[str, typing.Any]
@@ -50,7 +52,9 @@ class Passthrough:
     def __init__(self, source: _Embed | dict[str, typing.Any]) -> None:
         self.defs = {
             "result": (source if isinstance(source, dict) else source.defs)["result"],
-            "interface": None,
+            "interface": interface.Interface(
+                controls=typing.cast(tuple[typing.Any], ())
+            ),
         }
         self.output = None
 
