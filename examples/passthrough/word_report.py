@@ -57,10 +57,14 @@ def _(text_source):
 
 
 @app.cell
-async def _(args, text_source_embed):
-    source_result = await text_source_embed.embed(
-        defs={"args": args.subgroup("source")}
-    )
+def _(args):
+    source_args = args.subgroup("source")
+    return (source_args,)
+
+
+@app.cell
+async def _(source_args, text_source_embed):
+    source_result = await text_source_embed.embed(defs={"args": source_args})
     source_result.output
     return (source_result,)
 

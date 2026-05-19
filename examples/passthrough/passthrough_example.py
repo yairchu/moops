@@ -81,21 +81,31 @@ def _(moops, word_report):
 
 
 @app.cell
-async def _(args, text_source_instance):
-    source_result = await text_source_instance.embed(
-        defs={"args": args.subgroup("source")}
-    )
+def _(args):
+    source_args = args.subgroup("source")
+    return (source_args,)
+
+
+@app.cell
+async def _(source_args, text_source_instance):
+    source_result = await text_source_instance.embed(defs={"args": source_args})
     source_result.output
     return (source_result,)
 
 
 @app.cell
-async def _(args, moops, source_result, word_report_instance):
+def _(args):
+    report_args = args.subgroup("report")
+    return (report_args,)
+
+
+@app.cell
+async def _(moops, report_args, source_result, word_report_instance):
     # word_report would normally run text_source itself — moops.embed.Passthrough
     # makes it reuse source_result instead.
     report_result = await word_report_instance.embed(
         defs={
-            "args": args.subgroup("report"),
+            "args": report_args,
             "text_source_embed": moops.embed.Passthrough(source_result),
         }
     )
