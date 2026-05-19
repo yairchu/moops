@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-05-20
+
 ### Fixed
 
 - Fixed a crash when running a notebook as a CLI script that embeds more than
