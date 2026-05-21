@@ -36,6 +36,7 @@ class Group:
             else command
         )
         self._state = _parse.ParseState(args=_parse.ParsedArgs.from_options(rest))
+        self._is_interface_query: bool = self._state.args.is_help
         self._cli_map = _input_map.InputMap()
         self._overrides: dict[str, typing.Any] = {}
         self._presets = presets
@@ -49,10 +50,31 @@ class Group:
             str, weakref.ReferenceType[interface.Interface]
         ] = {}
 
+    @property
+    def is_interface_query(self) -> bool:
+        """True when the notebook is being run only to obtain its interface.
+
+        Notebooks can gate heavy computation with::
+
+            mo.stop(args.is_interface_query)
+
+        This is set automatically when ``--help`` is passed on the CLI and when
+        the notebook is run via ``moops.interface_of()``.
+        """
+        return self._is_interface_query
+
     @classmethod
     def with_overrides(cls, overrides: dict[str, typing.Any]) -> Group:
         instance = cls(["run"])
         instance._overrides = overrides
+        return instance
+
+    @classmethod
+    def for_interface_query(cls) -> Group:
+        """Create a Group for headless interface extraction (no computation)."""
+        instance = cls(["run"])
+        instance._overrides = {}
+        instance._is_interface_query = True
         return instance
 
     def subgroup(
@@ -110,6 +132,7 @@ class Group:
         child._active_preset = (
             child._build_active_preset() if presets else self._active_preset
         )
+        child._is_interface_query = self._is_interface_query
         return child
 
     def _build_preset_state(self) -> _parse.ParseState | None:

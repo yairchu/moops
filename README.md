@@ -114,12 +114,12 @@ x_range = args.custom(
 
 ## Property-based testing
 
-`moops.testing.notebook_interface` returns the notebook's `Interface`, from which `.strategy()` generates a [Hypothesis](https://hypothesis.readthedocs.io/) strategy that produces valid `moops.run` kwargs by introspecting the notebook's interface — dropdowns yield their allowed keys, switches yield booleans, and text fields yield arbitrary strings.
+`moops.interface_of` returns the notebook's `Interface`, from which `.strategy()` generates a [Hypothesis](https://hypothesis.readthedocs.io/) strategy that produces valid `moops.run` kwargs by introspecting the notebook's interface — dropdowns yield their allowed keys, switches yield booleans, and text fields yield arbitrary strings.
 
 ```python
 from examples import name_casing
 
-_name_casing_interface = moops.testing.notebook_interface(name_casing)
+_name_casing_interface = moops.interface_of(name_casing)
 _name_casing_defaults = _name_casing_interface.default
 
 @hypothesis.given(_name_casing_interface.strategy())

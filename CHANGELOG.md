@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `args.is_interface_query` — `True` when a notebook is being run only to
+  obtain its interface (via `moops.interface_of()` or `--help`). Notebooks can
+  gate expensive computation with `mo.stop(args.is_interface_query)`.
+- `moops.interface_of(module)` — runs a notebook headlessly and returns its
+  `Interface` without executing computation cells that respect
+  `args.is_interface_query`. Useful for surfacing a notebook's controls into a
+  parent that calls it in a loop via `moops.run()`.
+
 ### Fixed
 
 - `moops.Passthrough` no longer crashes with `KeyError` when the source embed

@@ -56,7 +56,9 @@ def _(args):
 
 
 @app.cell
-def _(mo, text_input):
+def _(args, mo, text_input):
+    # Skip computation when the notebook is queried only for its interface.
+    mo.stop(args.is_interface_query)
     # No default value — result is absent from defs until the user types something.
     mo.stop(not text_input.value, mo.md("*Waiting for input…*"))
     result = text_input.value

@@ -7,8 +7,17 @@ import marimo as mo
 import pytest
 
 import moops
-import moops.testing
 from examples import name_casing, notebook
+
+
+def test_is_interface_query_set_for_help_and_interface_of() -> None:
+    assert not moops.Group(cli_args=["script.py"]).is_interface_query
+    assert moops.Group(cli_args=["script.py", "--help"]).is_interface_query
+    assert moops.Group.for_interface_query().is_interface_query
+
+    parent = moops.Group.for_interface_query()
+    child = parent.subgroup("sub")
+    assert child.is_interface_query
 
 
 def test_script_mode_embed_forwards_interface() -> None:
@@ -55,7 +64,7 @@ def test_run_requires_result_variable() -> None:
         moops.run(module)
 
 
-_name_casing_interface: moops.Interface = moops.testing.notebook_interface(name_casing)
+_name_casing_interface: moops.Interface = moops.interface_of(name_casing)
 _name_casing_defaults: dict[str, typing.Any] = _name_casing_interface.default
 
 
@@ -76,7 +85,7 @@ def test_run_propagates_kwargs_to_subgroup_controls() -> None:
 
 
 def test_defaults_supports_run_form() -> None:
-    iface = moops.testing.notebook_interface(notebook)
+    iface = moops.interface_of(notebook)
     assert moops.run(notebook, **iface.default) is not None
 
 

@@ -3,6 +3,23 @@ import types
 import typing
 
 from . import group
+from .interface import Interface
+
+
+def interface_of(module: types.ModuleType) -> Interface:
+    """Return a notebook's Interface without running its computation.
+
+    Notebooks can skip heavy work during interface queries::
+
+        mo.stop(args.is_interface_query)
+
+    Useful for surfacing a notebook's controls into a parent notebook without
+    embedding it, e.g. when calling the notebook in a loop via ``moops.run()``.
+    """
+    args = group.Group.for_interface_query()
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        _, defs = executor.submit(module.app.run, defs={"args": args}).result()
+    return defs["interface"]
 
 
 def run(module: types.ModuleType, **kwargs: typing.Any) -> typing.Any:

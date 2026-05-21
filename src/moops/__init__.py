@@ -1,7 +1,7 @@
 from importlib.metadata import version
 
 from ._embed import Passthrough, embed
-from ._run import run
+from ._run import interface_of, run
 from ._run_button import run_button
 from .group import Group
 from .interface import Interface
@@ -16,6 +16,7 @@ __all__ = [
     "Presets",
     "__version__",
     "embed",
+    "interface_of",
     "run",
     "run_button",
 ]
