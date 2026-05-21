@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import inspect
 import pathlib
-import shlex
 import typing
 import warnings
 import weakref
@@ -16,6 +15,7 @@ from . import (
     _naming,
     _options,
     _parse,
+    _preset_state,
     _query_params,
     _value_resolution,
     interface,
@@ -54,9 +54,7 @@ class Group:
         self._overrides: dict[str, typing.Any] = {}
         self._presets = presets
         self._query_params = _query_params.QueryParams.from_notebook()
-        self._preset_state = self._build_preset_state()
-        self._default_preset_state = self._build_default_preset_state()
-        self._active_preset = self._build_active_preset()
+        self._preset_state = self._resolve_preset_state()
         self._parent_group: Group | None = None
         self._markdown_heading_offset = 0
         self._subgroup_interfaces: dict[
@@ -135,51 +133,20 @@ class Group:
         child._overrides = {**self._overrides.get(prefix, {}), **(overrides or {})}
         child.option = f"{self.option}-{prefix}" if self.option else f"--{prefix}"
         child._presets = presets
-        child._preset_state = (
-            child._build_preset_state() if presets else self._preset_state
-        )
         child._query_params = self._query_params.subgroup(prefix)
-        child._default_preset_state = (
-            child._build_default_preset_state()
-            if presets
-            else self._default_preset_state
-        )
-        child._active_preset = (
-            child._build_active_preset() if presets else self._active_preset
+        child._preset_state = (
+            child._resolve_preset_state() if presets else self._preset_state
         )
         child._is_interface_query = self._is_interface_query
         child._value_resolver = child._make_value_resolver()
         return child
 
-    def _build_preset_state(self) -> _parse.ParseState | None:
-        if self._presets is None or not self._presets.selected_args:
-            return None
-        return self._parse_preset_args(self._presets.selected_args)
-
-    def _build_default_preset_state(self) -> _parse.ParseState | None:
-        if (
-            self._presets is None
-            or (
-                self._query_params.params is None
-                and not self._state.args.is_interactive
-            )
-            or self._query_params.has_user_params()
-            or self._presets.get_current() is not None
-            or not self._presets.default_args
-        ):
-            return None
-        return self._parse_preset_args(self._presets.default_args)
-
-    def _build_active_preset(self) -> str | None:
-        if self._presets is None:
-            return None
-        if self._default_preset_state is not None:
-            return "default"
-        return self._presets.get_current() or None
-
-    def _parse_preset_args(self, args_text: str) -> _parse.ParseState:
-        args = _parse.ParsedArgs.from_options(shlex.split(args_text))
-        return _parse.ParseState(args=args)
+    def _resolve_preset_state(self) -> _preset_state.PresetState:
+        return _preset_state.PresetState.resolve(
+            presets=self._presets,
+            query_params=self._query_params,
+            state=self._state,
+        )
 
     def interface(self, *controls: typing.Any) -> interface.Interface:
         """
@@ -209,7 +176,7 @@ class Group:
             notebook_file=notebook_file.as_posix(),
             option_prefix=self.option,
             presets=self._presets,
-            active_preset=self._active_preset,
+            active_preset=self._preset_state.active,
             query_params=self._query_params,
             command=self._command,
             extra_missing_options=extra_missing_options,
@@ -705,8 +672,8 @@ class Group:
             state=self._state,
             overrides=self._overrides,
             query_params=self._query_params,
-            preset_state=self._preset_state,
-            default_preset_state=self._default_preset_state,
+            preset_state=self._preset_state.selected,
+            default_preset_state=self._preset_state.default,
         )
 
     def _control_kwargs(
