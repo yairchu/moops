@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `moops.Passthrough` no longer crashes with `KeyError` when the source embed
   has not yet produced a `result` (e.g. a file-picker with nothing selected on
   first load). The `result` key is now only forwarded when it is present.
+- `moops.run()` now works when called from within a running async event loop
+  (e.g. a marimo notebook cell). Previously it raised
+  `RuntimeError: asyncio.run() cannot be called from a running event loop`.
 
 ## [0.4.0] - 2026-05-21
 

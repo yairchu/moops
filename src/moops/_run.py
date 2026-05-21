@@ -1,3 +1,4 @@
+import concurrent.futures
 import types
 import typing
 
@@ -14,7 +15,8 @@ def run(module: types.ModuleType, **kwargs: typing.Any) -> typing.Any:
     """
     args = group.Group.with_overrides(kwargs)
 
-    _, defs = module.app.run(defs={"args": args})
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        _, defs = executor.submit(module.app.run, defs={"args": args}).result()
     if "result" not in defs:
         raise RuntimeError(
             f"moops.run() expected {module.__name__} to expose a variable named "
