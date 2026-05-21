@@ -95,30 +95,17 @@ class Interface:
     @property
     def default(self) -> dict[str, typing.Any]:
         result: dict[str, typing.Any] = {}
-        for ctrl in self.controls:
-            if (iface := _attached_interface(ctrl)) is not None:
-                prefix = iface.option_prefix.lstrip("-")
-                result[prefix] = iface.default
-            else:
-                cli = self.cli_map.get(ctrl)
-                if (
-                    cli is not None
-                    and not self._is_overridden(cli)
-                    and hasattr(cli, "default")
-                ):
-                    result[self._key(cli)] = cli.default  # type: ignore
+        for name, ctrl_or_sub in self.iter_controls():
+            if isinstance(ctrl_or_sub, Interface):
+                result[name] = ctrl_or_sub.default
+            elif hasattr(ctrl_or_sub, "default"):
+                result[name] = ctrl_or_sub.default  # type: ignore
         return result
 
     def strategy(self) -> st.SearchStrategy[dict[str, typing.Any]]:
-        strategies: dict[str, st.SearchStrategy[typing.Any]] = {}
-        for ctrl in self.controls:
-            if (iface := _attached_interface(ctrl)) is not None:
-                prefix = iface.option_prefix.lstrip("-")
-                strategies[prefix] = iface.strategy()
-            else:
-                cli = self.cli_map.get(ctrl)
-                if cli is not None and not self._is_overridden(cli):
-                    strategies[self._key(cli)] = cli.strategy()
+        strategies: dict[str, st.SearchStrategy[typing.Any]] = {
+            name: ctrl_or_sub.strategy() for name, ctrl_or_sub in self.iter_controls()
+        }
         return st.fixed_dictionaries(strategies).map(
             lambda d: {k: v for k, v in d.items() if v is not None}
         )
