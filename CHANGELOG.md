@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `moops.embed.App` wrapping and cloning a marimo app confused marimo's internal
+  state tracking. The wrapper is removed: use `moops.embed(app, defs=...)` directly
+  instead of `moops.embed.App(app).clone()`. `moops.embed.Passthrough` is now
+  `moops.Passthrough`.
+
 ## [0.3.3] - 2026-05-20
 
 ### Fixed

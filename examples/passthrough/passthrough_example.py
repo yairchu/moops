@@ -14,11 +14,11 @@ app = marimo.App(width="full")
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # moops.embed.Passthrough demo
+    # moops.Passthrough demo
 
     Both this notebook and `word_report` start from the same `text_source` step.
     Rather than running `text_source` twice, we pass
-    `moops.embed.Passthrough(source_result)` into `word_report` so it reuses
+    `moops.Passthrough(source_result)` into `word_report` so it reuses
     the result already computed here.
     """)
     return
@@ -44,7 +44,6 @@ def _():
 @app.cell
 def _():
     import moops
-    import moops.embed
 
     return (moops,)
 
@@ -70,14 +69,14 @@ def _(moops):
 
 
 @app.cell
-def _(moops, text_source):
-    text_source_instance = moops.embed.App(text_source.app).clone()
+def _(text_source):
+    text_source_instance = text_source.app
     return (text_source_instance,)
 
 
 @app.cell
-def _(moops, word_report):
-    word_report_instance = moops.embed.App(word_report.app).clone()
+def _(word_report):
+    word_report_instance = word_report.app
     return (word_report_instance,)
 
 
@@ -88,8 +87,8 @@ def _(args):
 
 
 @app.cell
-async def _(source_args, text_source_instance):
-    source_result = await text_source_instance.embed(defs={"args": source_args})
+async def _(moops, source_args, text_source_instance):
+    source_result = await moops.embed(text_source_instance, defs={"args": source_args})
     source_result.output
     return (source_result,)
 
@@ -102,13 +101,14 @@ def _(args):
 
 @app.cell
 async def _(moops, report_args, source_result, word_report_instance):
-    # word_report would normally run text_source itself — moops.embed.Passthrough
+    # word_report would normally run text_source itself — moops.Passthrough
     # makes it reuse source_result instead.
-    report_result = await word_report_instance.embed(
+    report_result = await moops.embed(
+        word_report_instance,
         defs={
             "args": report_args,
-            "text_source_embed": moops.embed.Passthrough(source_result),
-        }
+            "text_source_embed": moops.Passthrough(source_result),
+        },
     )
     report_result.output
     return (report_result,)

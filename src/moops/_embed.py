@@ -20,9 +20,9 @@ class _App(typing.Protocol):
     ) -> tuple[typing.Iterable[typing.Any], typing.Mapping[str, object]]: ...
 
 
-class App:
+async def embed(app: _App, defs: dict[str, typing.Any] | None = None) -> typing.Any:
     """
-    Wrap a marimo app with lean script-mode embeds.
+    Embed a marimo app, with lean script-mode embeds.
 
     In script mode, only the embedded notebook's ``result`` definition is
     retained, so intermediate definitions and rendered outputs can be released
@@ -31,17 +31,9 @@ class App:
     This also works around marimo nested embed failures in script mode,
     see https://github.com/marimo-team/marimo/issues/9572
     """
-
-    def __init__(self, app: _App) -> None:
-        self._app = app
-
-    def clone(self) -> "App":
-        return App(self._app.clone())
-
-    async def embed(self, defs: dict[str, typing.Any] | None = None) -> typing.Any:
-        if mo.running_in_notebook():
-            return await self._app.embed(defs=defs)
-        return await asyncio.to_thread(_embed_in_script, self._app, defs or {})
+    if mo.running_in_notebook():
+        return await app.embed(defs=defs)
+    return await asyncio.to_thread(_embed_in_script, app, defs or {})
 
 
 class Passthrough:
