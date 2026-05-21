@@ -10,6 +10,20 @@ from marimo._plugins.ui._core.ui_element import UIElement
 from marimo._plugins.ui._impl.file_browser import FileBrowserFileInfo
 
 
+def locked_dropdown_options(
+    override: str | None,
+    options: list[str] | dict[str, typing.Any],
+) -> list[str | None] | dict[str | None, typing.Any]:
+    """Filter dropdown options to a single locked value.
+
+    Workaround for mo.ui.dropdown not supporting disabled=True.
+    See https://github.com/marimo-team/marimo/issues/9579
+    """
+    if isinstance(options, dict):
+        return {override: None if override is None else options[override]}
+    return [override]
+
+
 class LockedMultiselect(UIElement[str, list[str]]):
     """Read-only multiselect placeholder used when a control is overridden.
 

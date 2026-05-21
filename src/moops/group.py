@@ -25,6 +25,7 @@ from ._ui_workarounds import (
     FileBrowserFileInfo,
     FileBrowserWithInitialSelection,
     LockedMultiselect,
+    locked_dropdown_options,
 )
 from .presets import Presets
 
@@ -580,16 +581,7 @@ class Group:
             help_text=help_text,
         )
         if self._is_overridden(opt.option):
-            # mo.ui.dropdown doesn't support disabled;
-            # (see https://github.com/marimo-team/marimo/issues/9579)
-            # So we filter to one option as a workaround
-            # so the user can't change the value.
-            override = self._overrides[self._override_key(opt.option)]
-            options = (
-                {override: None if override is None else options[override]}
-                if isinstance(options, dict)
-                else [override]
-            )
+            options = locked_dropdown_options(self._get_value(cli, value), options)  # type: ignore[assignment]
         return self._cli_map.register(
             mo.ui.dropdown(
                 options=options,
@@ -688,9 +680,6 @@ class Group:
             "disabled": self._is_overridden(opt.option),
             "on_change": self._query_on_change(cli, on_change),
         }
-
-    def _override_key(self, option: str) -> str:
-        return self._value_resolver.override_key(option)
 
     def _get_value(
         self,
