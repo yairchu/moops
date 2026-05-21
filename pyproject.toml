@@ -41,6 +41,7 @@ dev-dependencies = [
     "vulture>=2.16",
     "pymarkdownlnt>=0.9.37",
     "matplotlib>=3.10.9",
+    "xarray>=2025.6.1",
 ]
 
 [tool.pytest.ini_options]

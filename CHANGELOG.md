@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `group.multiselect(options, value, ...)` — multi-select UI element that maps
+  to repeated CLI options (e.g. `--survive 2 --survive 3`).
 - `args.is_interface_query` — `True` when a notebook is being run only to
   obtain its interface (via `moops.interface_of()` or `--help`). Notebooks can
   gate expensive computation with `mo.stop(args.is_interface_query)`.

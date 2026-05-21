@@ -535,6 +535,91 @@ class RangeControl(ValueControl):
 
 
 @dataclasses.dataclass
+class MultiSelectControl(ValueControl):
+    default: list[str]
+    select_opts: list[str]
+
+    def allows_repeated_values(self) -> bool:
+        return True
+
+    def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
+        values = args.values_for(self.option)
+        if not values:
+            return None
+        flattened: list[str] = []
+        for value in values:
+            if value is None:
+                return ParseError(f"Option {self.option} requires a value")
+            if "\n" in value:
+                flattened.extend(value.splitlines())
+            else:
+                flattened.append(value)
+        for v in flattened:
+            if v not in self.select_opts:
+                return ParseError(
+                    f"Option {self.option} must be one of"
+                    f" {self.select_opts!r}, got: {v!r}"
+                )
+        return ParseResult(flattened)
+
+    def parse_query_value(self, value: str) -> ParseResult | ParseError:
+        try:
+            raw: typing.Any = json.loads(value)
+        except json.JSONDecodeError:
+            raw = [value] if value else []
+        if not isinstance(raw, list):
+            return ParseError(f"Query parameter for {self.option} must be a JSON list")
+        for item in typing.cast(list[typing.Any], raw):
+            if not isinstance(item, str) or item not in self.select_opts:
+                return ParseError(
+                    f"Query parameter for {self.option} must be a list of"
+                    f" {self.select_opts!r}, got item: {item!r}"
+                )
+        return ParseResult(raw)
+
+    def strategy(self) -> st.SearchStrategy:
+        if not self.select_opts:
+            return st.just([])
+        return st.lists(st.sampled_from(self.select_opts), unique=True)
+
+    def format_usage_parts(self) -> list[str]:
+        values_text = "{" + "|".join(self.select_opts) + "}"
+        return [f"[{self.option} {values_text} ...]"]
+
+    def format_help_lines(self) -> list[str]:
+        values_text = "{" + "|".join(self.select_opts) + "}"
+        line = f"  {self.option} {values_text}: {self.help_text}"
+        if self.default:
+            line += f" (default: {', '.join(self.default)})"
+        line += f" (repeat {self.option} to select multiple)"
+        return [line]
+
+    def format_value(self, value: typing.Any) -> list[str]:
+        values = list(value)
+        if values == self.default:
+            return []
+        return [f"{self.option} {shlex.quote(v)}" for v in values]
+
+    def format_query_value(self, value: typing.Any) -> str | None:
+        values = list(value)
+        return None if values == self.default else json.dumps(values)
+
+    def prompt_interactive(
+        self, effective_default: typing.Any = _UNSET
+    ) -> dict[str, str | None]:
+        d = self.default if effective_default is _UNSET else effective_default
+        for i, v in enumerate(self.select_opts, 1):
+            mark = "*" if v in (d or []) else " "
+            print(f"  {mark}{i}) {v}")
+        default_display = f" [{', '.join(d)}]" if d else ""
+        response = input(f"{self.help_text} (comma-separated){default_display}: ")
+        if not response:
+            return {}
+        parts = [p.strip() for p in response.split(",") if p.strip()]
+        return {self.option: "\n".join(parts)}
+
+
+@dataclasses.dataclass
 class DropdownControl(InputControl):
     dropdown_opts: dict[str, typing.Any]
     supports_none: bool

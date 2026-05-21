@@ -624,6 +624,42 @@ class Group:
             cli,
         )
 
+    def multiselect(
+        self,
+        options: list[str],
+        value: list[str] | None = None,
+        option: str | None = None,
+        *,
+        help_text: str,
+        label: str | None = None,
+        on_change: typing.Callable[[list[str]], None] | None = None,
+        **kwargs: typing.Any,
+    ) -> mo.ui.multiselect:
+        """Create a multiselect UI element that maps to repeated CLI options."""
+        if value is None:
+            value = []
+        opt = self._make_opt(label=label, option=option)
+        cli = _options.MultiSelectControl(
+            option=opt.option,
+            metavar=opt.label.upper().replace(" ", "_"),
+            help_text=help_text,
+            default=list(value),
+            select_opts=list(options),
+        )
+        selected = self._get_value(cli, value)
+        if self._is_overridden(opt.option):
+            options = selected
+        return self._cli_map.register(
+            mo.ui.multiselect(
+                options=options,
+                value=selected,
+                label=opt.label_with_tooltip(help_text),
+                on_change=self._query_on_change(cli, on_change),
+                **kwargs,
+            ),
+            cli,
+        )
+
     def _override_key(self, option: str) -> str:
         option = option[len(self.option) :].lstrip("-")
         if option.startswith("no-"):
