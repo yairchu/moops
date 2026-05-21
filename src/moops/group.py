@@ -432,22 +432,23 @@ class Group:
         """Create a range slider UI element that maps to a CLI option."""
 
         opt = self._make_opt(label=label, option=option)
+        common_args: dict[str, typing.Any] = {
+            "start": start,
+            "stop": stop,
+            "steps": steps,
+        }
         cli = _options.RangeControl.from_slider(
             option=opt.option,
             metavar=opt.label.upper().replace(" ", "_"),
             help_text=help_text,
-            start=start,
-            stop=stop,
             value=value,
-            steps=steps,
+            **common_args,
         )
         return self._cli_map.register(
             mo.ui.range_slider(
-                start=start,
-                stop=stop,
                 step=step,
                 value=self._get_value(cli, cli.default),
-                steps=steps,
+                **common_args,
                 **self._control_kwargs(opt, cli, help_text, on_change),
                 **kwargs,
             ),
