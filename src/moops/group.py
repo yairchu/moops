@@ -301,9 +301,7 @@ class Group:
         return self._cli_map.register(
             mo.ui.switch(
                 value=self._get_value(cli, value),
-                label=opt.label_with_tooltip(help_text),
-                disabled=self._is_overridden(opt.option),
-                on_change=self._query_on_change(cli, on_change),
+                **self._control_kwargs(opt, cli, help_text, on_change),
                 **kwargs,
             ),
             cli,
@@ -328,9 +326,7 @@ class Group:
         return self._cli_map.register(
             mo.ui.checkbox(
                 value=self._get_value(cli, value),
-                label=opt.label_with_tooltip(help_text),
-                disabled=self._is_overridden(opt.option),
-                on_change=self._query_on_change(cli, on_change),
+                **self._control_kwargs(opt, cli, help_text, on_change),
                 **kwargs,
             ),
             cli,
@@ -359,9 +355,7 @@ class Group:
         return self._cli_map.register(
             mo.ui.text(
                 value=self._get_value(cli, value),
-                label=opt.label_with_tooltip(help_text),
-                disabled=self._is_overridden(opt.option),
-                on_change=self._query_on_change(cli, on_change),
+                **self._control_kwargs(opt, cli, help_text, on_change),
                 **kwargs,
             ),
             cli,
@@ -390,9 +384,7 @@ class Group:
         return self._cli_map.register(
             mo.ui.text_area(
                 value=self._get_value(cli, value),
-                label=opt.label_with_tooltip(help_text),
-                disabled=self._is_overridden(opt.option),
-                on_change=self._query_on_change(cli, on_change),
+                **self._control_kwargs(opt, cli, help_text, on_change),
                 **kwargs,
             ),
             cli,
@@ -466,9 +458,7 @@ class Group:
             mo.ui.number(
                 start=start,
                 value=value,
-                label=opt.label_with_tooltip(help_text),
-                disabled=self._is_overridden(opt.option),
-                on_change=self._query_on_change(cli, on_change),
+                **self._control_kwargs(opt, cli, help_text, on_change),
                 **kwargs,
             ),
             cli,
@@ -492,9 +482,7 @@ class Group:
             mo.ui.slider(
                 start=start,
                 value=value,
-                label=opt.label_with_tooltip(help_text),
-                disabled=self._is_overridden(opt.option),
-                on_change=self._query_on_change(cli, on_change),
+                **self._control_kwargs(opt, cli, help_text, on_change),
                 **kwargs,
             ),
             cli,
@@ -532,10 +520,8 @@ class Group:
                 stop=stop,
                 step=step,
                 value=self._get_value(cli, cli.default),
-                label=opt.label_with_tooltip(help_text),
                 steps=steps,
-                disabled=self._is_overridden(opt.option),
-                on_change=self._query_on_change(cli, on_change),
+                **self._control_kwargs(opt, cli, help_text, on_change),
                 **kwargs,
             ),
             cli,
@@ -722,6 +708,19 @@ class Group:
             preset_state=self._preset_state,
             default_preset_state=self._default_preset_state,
         )
+
+    def _control_kwargs(
+        self,
+        opt: _naming.OptionLabel,
+        cli: _options.InputControl,
+        help_text: str,
+        on_change: typing.Callable[[typing.Any], None] | None,
+    ) -> dict[str, typing.Any]:
+        return {
+            "label": opt.label_with_tooltip(help_text),
+            "disabled": self._is_overridden(opt.option),
+            "on_change": self._query_on_change(cli, on_change),
+        }
 
     def _override_key(self, option: str) -> str:
         return self._value_resolver.override_key(option)
