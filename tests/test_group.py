@@ -541,6 +541,19 @@ def test_controls_from_excludes_named_controls(
     assert "--child-board" not in output
 
 
+def test_multiselect_empty_selection_is_representable_in_current_args() -> None:
+    g = Group(cli_args=["script.py"])
+    ctrl = g.multiselect(
+        options=["0", "1", "2", "3"],
+        value=["2", "3"],
+        option="--survive-rule",
+        help_text="Survive rule",
+    )
+    ctrl._value = []  # type: ignore[attr-defined]
+
+    assert g.interface(ctrl)._current_args() != ""  # type: ignore[attr-defined]
+
+
 def test_dict_dropdown_on_change_sets_key_not_value_in_query_params(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
