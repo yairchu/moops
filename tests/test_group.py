@@ -557,6 +557,20 @@ def test_controls_from_excludes_named_controls(
     assert "--child-board" not in output
 
 
+def test_interface_default_correct_for_nested_controls_from() -> None:
+    source = Group(cli_args=["child.py"])
+    sub = source.subgroup("config")
+    style = sub.dropdown(["a", "b"], value="a", option="--style", help_text="Style")
+    child_iface = source.interface(sub.interface(style))
+
+    parent = Group(cli_args=["parent.py"])
+    step = parent.controls_from(child_iface, prefix="step")
+    parent_iface = parent.interface(step)
+
+    # default must nest as {"step": {"config": ...}}, not {"step": {"step-config": ...}}
+    assert parent_iface.default == {"step": {"config": {"style": "a"}}}
+
+
 def test_controls_from_value_compatible_with_run_for_child_subgroups() -> None:
     # Child notebook uses a subgroup
     source = Group(cli_args=["child.py"])
