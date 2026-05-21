@@ -141,13 +141,25 @@ class Interface:
             option = option[3:]
         return option.replace("-", "_")
 
-    def named_cli_controls(
+    def iter_controls(
         self,
-    ) -> typing.Iterator[tuple[str, _options.InputControl]]:
-        for ctrl in self._flatten():
-            cli = self.cli_map.get(ctrl)
-            if cli is not None and not self._is_overridden(cli):
-                yield self._key(cli), cli
+    ) -> typing.Iterator[tuple[str, "Interface | _options.InputControl"]]:
+        """Yield one entry per top-level control, preserving subgroup structure.
+
+        Yields ``(name, sub_iface)`` for subgroup controls and
+        ``(key, cli)`` for leaf controls (skipping overridden ones).
+        Used by ``Group.controls_from`` to mirror another notebook's structure.
+        """
+        for ctrl in self.controls:
+            if (sub_iface := _attached_interface(ctrl)) is not None:
+                sub_prefix = sub_iface.option_prefix[len(self.option_prefix) :].lstrip(
+                    "-"
+                )
+                yield sub_prefix, sub_iface
+            else:
+                cli = self.cli_map.get(ctrl)
+                if cli is not None and not self._is_overridden(cli):
+                    yield self._key(cli), cli
 
     def _is_overridden(self, cli: _options.InputControl) -> bool:
         return self._key(cli) in self.overrides

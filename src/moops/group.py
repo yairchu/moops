@@ -609,11 +609,16 @@ class Group:
         """
         child = self.subgroup(prefix)
         excluded = set(exclude)
-        controls = {
-            name: _control_factory.create_control(child, iface, cli)
-            for name, cli in iface.named_cli_controls()
-            if name not in excluded
-        }
+        controls: dict[str, typing.Any] = {}
+        for name, ctrl_or_sub in iface.iter_controls():
+            if name in excluded:
+                continue
+            if isinstance(ctrl_or_sub, interface.Interface):
+                controls[name] = child.controls_from(ctrl_or_sub, prefix=name)
+            else:
+                controls[name] = _control_factory.create_control(
+                    child, iface, ctrl_or_sub
+                )
         result = mo.ui.dictionary(controls)
         result._moops_interface = child.interface(*controls.values())  # type: ignore[attr-defined]
         return result
