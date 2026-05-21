@@ -63,4 +63,7 @@ class Passthrough:
 
 def _embed_in_script(app: _App, defs: dict[str, typing.Any]) -> typing.Any:
     _, computed_defs = app.run(defs=defs)
-    return Passthrough(dict(computed_defs))
+    result = Passthrough(dict(computed_defs))
+    if "interface" in computed_defs:
+        result.defs["interface"] = computed_defs["interface"]
+    return result
