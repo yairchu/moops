@@ -481,6 +481,66 @@ def test_composite_child_keeps_moops_metadata() -> None:
     assert g.interface(cloned_ctrl).missing_options() == []
 
 
+def test_controls_from_creates_prefixed_dictionary_controls() -> None:
+    source = Group(cli_args=["child.py"])
+    board = source.text_area(option="--board", value="...", help_text="Board")
+    survive = source.multiselect(
+        options=["0", "1", "2"],
+        value=["1"],
+        option="--survive-rule",
+        help_text="Survive",
+    )
+    birth = source.multiselect(
+        options=["0", "1", "2"],
+        value=["2"],
+        option="--birth-rule",
+        help_text="Birth",
+    )
+    child_iface = source.interface(board, survive, birth)
+
+    parent = Group(
+        cli_args=[
+            "parent.py",
+            "--step-board",
+            ".#.",
+            "--step-survive-rule",
+            "2",
+            "--step-birth-rule",
+            "1",
+        ]
+    )
+    step = parent.controls_from(child_iface, prefix="step")
+    parent.interface(step)
+
+    assert list(step.elements) == ["board", "survive_rule", "birth_rule"]
+    assert step.value == {
+        "board": ".#.",
+        "survive_rule": ["2"],
+        "birth_rule": ["1"],
+    }
+
+
+def test_controls_from_excludes_named_controls(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    source = Group(cli_args=["child.py"])
+    board = source.text_area(option="--board", value="...", help_text="Board")
+    style = source.dropdown(["a", "b"], option="--style", help_text="Style")
+    child_iface = source.interface(board, style)
+
+    parent = Group(cli_args=["parent.py", "--help"])
+    child_controls = parent.controls_from(
+        child_iface, prefix="child", exclude=["board"]
+    )
+
+    with pytest.raises(SystemExit):
+        parent.interface(child_controls)
+
+    output = capsys.readouterr().out
+    assert "--child-style" in output
+    assert "--child-board" not in output
+
+
 def test_dict_dropdown_on_change_sets_key_not_value_in_query_params(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

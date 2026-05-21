@@ -157,7 +157,9 @@ def _(mo, result, set_board):
 
 
 @app.cell
-def _(args, result):
+def _(args, mo, result):
+    mo.stop(args.is_interface_query)
+
     args.md(f"```\n{result}\n```")
     return
 

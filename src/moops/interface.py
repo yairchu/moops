@@ -36,7 +36,7 @@ class Interface:
 
     def __post_init__(self) -> None:
         seen_ids: set[int] = set()
-        for ctrl in self.controls:
+        for ctrl in self._flatten():
             if id(ctrl) in seen_ids:
                 raise ValueError("Duplicate control passed to interface")
             seen_ids.add(id(ctrl))
@@ -97,9 +97,9 @@ class Interface:
     def default(self) -> dict[str, typing.Any]:
         result: dict[str, typing.Any] = {}
         for ctrl in self.controls:
-            if isinstance(ctrl, Interface):
-                prefix = ctrl.option_prefix.lstrip("-")
-                result[prefix] = ctrl.default
+            if (iface := _attached_interface(ctrl)) is not None:
+                prefix = iface.option_prefix.lstrip("-")
+                result[prefix] = iface.default
             else:
                 cli = self.cli_map.get(ctrl)
                 if (
@@ -113,9 +113,9 @@ class Interface:
     def strategy(self) -> st.SearchStrategy[dict[str, typing.Any]]:
         strategies: dict[str, st.SearchStrategy[typing.Any]] = {}
         for ctrl in self.controls:
-            if isinstance(ctrl, Interface):
-                prefix = ctrl.option_prefix.lstrip("-")
-                strategies[prefix] = ctrl.strategy()
+            if (iface := _attached_interface(ctrl)) is not None:
+                prefix = iface.option_prefix.lstrip("-")
+                strategies[prefix] = iface.strategy()
             else:
                 cli = self.cli_map.get(ctrl)
                 if cli is not None and not self._is_overridden(cli):
@@ -126,8 +126,8 @@ class Interface:
 
     def _all_input_controls(self) -> typing.Iterator[_options.InputControl]:
         for ctrl in self.controls:
-            if isinstance(ctrl, Interface):
-                yield from ctrl._all_input_controls()
+            if (iface := _attached_interface(ctrl)) is not None:
+                yield from iface._all_input_controls()
             else:
                 cli = self.cli_map.get(ctrl)
                 if cli is not None and not self._is_overridden(cli):
@@ -142,14 +142,22 @@ class Interface:
             option = option[3:]
         return option.replace("-", "_")
 
+    def named_cli_controls(
+        self,
+    ) -> typing.Iterator[tuple[str, _options.InputControl]]:
+        for ctrl in self._flatten():
+            cli = self.cli_map.get(ctrl)
+            if cli is not None and not self._is_overridden(cli):
+                yield self._key(cli), cli
+
     def _is_overridden(self, cli: _options.InputControl) -> bool:
         return self._key(cli) in self.overrides
 
     def cur_values(self) -> dict[str, typing.Any]:
         result: dict[str, typing.Any] = {}
         for ctrl in self.controls:
-            if isinstance(ctrl, Interface):
-                result.update(ctrl.cur_values())
+            if (iface := _attached_interface(ctrl)) is not None:
+                result.update(iface.cur_values())
             else:
                 cli = self.cli_map.get(ctrl)
                 if cli is not None and not self._is_overridden(cli):
@@ -169,7 +177,7 @@ class Interface:
         covered = {
             cli.option
             for ctrl in self.controls
-            if not isinstance(ctrl, Interface)
+            if _attached_interface(ctrl) is None
             for cli in [self.cli_map.get(ctrl)]
             if cli is not None
         }
@@ -255,8 +263,8 @@ class Interface:
 
     def _clear_query_params(self) -> None:
         for ctrl in self.controls:
-            if isinstance(ctrl, Interface):
-                ctrl._clear_query_params()
+            if (iface := _attached_interface(ctrl)) is not None:
+                iface._clear_query_params()
             else:
                 cli = self.cli_map.get(ctrl)
                 if cli is not None:
@@ -264,8 +272,11 @@ class Interface:
 
     def _flatten(self) -> typing.Iterator[typing.Any]:
         for ctrl in self.controls:
-            if isinstance(ctrl, Interface):
-                yield from ctrl._flatten()
+            if (iface := _attached_interface(ctrl)) is not None:
+                yield from iface._flatten()
+            elif (elements := _ui_dictionary_elements(ctrl)) is not None:
+                for child in elements.values():
+                    yield from Interface((child,), self.cli_map)._flatten()
             else:
                 yield ctrl
 
@@ -422,6 +433,22 @@ def _ctrl_value(ctrl: typing.Any) -> typing.Any:
         p = ctrl.path()
         return str(p) if p is not None else ""
     return ctrl._selected_key if hasattr(ctrl, "_selected_key") else ctrl.value
+
+
+def _attached_interface(ctrl: typing.Any) -> Interface | None:
+    if isinstance(ctrl, Interface):
+        return ctrl
+    iface = getattr(ctrl, "_moops_interface", None)
+    return iface if isinstance(iface, Interface) else None
+
+
+def _ui_dictionary_elements(ctrl: typing.Any) -> dict[str, typing.Any] | None:
+    elements = getattr(ctrl, "elements", None)
+    return (
+        typing.cast(dict[str, typing.Any], elements)
+        if isinstance(elements, dict)
+        else None
+    )
 
 
 def _default_custom_value(ctrl: typing.Any) -> typing.Any:

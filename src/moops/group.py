@@ -10,7 +10,16 @@ import weakref
 
 import marimo as mo
 
-from . import _input_map, _markdown, _naming, _options, _parse, _query_params, interface
+from . import (
+    _control_factory,
+    _input_map,
+    _markdown,
+    _naming,
+    _options,
+    _parse,
+    _query_params,
+    interface,
+)
 from ._run_button import run_button
 from ._ui_workarounds import LockedMultiselect
 from .interface import FileBrowserWithInitialSelection
@@ -225,7 +234,10 @@ class Group:
         self, controls: typing.Sequence[typing.Any]
     ) -> list[str]:
         covered_ids = {
-            id(ctrl) for ctrl in controls if isinstance(ctrl, interface.Interface)
+            id(iface)
+            for ctrl in controls
+            for iface in [self._attached_interface(ctrl)]
+            if iface is not None
         }
         missing: list[str] = []
         live_refs: dict[str, weakref.ReferenceType[interface.Interface]] = {}
@@ -239,6 +251,12 @@ class Group:
             missing.extend(iface.input_options())
         self._subgroup_interfaces = live_refs
         return missing
+
+    def _attached_interface(self, ctrl: typing.Any) -> interface.Interface | None:
+        if isinstance(ctrl, interface.Interface):
+            return ctrl
+        iface = getattr(ctrl, "_moops_interface", None)
+        return iface if isinstance(iface, interface.Interface) else None
 
     def md(self, text: str, *, notebook_only: bool = False) -> mo.Html | None:
         """Display markdown in notebooks or plain text in CLI."""
@@ -663,6 +681,31 @@ class Group:
             ),
             cli,
         )
+
+    def controls_from(
+        self,
+        iface: interface.Interface,
+        *,
+        prefix: str,
+        exclude: typing.Iterable[str] = (),
+    ) -> mo.ui.dictionary:
+        """Create a subgroup of controls mirroring another notebook's interface.
+
+        The returned ``mo.ui.dictionary`` is keyed by the child notebook's
+        original option names and its ``.value`` can be passed to ``moops.run``.
+        The controls themselves are created in a subgroup, so their CLI options
+        are prefixed in the parent notebook.
+        """
+        child = self.subgroup(prefix)
+        excluded = set(exclude)
+        controls = {
+            name: _control_factory.create_control(child, iface, cli)
+            for name, cli in iface.named_cli_controls()
+            if name not in excluded
+        }
+        result = mo.ui.dictionary(controls)
+        result._moops_interface = child.interface(*controls.values())  # type: ignore[attr-defined]
+        return result
 
     def _override_key(self, option: str) -> str:
         option = option[len(self.option) :].lstrip("-")

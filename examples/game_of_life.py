@@ -18,18 +18,19 @@ def _(args):
 
 
 @app.cell
-def _(args, birth_rule, board_input, steps, survive_rule):
-    interface = args.interface(board_input, survive_rule, birth_rule, steps)
+def _(args, step_controls, steps):
+    interface = args.interface(step_controls, steps)
     interface
     return
 
 
 @app.cell
 def _():
+    import marimo as mo
     import matplotlib.pyplot as plt
     import numpy as np
 
-    return np, plt
+    return mo, np, plt
 
 
 @app.cell
@@ -53,39 +54,13 @@ def _(moops):
 
 
 @app.cell
-def _(args):
-    board_input = args.text_area(
-        value=".#.\n###\n.#.",
-        label="Initial board",
-        option="--board",
-        help_text="Starting board state (. = dead, # = alive)",
+def _(args, game_of_life_iteration, mo, moops):
+    step_controls = args.controls_from(
+        moops.interface_of(game_of_life_iteration),
+        prefix="step",
     )
-    board_input
-    return (board_input,)
-
-
-@app.cell
-def _(args):
-    survive_rule = args.multiselect(
-        options=[str(i) for i in range(9)],
-        value=["2", "3"],
-        label="Survive rule",
-        help_text="Neighbor counts that keep a live cell alive",
-    )
-    survive_rule
-    return (survive_rule,)
-
-
-@app.cell
-def _(args):
-    birth_rule = args.multiselect(
-        options=[str(i) for i in range(9)],
-        value=["3"],
-        label="Birth rule",
-        help_text="Neighbor counts that birth a new live cell",
-    )
-    birth_rule
-    return (birth_rule,)
+    mo.vstack(step_controls.values())
+    return (step_controls,)
 
 
 @app.cell
@@ -103,21 +78,13 @@ def _(args):
 
 
 @app.cell
-def _(
-    birth_rule,
-    board_input,
-    game_of_life_iteration,
-    moops,
-    steps,
-    survive_rule,
-):
-    _board = board_input.value
+def _(game_of_life_iteration, moops, step_controls, steps):
+    _kwargs = step_controls.value
+    _board = _kwargs["board"]
     for _ in range(int(steps.value)):
         _board = moops.run(
             game_of_life_iteration,
-            board=_board,
-            survive_rule=survive_rule.value,
-            birth_rule=birth_rule.value,
+            **{**_kwargs, "board": _board},
         )
     result = _board
     return (result,)
@@ -129,11 +96,6 @@ def _(np, plt, result):
     plt.xticks([])
     plt.yticks([])
     plt.gca()
-    return
-
-
-@app.cell
-def _():
     return
 
 
