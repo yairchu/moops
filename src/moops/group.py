@@ -12,6 +12,7 @@ import marimo as mo
 
 from . import _input_map, _markdown, _naming, _options, _parse, _query_params, interface
 from ._run_button import run_button
+from ._ui_workarounds import LockedMultiselect
 from .interface import FileBrowserWithInitialSelection
 from .presets import Presets
 
@@ -648,7 +649,10 @@ class Group:
         )
         selected = self._get_value(cli, value)
         if self._is_overridden(opt.option):
-            options = selected
+            return self._cli_map.register(
+                LockedMultiselect(selected, opt.label_with_tooltip(help_text)),
+                cli,
+            )
         return self._cli_map.register(
             mo.ui.multiselect(
                 options=options,
