@@ -1,9 +1,13 @@
 """Workarounds for marimo UI elements that lack `disabled` support."""
 
 import html
+import pathlib
+import typing
 
+import marimo as mo
 from marimo._messaging.mimetypes import KnownMimeType
 from marimo._plugins.ui._core.ui_element import UIElement
+from marimo._plugins.ui._impl.file_browser import FileBrowserFileInfo
 
 
 class LockedMultiselect(UIElement[str, list[str]]):
@@ -52,3 +56,48 @@ class LockedMultiselect(UIElement[str, list[str]]):
 
     def _mime_(self) -> tuple[KnownMimeType, str]:
         return ("text/html", self._html)
+
+
+class FileBrowserWithInitialSelection(mo.ui.file_browser):
+    """Extends mo.ui.file_browser with a CLI path fallback when no file is selected."""
+
+    def __init__(
+        self, default: str | typing.Sequence[str], **kwargs: typing.Any
+    ) -> None:
+        self._default = [default] if isinstance(default, str) else list(default)
+        super().__init__(**kwargs)
+
+    @property
+    def value(self) -> list[FileBrowserFileInfo]:  # type: ignore[override]
+        if browser_value := list(super().value):
+            return browser_value
+        return [
+            FileBrowserFileInfo(
+                id=default, path=p, name=p.name, is_directory=p.is_dir()
+            )
+            for default in self._default
+            for p in [pathlib.Path(default)]
+        ]
+
+    @value.setter
+    def value(self, value: typing.Any) -> None:
+        del value
+        raise RuntimeError("Setting the value of a UIElement is not allowed.")
+
+    def _mime_(self) -> tuple[KnownMimeType, str]:  # type: ignore[override]
+        files = "\n".join({f"- `{p}`" for p in self._default})
+        return mo.vstack(
+            [
+                mo.Html(super()._mime_()[1]),
+                mo.callout(
+                    mo.md(
+                        "marimo's file browser "
+                        "[does not yet support an initial selection]"
+                        "(https://github.com/marimo-team/marimo/issues/7468). "
+                        "Falling back to:\n\n"
+                        f"{files}"
+                    ),
+                    kind="info",
+                ),
+            ]
+        )._mime_()  # type: ignore

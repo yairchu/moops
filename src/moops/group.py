@@ -21,8 +21,11 @@ from . import (
     interface,
 )
 from ._run_button import run_button
-from ._ui_workarounds import LockedMultiselect
-from .interface import FileBrowserWithInitialSelection
+from ._ui_workarounds import (
+    FileBrowserFileInfo,
+    FileBrowserWithInitialSelection,
+    LockedMultiselect,
+)
 from .presets import Presets
 
 Numeric = int | float
@@ -423,7 +426,7 @@ class Group:
         value = self._get_value(cli, default)
         raw_on_change = self._query_on_change(cli, on_change)
 
-        def _on_change(infos: typing.Sequence[interface.FileBrowserFileInfo]) -> None:
+        def _on_change(infos: typing.Sequence[FileBrowserFileInfo]) -> None:
             if raw_on_change is not None:
                 paths = [str(info.path) for info in infos]
                 raw_on_change(paths if multiple else (paths[0] if paths else ""))
