@@ -152,11 +152,7 @@ def _(birth_set, board_input, np, survive_set, xr):
 
 @app.cell
 def _(mo, result, set_board):
-    advance_btn = mo.ui.button(
-        label="Advance →",
-        on_click=lambda _: set_board(result),
-    )
-    advance_btn
+    mo.ui.button(label="Advance →", on_click=lambda _: set_board(result))
     return
 
 
