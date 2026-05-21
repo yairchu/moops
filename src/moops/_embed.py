@@ -54,7 +54,7 @@ class Passthrough:
         unexpected = defs.keys() - {"args"}
         if unexpected:
             raise ValueError(
-                f"moops.embed.Passthrough received unexpected defs keys: {unexpected}"
+                f"moops.Passthrough received unexpected defs keys: {unexpected}"
             )
         return self
 

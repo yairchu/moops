@@ -49,7 +49,7 @@ def _(moops):
 
 @app.cell
 def _(text_source):
-    # Outer notebook can inject moops.embed.Passthrough here via
+    # Outer notebook can inject moops.Passthrough here via
     # defs={"text_source_embed": ...} to reuse an already-computed
     # text_source result instead of running it again.
     text_source_embed = text_source.app.clone()
