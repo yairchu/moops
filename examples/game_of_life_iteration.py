@@ -56,7 +56,7 @@ def _(get_preset_sel, moops, set_preset_sel):
 
 @app.cell
 def _(mo):
-    get_board, set_board = mo.state(".....\n.#...\n..##.\n.##..\n.....")
+    get_board, set_board = mo.state(None)
     return get_board, set_board
 
 
@@ -64,7 +64,7 @@ def _(mo):
 def _(args):
     # Hidden moops control: constant default so presets compare correctly.
     board_cli = args.text_area(
-        value="#..\n.##\n##.",
+        value=".#.\n###\n.#.",
         label="Current board",
         option="--board",
         help_text="Board state (. = dead, # = alive)",
