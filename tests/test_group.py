@@ -557,6 +557,24 @@ def test_controls_from_excludes_named_controls(
     assert "--child-board" not in output
 
 
+def test_controls_from_value_compatible_with_run_for_child_subgroups() -> None:
+    # Child notebook uses a subgroup
+    source = Group(cli_args=["child.py"])
+    sub = source.subgroup("config")
+    style = sub.dropdown(["a", "b"], option="--style", help_text="Style")
+    child_iface = source.interface(sub.interface(style))
+
+    # Parent mirrors the child's controls, overriding style to "b"
+    parent = Group(cli_args=["parent.py", "--step-config-style", "b"])
+    step = parent.controls_from(child_iface, prefix="step")
+    parent.interface(step)
+
+    # step.value must be compatible with moops.run(child, **step.value),
+    # which passes the dict directly to Group.with_overrides — so nested
+    # subgroup values must be dicts, not flat underscore-joined keys.
+    assert step.value == {"config": {"style": "b"}}
+
+
 def test_multiselect_empty_selection_is_representable_in_current_args() -> None:
     g = Group(cli_args=["script.py"])
     ctrl = g.multiselect(
