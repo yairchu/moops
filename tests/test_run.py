@@ -11,6 +11,15 @@ import moops.testing
 from examples import name_casing, notebook
 
 
+def test_run_works_from_async_context() -> None:
+    # moops.run() called from within a running event loop must not crash with
+    # "asyncio.run() cannot be called from a running event loop".
+    async def _call() -> typing.Any:
+        return moops.run(notebook)
+
+    assert asyncio.run(_call()) is not None
+
+
 def test_run_returns_result() -> None:
     result = moops.run(name_casing, text="Hello World", style="snake_case")
     assert result == "hello_world"
