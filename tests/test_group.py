@@ -520,6 +520,22 @@ def test_controls_from_creates_prefixed_dictionary_controls() -> None:
     }
 
 
+def test_controls_from_supports_overridden_multiselect() -> None:
+    source = Group(cli_args=["child.py"])
+    survive = source.multiselect(
+        options=["0", "1", "2"],
+        value=["1"],
+        option="--survive-rule",
+        help_text="Survive",
+    )
+    child_iface = source.interface(survive)
+
+    parent = Group.with_overrides({"step": child_iface.default})
+    step = parent.controls_from(child_iface, prefix="step")
+
+    assert step.value == child_iface.default
+
+
 def test_controls_from_excludes_named_controls(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
