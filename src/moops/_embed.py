@@ -42,12 +42,14 @@ class Passthrough:
     """
 
     def __init__(self, source: _Embed | dict[str, typing.Any]) -> None:
-        self.defs = {
-            "result": (source if isinstance(source, dict) else source.defs)["result"],
+        source_defs = source if isinstance(source, dict) else source.defs
+        self.defs: dict[str, typing.Any] = {
             "interface": interface.Interface(
                 controls=typing.cast(tuple[typing.Any], ())
             ),
         }
+        if "result" in source_defs:
+            self.defs["result"] = source_defs["result"]
         self.output = None
 
     async def embed(self, defs: dict[str, typing.Any]) -> "Passthrough":

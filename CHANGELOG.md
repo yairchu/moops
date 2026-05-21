@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `moops.Passthrough` no longer crashes with `KeyError` when the source embed
+  has not yet produced a `result` (e.g. a file-picker with nothing selected on
+  first load). The `result` key is now only forwarded when it is present.
+
 ## [0.4.0] - 2026-05-21
 
 ### Fixed
