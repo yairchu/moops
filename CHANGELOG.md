@@ -24,6 +24,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `args.is_interface_query`. Useful for surfacing a notebook's controls into a
   parent that calls it in a loop via `moops.run()`.
 
+### Changed
+
+- Removed `moops.testing.notebook_interface(module)`; use
+  `moops.interface_of(module)` instead.
+
 ### Fixed
 
 - `moops.Passthrough` no longer crashes with `KeyError` when the source embed

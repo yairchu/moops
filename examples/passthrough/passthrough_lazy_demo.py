@@ -5,13 +5,13 @@
 # ]
 # ///
 #
-# Demo of the Passthrough-with-no-result bug.
+# Regression demo for Passthrough with no source result.
 #
 # lazy_source starts with an empty text area, so it produces no `result` on
-# first load.  The cell that creates moops.Passthrough(source_result) then
-# crashes with KeyError because Passthrough.__init__ does source.defs["result"]
-# unconditionally.  This prevents report_result from being computed and the
-# parent interface cell from running, so the user sees no controls at all.
+# first load.  moops.Passthrough(source_result) used to crash with KeyError
+# because Passthrough.__init__ read source.defs["result"] unconditionally.
+# The parent interface should now appear even while the source is waiting for
+# input.
 
 import marimo
 
@@ -25,8 +25,8 @@ def _(mo):
     # Passthrough + no-result demo
 
     `lazy_source` starts empty, so it has no `result` yet.
-    The cell below that calls `moops.Passthrough(source_result)` will crash
-    with `KeyError: 'result'`, preventing this interface from ever appearing.
+    `moops.Passthrough(source_result)` used to crash in this state; the
+    parent interface should now remain visible while waiting for input.
     """)
     return
 
@@ -108,8 +108,7 @@ def _(args):
 
 @app.cell
 async def _(moops, report_args, source_result, word_report_instance):
-    # BUG: moops.Passthrough(source_result) crashes here with KeyError('result')
-    # when lazy_source hasn't produced a result yet (empty text area on first load).
+    # Regression check: source_result may not have a result yet.
     report_result = await moops.embed(
         word_report_instance,
         defs={

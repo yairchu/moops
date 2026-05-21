@@ -49,7 +49,7 @@ def _(args):
     text_input = args.text_area(
         value="",
         label="Source text",
-        help_text="Leave empty to reproduce the Passthrough bug",
+        help_text="Leave empty to exercise Passthrough with no source result",
     )
     text_input
     return (text_input,)
