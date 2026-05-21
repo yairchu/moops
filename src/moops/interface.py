@@ -3,6 +3,7 @@ import html
 import sys
 import typing
 import urllib.parse
+import weakref
 
 import marimo as mo
 from hypothesis import strategies as st
@@ -393,6 +394,39 @@ def _attached_interface(ctrl: typing.Any) -> Interface | None:
         return ctrl
     iface = getattr(ctrl, "_moops_interface", None)
     return iface if isinstance(iface, Interface) else None
+
+
+class SubgroupRegistry:
+    """Tracks live subgroup interfaces to detect missing args.interface() calls."""
+
+    def __init__(self) -> None:
+        self._refs: dict[str, weakref.ReferenceType[Interface]] = {}
+
+    def register(self, iface: Interface) -> None:
+        self._refs = {
+            prefix: ref for prefix, ref in self._refs.items() if ref() is not None
+        }
+        self._refs[iface.option_prefix] = weakref.ref(iface)
+
+    def missing_options(self, controls: typing.Sequence[typing.Any]) -> list[str]:
+        covered_ids = {
+            id(iface)
+            for ctrl in controls
+            for iface in [_attached_interface(ctrl)]
+            if iface is not None
+        }
+        missing: list[str] = []
+        live_refs: dict[str, weakref.ReferenceType[Interface]] = {}
+        for prefix, ref in self._refs.items():
+            iface = ref()
+            if iface is None:
+                continue
+            live_refs[prefix] = ref
+            if id(iface) in covered_ids:
+                continue
+            missing.extend(iface.input_options())
+        self._refs = live_refs
+        return missing
 
 
 def _ui_dictionary_elements(ctrl: typing.Any) -> dict[str, typing.Any] | None:

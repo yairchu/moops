@@ -4,7 +4,6 @@ import inspect
 import pathlib
 import typing
 import warnings
-import weakref
 
 import marimo as mo
 
@@ -58,9 +57,7 @@ class Group:
         self._preset_state = self._resolve_preset_state()
         self._parent_group: Group | None = None
         self._markdown_heading_offset = 0
-        self._subgroup_interfaces: dict[
-            str, weakref.ReferenceType[interface.Interface]
-        ] = {}
+        self._subgroup_registry = interface.SubgroupRegistry()
         self._value_resolver = self._make_value_resolver()
 
     @property
@@ -166,9 +163,7 @@ class Group:
             )
         except ValueError:
             notebook_file = caller_path
-        extra_missing_options = tuple(
-            self._missing_subgroup_interface_options(controls)
-        )
+        extra_missing_options = tuple(self._subgroup_registry.missing_options(controls))
         iface = interface.Interface(
             controls,
             cli_map=self._cli_map,
@@ -183,7 +178,7 @@ class Group:
             extra_missing_options=extra_missing_options,
         )
         if self._parent_group is not None:
-            self._parent_group._register_subgroup_interface(iface)
+            self._parent_group._subgroup_registry.register(iface)
         if self.option or not mo.running_in_notebook():
             missing_options = iface.missing_options()
             if missing_options:
@@ -195,42 +190,6 @@ class Group:
         if not self.option and not mo.running_in_notebook():
             iface.validate_or_exit(self._state)
         return iface
-
-    def _register_subgroup_interface(self, iface: interface.Interface) -> None:
-        self._subgroup_interfaces = {
-            prefix: ref
-            for prefix, ref in self._subgroup_interfaces.items()
-            if ref() is not None
-        }
-        self._subgroup_interfaces[iface.option_prefix] = weakref.ref(iface)
-
-    def _missing_subgroup_interface_options(
-        self, controls: typing.Sequence[typing.Any]
-    ) -> list[str]:
-        covered_ids = {
-            id(iface)
-            for ctrl in controls
-            for iface in [self._attached_interface(ctrl)]
-            if iface is not None
-        }
-        missing: list[str] = []
-        live_refs: dict[str, weakref.ReferenceType[interface.Interface]] = {}
-        for prefix, ref in self._subgroup_interfaces.items():
-            iface = ref()
-            if iface is None:
-                continue
-            live_refs[prefix] = ref
-            if id(iface) in covered_ids:
-                continue
-            missing.extend(iface.input_options())
-        self._subgroup_interfaces = live_refs
-        return missing
-
-    def _attached_interface(self, ctrl: typing.Any) -> interface.Interface | None:
-        if isinstance(ctrl, interface.Interface):
-            return ctrl
-        iface = getattr(ctrl, "_moops_interface", None)
-        return iface if isinstance(iface, interface.Interface) else None
 
     def md(self, text: str, *, notebook_only: bool = False) -> mo.Html | None:
         """Display markdown in notebooks or plain text in CLI."""
