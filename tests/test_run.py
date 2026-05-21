@@ -11,6 +11,19 @@ import moops.testing
 from examples import name_casing, notebook
 
 
+def test_script_mode_embed_forwards_interface() -> None:
+    # _embed_in_script must forward the embedded notebook's real interface so
+    # parent notebooks can see subgroup controls.  Without the fix,
+    # result.defs["interface"] is always an empty Interface(controls=()).
+    async def _embed() -> moops.Interface:
+        args = moops.Group(cli_args=["script.py"])
+        result = await moops.embed(name_casing.app, defs={"args": args})
+        return typing.cast(moops.Interface, result.defs["interface"])
+
+    iface = asyncio.run(_embed())
+    assert len(iface.controls) > 0
+
+
 def test_run_works_from_async_context() -> None:
     # moops.run() called from within a running event loop must not crash with
     # "asyncio.run() cannot be called from a running event loop".
