@@ -539,10 +539,27 @@ class MultiSelectControl(ValueControl):
     default: list[str]
     select_opts: list[str]
 
+    @property
+    def has_no_flag(self) -> bool:
+        return bool(self.default)
+
+    @property
+    def _no_flag(self) -> str | None:
+        return f"--no-{self.option.lstrip('-')}" if self.has_no_flag else None
+
+    def flags(self) -> set[str]:
+        no_flag = self._no_flag
+        return {no_flag} if no_flag else set()
+
     def allows_repeated_values(self) -> bool:
         return True
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
+        no_flag = self._no_flag
+        if no_flag and args.has(no_flag):
+            if args.has(self.option):
+                return ParseError(f"Cannot use both {self.option} and {no_flag}")
+            return ParseResult([])
         values = args.values_for(self.option)
         if not values:
             return None
@@ -584,6 +601,8 @@ class MultiSelectControl(ValueControl):
 
     def format_usage_parts(self) -> list[str]:
         values_text = "{" + "|".join(self.select_opts) + "}"
+        if self._no_flag:
+            return [f"[{self.option} {values_text} ... | {self._no_flag}]"]
         return [f"[{self.option} {values_text} ...]"]
 
     def format_help_lines(self) -> list[str]:
@@ -592,12 +611,17 @@ class MultiSelectControl(ValueControl):
         if self.default:
             line += f" (default: {', '.join(self.default)})"
         line += f" (repeat {self.option} to select multiple)"
-        return [line]
+        lines = [line]
+        if self._no_flag:
+            lines.append(f"  {self._no_flag}: Clear {self.option}")
+        return lines
 
     def format_value(self, value: typing.Any) -> list[str]:
         values = list(value)
         if values == self.default:
             return []
+        if not values and self._no_flag:
+            return [self._no_flag]
         return [f"{self.option} {shlex.quote(v)}" for v in values]
 
     def format_query_value(self, value: typing.Any) -> str | None:
