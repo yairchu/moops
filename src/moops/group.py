@@ -3,7 +3,6 @@ from __future__ import annotations
 import inspect
 import pathlib
 import shlex
-import sys
 import typing
 import warnings
 import weakref
@@ -18,6 +17,7 @@ from . import (
     _options,
     _parse,
     _query_params,
+    _value_resolution,
     interface,
 )
 from ._run_button import run_button
@@ -59,6 +59,7 @@ class Group:
         self._subgroup_interfaces: dict[
             str, weakref.ReferenceType[interface.Interface]
         ] = {}
+        self._value_resolver = self._make_value_resolver()
 
     @property
     def is_interface_query(self) -> bool:
@@ -77,6 +78,7 @@ class Group:
     def with_overrides(cls, overrides: dict[str, typing.Any]) -> Group:
         instance = cls(["run"])
         instance._overrides = overrides
+        instance._value_resolver = instance._make_value_resolver()
         return instance
 
     @classmethod
@@ -143,6 +145,7 @@ class Group:
             child._build_active_preset() if presets else self._active_preset
         )
         child._is_interface_query = self._is_interface_query
+        child._value_resolver = child._make_value_resolver()
         return child
 
     def _build_preset_state(self) -> _parse.ParseState | None:
@@ -707,86 +710,35 @@ class Group:
         result._moops_interface = child.interface(*controls.values())  # type: ignore[attr-defined]
         return result
 
+    def _make_value_resolver(self) -> _value_resolution.ValueResolver:
+        return _value_resolution.ValueResolver(
+            option_prefix=self.option,
+            state=self._state,
+            overrides=self._overrides,
+            query_params=self._query_params,
+            preset_state=self._preset_state,
+            default_preset_state=self._default_preset_state,
+        )
+
     def _override_key(self, option: str) -> str:
-        option = option[len(self.option) :].lstrip("-")
-        if option.startswith("no-"):
-            option = option[3:]
-        return option.replace("-", "_")
+        return self._value_resolver.override_key(option)
 
     def _get_value(
         self,
         control: _options.InputControl,
         default: typing.Any,
     ) -> typing.Any:
-        key = self._override_key(control.option)
-        if key in self._overrides:
-            return self._overrides[key]
-        if self._preset_state is not None:
-            match control.parse(self._preset_state.args):
-                case _options.ParseResult(value=v):
-                    self._query_params.sync(control, key, v)
-                    return v
-                case None:
-                    self._query_params.sync(control, key, default)
-                    return default
-                case _:
-                    pass
-        raw = self._query_params.get(key)
-        if raw is not None:
-            match control.parse_query_value(raw):
-                case _options.ParseError(message=msg):
-                    self._state.validation_errors[control.option] = msg
-                case _options.ParseResult(value=v):
-                    return v
-        match control.parse(self._state.args):
-            case _options.ParseError(message=msg):
-                self._state.validation_errors[control.option] = msg
-            case _options.ParseResult(value=v):
-                return v
-            case None:
-                if self._state.args.is_interactive and not mo.running_in_notebook():
-                    effective_default = default
-                    if self._default_preset_state is not None:
-                        match control.parse(self._default_preset_state.args):
-                            case _options.ParseResult(value=v):
-                                effective_default = v
-                            case _:
-                                pass
-                    try:
-                        prompted = control.prompt_interactive(effective_default)
-                    except KeyboardInterrupt:
-                        print("\nAborted.")
-                        sys.exit(1)
-                    for option, value in prompted.items():
-                        self._state.args.set_value(option, value)
-                    match control.parse(self._state.args):
-                        case _options.ParseResult(value=v):
-                            return v
-                        case _:
-                            pass
-        if self._default_preset_state is not None:
-            match control.parse(self._default_preset_state.args):
-                case _options.ParseResult(value=v):
-                    self._query_params.sync(control, key, v)
-                    return v
-                case _:
-                    pass
-        return default
+        return self._value_resolver.get_value(control, default)
 
     def _is_overridden(self, option: str) -> bool:
-        return self._override_key(option) in self._overrides
+        return self._value_resolver.is_overridden(option)
 
     def _query_on_change(
         self,
         control: _options.InputControl,
         on_change: typing.Callable[[typing.Any], None] | None,
     ) -> typing.Callable[[typing.Any], None] | None:
-        return self._query_params.on_change(
-            control,
-            self._override_key(control.option),
-            on_change,
-            disabled=self._is_overridden(control.option),
-        )
+        return self._value_resolver.query_on_change(control, on_change)
 
     def _make_opt(
         self, label: str | None, option: str | None, prefix: str | None = None
