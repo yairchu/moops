@@ -221,13 +221,36 @@ class Interface:
         for ctrl in self.controls:
             if isinstance(ctrl, Interface):
                 values.update(ctrl._standalone_query_values())
-                continue
-            input_control = self.input_map.get(ctrl)
-            if input_control is None:
-                continue
-            value = input_control.format_query_value(_ctrl_value(ctrl))
-            if value is not None:
-                values[_query_params.escape_url_key(self._key(input_control))] = value
+            elif (sub_iface := _attached_interface(ctrl)) is not None:
+                values.update(self._controls_from_query_values(sub_iface))
+            else:
+                input_control = self.input_map.get(ctrl)
+                if input_control is None:
+                    continue
+                value = input_control.format_query_value(_ctrl_value(ctrl))
+                if value is not None:
+                    key = _query_params.escape_url_key(self._key(input_control))
+                    values[key] = value
+        return values
+
+    def _controls_from_query_values(self, sub_iface: "Interface") -> dict[str, str]:
+        """Collect standalone query values for a controls_from mirror.
+
+        Uses this interface's key scheme (our option_prefix) so the resulting
+        URL params match the parent notebook's parameter namespace.
+        """
+        values: dict[str, str] = {}
+        for ctrl in sub_iface.controls:
+            if (nested := _attached_interface(ctrl)) is not None:
+                values.update(self._controls_from_query_values(nested))
+            else:
+                input_control = sub_iface.input_map.get(ctrl)
+                if input_control is None:
+                    continue
+                value = input_control.format_query_value(_ctrl_value(ctrl))
+                if value is not None:
+                    key = _query_params.escape_url_key(self._key(input_control))
+                    values[key] = value
         return values
 
     def _root_panel(self) -> mo.Html:
