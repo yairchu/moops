@@ -1,6 +1,8 @@
 import asyncio
+import concurrent.futures
 import types
 import typing
+import unittest.mock
 
 import hypothesis
 import marimo as mo
@@ -31,6 +33,26 @@ def test_script_mode_embed_forwards_interface() -> None:
 
     iface = asyncio.run(_embed())
     assert len(iface.controls) > 0
+
+
+def test_run_does_not_use_thread_outside_async_context() -> None:
+    # When there is no running event loop, run() should call app.run directly,
+    # not via a ThreadPoolExecutor. A thread is only needed to avoid blocking
+    # an existing event loop.
+    thread_pool_created: list[bool] = []
+    real_tpe = concurrent.futures.ThreadPoolExecutor
+
+    class _TrackingTPE(real_tpe):  # type: ignore[misc]
+        def __init__(self, *args: typing.Any, **kwargs: typing.Any) -> None:
+            thread_pool_created.append(True)
+            super().__init__(*args, **kwargs)
+
+    with unittest.mock.patch("concurrent.futures.ThreadPoolExecutor", _TrackingTPE):
+        moops.run(notebook)
+
+    assert not thread_pool_created, (
+        "run() should not use a thread outside async context"
+    )
 
 
 def test_run_works_from_async_context() -> None:
