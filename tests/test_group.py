@@ -1,6 +1,7 @@
 import asyncio
 import dataclasses
 import gc
+import inspect
 import pathlib
 import typing
 import urllib.parse
@@ -295,6 +296,69 @@ def test_number_accepts_negative_value() -> None:
     ctrl = g.number(option="--count", help_text="A count")
     g.interface(ctrl)
     assert ctrl.value == -3
+
+
+def test_group_ui_method_positional_args_match_marimo() -> None:
+    group_names = {
+        name for name, _ in inspect.getmembers(Group, predicate=inspect.isfunction)
+    }
+    marimo_names = {name for name in dir(mo.ui) if not name.startswith("_")}
+    shared = group_names & marimo_names
+
+    mismatches = {
+        name: mismatch
+        for name in shared
+        for mismatch in [
+            _positional_signature_mismatch(getattr(Group, name), getattr(mo.ui, name))
+        ]
+        if mismatch is not None
+    }
+
+    assert not mismatches, "\n".join(
+        [
+            "Group UI method positional signature mismatches:\n",
+            *[f"{name}: {mismatch}" for name, mismatch in mismatches.items()],
+        ]
+    )
+
+
+def _positional_signature_mismatch(
+    group_func: typing.Callable[..., typing.Any],
+    marimo_func: typing.Callable[..., typing.Any],
+) -> str | None:
+    [*group_params] = inspect.signature(group_func).parameters.values()
+    if group_params and group_params[0].name == "self":
+        group_params = group_params[1:]
+
+    positional = (
+        inspect.Parameter.POSITIONAL_ONLY,
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+    )
+
+    for index, mo_param in enumerate(
+        inspect.signature(marimo_func).parameters.values()
+    ):
+        if mo_param.kind not in positional or mo_param.name == "disabled":
+            break
+        if index >= len(group_params):
+            return f"missing param {mo_param.name!r} at index {index}"
+        g_param = group_params[index]
+        if g_param.kind is inspect.Parameter.VAR_POSITIONAL:
+            return None
+        if g_param.kind not in positional or g_param.name != mo_param.name:
+            return (
+                f"index {index}: expected positional {mo_param.name!r}, "
+                f"got {g_param.kind.name} {g_param.name!r}"
+            )
+        if (
+            mo_param.default is not inspect.Parameter.empty
+            and g_param.default != mo_param.default
+        ):
+            return (
+                f"default mismatch for {mo_param.name!r}: "
+                f"group={g_param.default!r}, marimo={mo_param.default!r}"
+            )
+    return None
 
 
 def test_help_usage_line_has_no_double_spaces(
