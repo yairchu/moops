@@ -106,6 +106,12 @@ def test_run_propagates_kwargs_to_subgroup_controls() -> None:
     assert moops.run(notebook, casing={"style": "camel_case"}) == "HeyThere!"
 
 
+def test_interface_of_produces_no_stdout(capsys: pytest.CaptureFixture[str]) -> None:
+    # group.md() and similar should not print to stdout during interface queries.
+    moops.interface_of(name_casing)
+    assert capsys.readouterr().out == ""
+
+
 def test_defaults_supports_run_form() -> None:
     iface = moops.interface_of(notebook)
     assert moops.run(notebook, **iface.default) is not None
