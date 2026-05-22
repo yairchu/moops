@@ -199,7 +199,7 @@ class Group:
         text = _markdown.demote_markdown_headings(text, self._markdown_heading_offset)
         if mo.running_in_notebook():
             return mo.md(text)
-        if self._state.args.is_help or self._is_interface_query:
+        if self._is_interface_query:
             return None
         text = text.strip()
         if text.startswith("```\n") and text.endswith("\n```"):
