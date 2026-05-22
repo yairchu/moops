@@ -589,6 +589,32 @@ def test_controls_from_value_compatible_with_run_for_child_subgroups() -> None:
     assert step.value == {"config": {"style": "b"}}
 
 
+def test_controls_from_preserves_slider_widget() -> None:
+    # controls_from must recreate sliders as sliders, not number inputs.
+    source = Group(cli_args=["child.py"])
+    count = source.slider(start=0, stop=10, value=3, label="Count", help_text="count")
+    child_iface = source.interface(count)
+
+    parent = Group(cli_args=["parent.py"])
+    step = parent.controls_from(child_iface, prefix="step")
+    assert isinstance(step.elements["count"], mo.ui.slider)
+
+
+def test_controls_from_preserves_extra_kwargs() -> None:
+    # controls_from must preserve extra marimo kwargs (e.g. debounce).
+    source = Group(cli_args=["child.py"])
+    count = source.slider(
+        start=0, stop=10, value=3, label="Count", help_text="count", debounce=True
+    )
+    child_iface = source.interface(count)
+
+    parent = Group(cli_args=["parent.py"])
+    step = parent.controls_from(child_iface, prefix="step")
+    slider = step.elements["count"]
+    assert isinstance(slider, mo.ui.slider)
+    assert slider._component_args.get("debounce") is True  # type: ignore[attr-defined]
+
+
 def test_multiselect_empty_selection_is_representable_in_current_args() -> None:
     g = Group(cli_args=["script.py"])
     ctrl = g.multiselect(
