@@ -824,6 +824,21 @@ def test_option_named_file_does_not_conflict_with_marimo_notebook_param() -> Non
     assert params.get("file_") == "some_file.txt"
 
 
+def test_controls_from_values_are_in_standalone_query_values() -> None:
+    source = Group(cli_args=["script.py", "--style", "b"])
+    ctrl = source.dropdown(["a", "b"], label="Style", help_text="x")
+    source_iface = source.interface(ctrl)
+
+    parent = Group(cli_args=["script.py", "--step-style", "b"])
+    mirror = parent.controls_from(source_iface, prefix="step")
+    iface = parent.interface(mirror)
+
+    assert iface._current_args() == "--step-style b"  # type: ignore[attr-defined]
+    assert iface._standalone_query_values() == {  # type: ignore[attr-defined]
+        "step_style": "b"
+    }
+
+
 def test_custom_control_is_bound_to_wrapped_ui_element() -> None:
     g = Group(cli_args=["script.py"])
     fallback = g.range_slider(
