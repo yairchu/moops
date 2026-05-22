@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- All `Group` methods match `mo.ui` function's parameter order and default values.
 - `moops.run()` now works when called from within a running async event loop
   (e.g. a marimo notebook cell). Previously it raised
   `RuntimeError: asyncio.run() cannot be called from a running event loop`.

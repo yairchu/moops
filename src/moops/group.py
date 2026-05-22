@@ -265,15 +265,22 @@ class Group:
         self,
         value: str = "",
         placeholder: str = "",
-        option: str | None = None,
+        kind: typing.Literal["text", "password"] = "text",
+        max_length: int | None = None,
         *,
-        help_text: str,
         label: str | None = None,
+        option: str | None = None,
+        help_text: str,
         on_change: typing.Callable[[str], None] | None = None,
         **kwargs: typing.Any,
     ) -> mo.ui.text:
         """Create a text input UI element that maps to a CLI option."""
 
+        kwargs = {
+            "kind": kind,
+            "max_length": max_length,
+            **kwargs,
+        }
         opt = self._make_opt(label=label, option=option)
         cli = _options.TextControl(
             option=opt.option,
@@ -294,15 +301,17 @@ class Group:
         self,
         value: str = "",
         placeholder: str = "",
-        option: str | None = None,
+        max_length: int | None = None,
         *,
-        help_text: str,
         label: str | None = None,
+        option: str | None = None,
+        help_text: str,
         on_change: typing.Callable[[str], None] | None = None,
         **kwargs: typing.Any,
     ) -> mo.ui.text_area:
         """Create a text area UI element that maps to a CLI option."""
 
+        kwargs = {"max_length": max_length, **kwargs}
         opt = self._make_opt(label=label, option=option)
         cli = _options.TextAreaControl(
             option=opt.option,
@@ -322,17 +331,26 @@ class Group:
     def file_browser(
         self,
         initial_path: str | pathlib.Path = "",
-        option: str | None = None,
+        filetypes: list[str] | None = None,
+        selection_mode: typing.Literal["file", "directory", "both"] = "file",
+        multiple: bool = True,
+        restrict_navigation: bool = False,
         *,
+        option: str | None = None,
         help_text: str,
         label: str | None = None,
-        multiple: bool = True,
         on_change: typing.Callable[[typing.Any], None] | None = None,
         **kwargs: typing.Any,
     ) -> FileBrowserWithInitialSelection | mo.ui.file_browser:
         """Create a file browser UI element that maps to a CLI path option."""
         opt = self._make_opt(label=label, option=option)
         initial_path = str(initial_path)
+        kwargs = {
+            "filetypes": filetypes,
+            "selection_mode": selection_mode,
+            "restrict_navigation": restrict_navigation,
+            **kwargs,
+        }
         if multiple:
             default: str | list[str] = [initial_path] if initial_path else []
             cli: _options.FileControl | _options.MultiFileControl = (
@@ -365,16 +383,19 @@ class Group:
         self,
         start: float | None = None,
         stop: float | None = None,
+        step: float | None = None,
         value: float | None = None,
-        option: str | None = None,
+        debounce: bool = False,
         *,
-        help_text: str,
         label: str | None = None,
+        option: str | None = None,
+        help_text: str,
         on_change: typing.Callable[[Numeric | None], None] | None = None,
         **kwargs: typing.Any,
     ) -> mo.ui.number:
         """Create a number input UI element that maps to a CLI option."""
 
+        kwargs = {"step": step, "debounce": debounce, **kwargs}
         opt, cli, value = self._numeric_cli(
             start, stop, value, option, help_text, label, "number", kwargs
         )
@@ -389,16 +410,19 @@ class Group:
         self,
         start: float | None = None,
         stop: float | None = None,
+        step: float | None = None,
         value: float | None = None,
-        option: str | None = None,
+        debounce: bool = False,
         *,
-        help_text: str,
         label: str | None = None,
+        option: str | None = None,
+        help_text: str,
         on_change: typing.Callable[[Numeric | None], None] | None = None,
         **kwargs: typing.Any,
     ) -> mo.ui.slider:
         """Create a slider UI element that maps to a CLI option."""
 
+        kwargs = {"step": step, "debounce": debounce, **kwargs}
         opt, cli, value = self._numeric_cli(
             start, stop, value, option, help_text, label, "slider", kwargs
         )
@@ -415,16 +439,25 @@ class Group:
         stop: Numeric | None = None,
         step: Numeric | None = None,
         value: typing.Sequence[Numeric] | None = None,
-        option: str | None = None,
-        *,
-        help_text: str,
-        label: str | None = None,
+        debounce: bool = False,
+        orientation: typing.Literal["horizontal", "vertical"] = "horizontal",
+        show_value: bool = False,
         steps: typing.Sequence[Numeric] | None = None,
+        *,
+        label: str | None = None,
+        option: str | None = None,
+        help_text: str,
         on_change: typing.Callable[[typing.Sequence[Numeric]], None] | None = None,
         **kwargs: typing.Any,
     ) -> mo.ui.range_slider:
         """Create a range slider UI element that maps to a CLI option."""
 
+        kwargs = {
+            "debounce": debounce,
+            "orientation": orientation,
+            "show_value": show_value,
+            **kwargs,
+        }
         opt = self._make_opt(label=label, option=option)
         cli = _options.RangeControl.from_slider(
             option=opt.option,
@@ -475,6 +508,9 @@ class Group:
 
     @staticmethod
     def run_button(
+        kind: str = "neutral",
+        disabled: bool = False,
+        tooltip: str | None = None,
         **kwargs: typing.Any,
     ):
         """Create a run button that gates notebook execution.
@@ -482,7 +518,7 @@ class Group:
         In CLI context, always returns a stub with .value = True so code that
         checks `mo.stop(not btn.value)` runs unconditionally.
         """
-        return run_button(**kwargs)
+        return run_button(kind=kind, disabled=disabled, tooltip=tooltip, **kwargs)
 
     def _numeric_cli(
         self,
@@ -514,15 +550,19 @@ class Group:
         self,
         options: list[str] | dict[str, typing.Any],
         value: str | None = None,
-        option: str | None = None,
+        allow_select_none: bool | None = None,
+        searchable: bool = False,
         *,
-        help_text: str,
         label: str | None = None,
-        allow_select_none: bool = True,
+        option: str | None = None,
+        help_text: str,
         on_change: typing.Callable[[typing.Any], None] | None = None,
         **kwargs: typing.Any,
     ) -> mo.ui.dropdown:
         """Create a dropdown UI element that maps to a CLI option."""
+
+        if allow_select_none is None:
+            allow_select_none = True
 
         assert len(options) > 0, "Dropdown options cannot be empty"
         opt = self._make_opt(label=label, option=option)
@@ -536,7 +576,11 @@ class Group:
             supports_none=allow_select_none,
             default=value,
             help_text=help_text,
-            extra_kwargs={"allow_select_none": allow_select_none, **kwargs},
+            extra_kwargs={
+                "allow_select_none": allow_select_none,
+                "searchable": searchable,
+                **kwargs,
+            },
         )
         return self._cli_map.register(
             cli.create_marimo_element(
