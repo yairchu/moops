@@ -19,6 +19,12 @@ For bug fixes where a new or changed test documents the bug, prefer two commits:
 first commit the focused failing regression test, then commit the fix that makes
 the test pass.
 
+For bug fixes that add or change a regression test, stop after committing the
+test-only change unless the user explicitly asks to continue with the fix in
+the same turn. In that state, verify the commit by running any pre-test checks
+that should still pass (for example formatting and type checks), then run the
+focused test that fails because of the documented bug.
+
 ## Changelog
 
 Update `CHANGELOG.md` for user-visible behavior changes, API changes, bug fixes,
