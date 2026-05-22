@@ -6,9 +6,11 @@ from . import _options, interface
 def create_control(
     group: typing.Any,
     iface: interface.Interface,
-    cli: _options.InputControl,
+    input_control: _options.InputControl,
 ) -> typing.Any:
-    return group._create_from_cli(cli, _unprefixed_option(iface, cli.option))
+    return group._create_from_input_control(
+        input_control, _unprefixed_option(iface, input_control.option)
+    )
 
 
 def _unprefixed_option(iface: interface.Interface, option: str) -> str:

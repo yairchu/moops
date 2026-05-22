@@ -383,15 +383,15 @@ def test_dropdown_no_flag_shown_as_mutex_in_usage(
     assert "[--style {a|b} | --no-style]" in usage_line
 
 
-def test_cli_control_freed_when_control_gc_collected() -> None:
+def test_input_control_freed_when_control_gc_collected() -> None:
     g = Group(cli_args=["script.py"])
     ctrl = g.slider(start=0, stop=10, value=3, label="Count", help_text="A count")
-    cli = g.interface(ctrl).cli_map.get(ctrl)
-    assert cli is not None
-    cli_ref = weakref.ref(cli)
-    del cli, ctrl
+    input_control = g.interface(ctrl).input_map.get(ctrl)
+    assert input_control is not None
+    input_control_ref = weakref.ref(input_control)
+    del input_control, ctrl
     gc.collect()
-    assert cli_ref() is None
+    assert input_control_ref() is None
 
 
 def test_renamed_control_with_same_ui_id_replaces_old_option() -> None:
@@ -400,9 +400,9 @@ def test_renamed_control_with_same_ui_id_replaces_old_option() -> None:
     old_ctrl = g.switch(label="Be polite", help_text="Enable option")
     ctrl = g.switch(label="Use manners", help_text="Enable option")
     ctrl._id = old_ctrl._id  # type: ignore[reportPrivateUsage]
-    cli = g._cli_map.get(ctrl)  # type: ignore[reportPrivateUsage]
-    assert cli is not None
-    g._cli_map.register(ctrl, cli)  # type: ignore[reportPrivateUsage]
+    input_control = g._input_map.get(ctrl)  # type: ignore[reportPrivateUsage]
+    assert input_control is not None
+    g._input_map.register(ctrl, input_control)  # type: ignore[reportPrivateUsage]
 
     assert g.interface(ctrl).missing_options() == []
     assert old_ctrl.value is False
@@ -736,16 +736,16 @@ def test_option_named_file_does_not_conflict_with_marimo_notebook_param() -> Non
     class _MockCtrl:
         value = "some_file.txt"
 
-    cli_map = _input_map.InputMap()
+    input_map = _input_map.InputMap()
     ctrl = _MockCtrl()
-    cli = _options.TextControl(
+    input_control = _options.TextControl(
         option="--file", metavar="PATH", default="", help_text="x"
     )
-    cli_map.register(ctrl, cli)
+    input_map.register(ctrl, input_control)
 
     interface = moops.Interface(
         controls=(ctrl,),
-        cli_map=cli_map,
+        input_map=input_map,
         notebook_file="notebook.py",
     )
     url = interface._standalone_url()  # type: ignore[attr-defined]

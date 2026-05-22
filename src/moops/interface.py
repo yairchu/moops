@@ -18,7 +18,7 @@ class Interface:
     """Controls registered by a subgroup's interface, for passing to the parent."""
 
     controls: tuple[typing.Any]
-    cli_map: _input_map.InputMap = dataclasses.field(
+    input_map: _input_map.InputMap = dataclasses.field(
         default_factory=_input_map.InputMap
     )
     overrides: dict[str, typing.Any] = dataclasses.field(default_factory=lambda: {})
@@ -53,10 +53,10 @@ class Interface:
     def validate(self, state: _parse.ParseState) -> typing.Iterator[str]:
         flags: set[str] = set()
         value_options: dict[str, _options.InputControl] = {}
-        for cli in self._all_input_controls():
-            flags.update(cli.flags())
-            for option in cli.options():
-                value_options[option] = cli
+        for input_control in self._all_input_controls():
+            flags.update(input_control.flags())
+            for option in input_control.options():
+                value_options[option] = input_control
         rendered = flags | set(value_options)
         yield from (v for k, v in state.validation_errors.items() if k in rendered)
         unexp_text = "Unexpected argument: "
@@ -78,15 +78,17 @@ class Interface:
 
     def help(self) -> str:
         usage_parts = [
-            p for cli in self._all_input_controls() for p in cli.format_usage_parts()
+            p
+            for input_control in self._all_input_controls()
+            for p in input_control.format_usage_parts()
         ]
         usage_parts.extend(("[--interactive]", "[-h/--help]"))
         name = self.command.rsplit("/", 1)[-1]
         segments = [f"Usage: {name} {' '.join(usage_parts)}"]
         help_lines = [
             line
-            for cli in self._all_input_controls()
-            for line in cli.format_help_lines()
+            for input_control in self._all_input_controls()
+            for line in input_control.format_help_lines()
         ]
         if help_lines:
             segments.append("\n".join(help_lines))
@@ -115,15 +117,15 @@ class Interface:
             if (iface := _attached_interface(ctrl)) is not None:
                 yield from iface._all_input_controls()
             else:
-                cli = self.cli_map.get(ctrl)
-                if cli is not None and not self._is_overridden(cli):
-                    yield cli
+                input_control = self.input_map.get(ctrl)
+                if input_control is not None and not self._is_overridden(input_control):
+                    yield input_control
 
     def input_options(self) -> list[str]:
-        return [cli.option for cli in self._all_input_controls()]
+        return [input_control.option for input_control in self._all_input_controls()]
 
-    def _key(self, cli: _options.InputControl) -> str:
-        option = cli.option[len(self.option_prefix) :].lstrip("-")
+    def _key(self, input_control: _options.InputControl) -> str:
+        option = input_control.option[len(self.option_prefix) :].lstrip("-")
         if option.startswith("no-"):
             option = option[3:]
         return option.replace("-", "_")
@@ -134,7 +136,7 @@ class Interface:
         """Yield one entry per top-level control, preserving subgroup structure.
 
         Yields ``(name, sub_iface)`` for subgroup controls and
-        ``(key, cli)`` for leaf controls (skipping overridden ones).
+        ``(key, input_control)`` for leaf controls (skipping overridden ones).
         Used by ``Group.controls_from`` to mirror another notebook's structure.
         """
         for ctrl in self.controls:
@@ -144,12 +146,12 @@ class Interface:
                 )
                 yield sub_prefix, sub_iface
             else:
-                cli = self.cli_map.get(ctrl)
-                if cli is not None and not self._is_overridden(cli):
-                    yield self._key(cli), cli
+                input_control = self.input_map.get(ctrl)
+                if input_control is not None and not self._is_overridden(input_control):
+                    yield self._key(input_control), input_control
 
-    def _is_overridden(self, cli: _options.InputControl) -> bool:
-        return self._key(cli) in self.overrides
+    def _is_overridden(self, input_control: _options.InputControl) -> bool:
+        return self._key(input_control) in self.overrides
 
     def cur_values(self) -> dict[str, typing.Any]:
         result: dict[str, typing.Any] = {}
@@ -157,32 +159,32 @@ class Interface:
             if (iface := _attached_interface(ctrl)) is not None:
                 result.update(iface.cur_values())
             else:
-                cli = self.cli_map.get(ctrl)
-                if cli is not None and not self._is_overridden(cli):
-                    result[cli.option] = _ctrl_value(ctrl)
+                input_control = self.input_map.get(ctrl)
+                if input_control is not None and not self._is_overridden(input_control):
+                    result[input_control.option] = _ctrl_value(ctrl)
         return result
 
     def _current_args(self) -> str:
         values = self.cur_values()
         return " ".join(
             arg
-            for cli in self._all_input_controls()
-            if cli.option in values
-            for arg in cli.format_value(values[cli.option])
+            for input_control in self._all_input_controls()
+            if input_control.option in values
+            for arg in input_control.format_value(values[input_control.option])
         )
 
     def missing_options(self) -> list[str]:
         covered = {
-            cli.option
+            input_control.option
             for ctrl in self.controls
             if _attached_interface(ctrl) is None
-            for cli in [self.cli_map.get(ctrl)]
-            if cli is not None
+            for input_control in [self.input_map.get(ctrl)]
+            if input_control is not None
         }
         return [
-            cli.option
-            for cli in self.cli_map.registered_options()
-            if cli.option not in covered
+            input_control.option
+            for input_control in self.input_map.registered_options()
+            if input_control.option not in covered
         ] + list(self.extra_missing_options)
 
     def validate_or_exit(self, state: _parse.ParseState) -> None:
@@ -201,7 +203,7 @@ class Interface:
 
     def _subgroup_summary(self) -> mo.Html:
         if not self.notebook_name:
-            return mo.md("Cli bundle with no notebook name")
+            return mo.md("Input bundle with no notebook name")
         notebook_name = html.escape(self.notebook_name)
         href = html.escape(self._standalone_url(), quote=True)
         return mo.md(
@@ -220,12 +222,12 @@ class Interface:
             if isinstance(ctrl, Interface):
                 values.update(ctrl._standalone_query_values())
                 continue
-            cli = self.cli_map.get(ctrl)
-            if cli is None:
+            input_control = self.input_map.get(ctrl)
+            if input_control is None:
                 continue
-            value = cli.format_query_value(_ctrl_value(ctrl))
+            value = input_control.format_query_value(_ctrl_value(ctrl))
             if value is not None:
-                values[_query_params.escape_url_key(self._key(cli))] = value
+                values[_query_params.escape_url_key(self._key(input_control))] = value
         return values
 
     def _root_panel(self) -> mo.Html:
@@ -264,9 +266,9 @@ class Interface:
             if (iface := _attached_interface(ctrl)) is not None:
                 iface._clear_query_params()
             else:
-                cli = self.cli_map.get(ctrl)
-                if cli is not None:
-                    self.query_params.clear(self._key(cli))
+                input_control = self.input_map.get(ctrl)
+                if input_control is not None:
+                    self.query_params.clear(self._key(input_control))
 
     def _flatten(self) -> typing.Iterator[typing.Any]:
         for ctrl in self.controls:
@@ -274,7 +276,7 @@ class Interface:
                 yield from iface._flatten()
             elif (elements := _ui_dictionary_elements(ctrl)) is not None:
                 for child in elements.values():
-                    yield from Interface((child,), self.cli_map)._flatten()
+                    yield from Interface((child,), self.input_map)._flatten()
             else:
                 yield ctrl
 

@@ -223,7 +223,7 @@ def test_empty_save_name_saves_default_preset() -> None:
     text = group.text(value="Factory", option="--text", help_text="Input text")
     iface = Interface(
         controls=(text,),
-        cli_map=group._cli_map,  # type: ignore[reportPrivateUsage]
+        input_map=group._input_map,  # type: ignore[reportPrivateUsage]
         presets=presets,
         command="script.py",
     )

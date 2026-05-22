@@ -46,7 +46,7 @@ class Group:
         )
         self._state = _parse.ParseState(args=_parse.ParsedArgs.from_options(rest))
         self._is_interface_query: bool = self._state.args.is_help
-        self._cli_map = _input_map.InputMap()
+        self._input_map = _input_map.InputMap()
         self._overrides: dict[str, typing.Any] = {}
         self._presets = presets
         self._query_params = _query_params.QueryParams.from_notebook()
@@ -119,7 +119,7 @@ class Group:
             )
         child = type(self)([prefix])
         child._state = self._state
-        child._cli_map = _input_map.InputMap()
+        child._input_map = _input_map.InputMap()
         child._parent_group = self
         child._markdown_heading_offset = (
             self._markdown_heading_offset + markdown_heading_offset
@@ -162,7 +162,7 @@ class Group:
         extra_missing_options = tuple(self._subgroup_registry.missing_options(controls))
         iface = interface.Interface(
             controls,
-            cli_map=self._cli_map,
+            input_map=self._input_map,
             overrides=self._overrides,
             notebook_name=caller_path.name,
             notebook_file=notebook_file.as_posix(),
@@ -218,19 +218,19 @@ class Group:
         """Create a switch UI element that maps to a CLI flag."""
 
         opt = self._make_opt(label=label, option=flag, prefix="no-" if value else None)
-        cli = _options.FlagControl(
+        input_control = _options.FlagControl(
             option=opt.option,
             help_text=help_text,
             default=value,
             widget="switch",
             extra_kwargs=kwargs,
         )
-        return self._cli_map.register(
-            cli.create_marimo_element(
-                self._get_value(cli, value),
-                **self._control_kwargs(opt, cli, help_text, on_change),
+        return self._input_map.register(
+            input_control.create_marimo_element(
+                self._get_value(input_control, value),
+                **self._control_kwargs(opt, input_control, help_text, on_change),
             ),
-            cli,
+            input_control,
         )
 
     def checkbox(
@@ -246,19 +246,19 @@ class Group:
         """Create a checkbox UI element that maps to a CLI flag."""
 
         opt = self._make_opt(label=label, option=flag, prefix="no-" if value else None)
-        cli = _options.FlagControl(
+        input_control = _options.FlagControl(
             option=opt.option,
             help_text=help_text,
             default=value,
             widget="checkbox",
             extra_kwargs=kwargs,
         )
-        return self._cli_map.register(
-            cli.create_marimo_element(
-                self._get_value(cli, value),
-                **self._control_kwargs(opt, cli, help_text, on_change),
+        return self._input_map.register(
+            input_control.create_marimo_element(
+                self._get_value(input_control, value),
+                **self._control_kwargs(opt, input_control, help_text, on_change),
             ),
-            cli,
+            input_control,
         )
 
     def text(
@@ -282,19 +282,19 @@ class Group:
             **kwargs,
         }
         opt = self._make_opt(label=label, option=option)
-        cli = _options.TextControl(
+        input_control = _options.TextControl(
             option=opt.option,
             metavar=placeholder or opt.label.upper().replace(" ", "_"),
             help_text=help_text,
             default=value,
             extra_kwargs=kwargs,
         )
-        return self._cli_map.register(
-            cli.create_marimo_element(
-                self._get_value(cli, value),
-                **self._control_kwargs(opt, cli, help_text, on_change),
+        return self._input_map.register(
+            input_control.create_marimo_element(
+                self._get_value(input_control, value),
+                **self._control_kwargs(opt, input_control, help_text, on_change),
             ),
-            cli,
+            input_control,
         )
 
     def text_area(
@@ -313,19 +313,19 @@ class Group:
 
         kwargs = {"max_length": max_length, **kwargs}
         opt = self._make_opt(label=label, option=option)
-        cli = _options.TextAreaControl(
+        input_control = _options.TextAreaControl(
             option=opt.option,
             metavar=placeholder or opt.label.upper().replace(" ", "_"),
             help_text=help_text,
             default=value,
             extra_kwargs=kwargs,
         )
-        return self._cli_map.register(
-            cli.create_marimo_element(
-                self._get_value(cli, value),
-                **self._control_kwargs(opt, cli, help_text, on_change),
+        return self._input_map.register(
+            input_control.create_marimo_element(
+                self._get_value(input_control, value),
+                **self._control_kwargs(opt, input_control, help_text, on_change),
             ),
-            cli,
+            input_control,
         )
 
     def file_browser(
@@ -353,7 +353,7 @@ class Group:
         }
         if multiple:
             default: str | list[str] = [initial_path] if initial_path else []
-            cli: _options.FileControl | _options.MultiFileControl = (
+            input_control: _options.FileControl | _options.MultiFileControl = (
                 _options.MultiFileControl(
                     default=default,
                     option=opt.option,
@@ -364,19 +364,19 @@ class Group:
             )
         else:
             default = initial_path
-            cli = _options.FileControl(
+            input_control = _options.FileControl(
                 default=default,
                 option=opt.option,
                 metavar="PATH",
                 help_text=help_text,
                 extra_kwargs=kwargs,
             )
-        return self._cli_map.register(
-            cli.create_marimo_element(
-                self._get_value(cli, default),
-                **self._control_kwargs(opt, cli, help_text, on_change),
+        return self._input_map.register(
+            input_control.create_marimo_element(
+                self._get_value(input_control, default),
+                **self._control_kwargs(opt, input_control, help_text, on_change),
             ),
-            cli,
+            input_control,
         )
 
     def number(
@@ -396,14 +396,14 @@ class Group:
         """Create a number input UI element that maps to a CLI option."""
 
         kwargs = {"step": step, "debounce": debounce, **kwargs}
-        opt, cli, value = self._numeric_cli(
+        opt, input_control, value = self._numeric_input_control(
             start, stop, value, option, help_text, label, "number", kwargs
         )
-        return self._cli_map.register(
-            cli.create_marimo_element(
-                value, **self._control_kwargs(opt, cli, help_text, on_change)
+        return self._input_map.register(
+            input_control.create_marimo_element(
+                value, **self._control_kwargs(opt, input_control, help_text, on_change)
             ),
-            cli,
+            input_control,
         )
 
     def slider(
@@ -423,14 +423,14 @@ class Group:
         """Create a slider UI element that maps to a CLI option."""
 
         kwargs = {"step": step, "debounce": debounce, **kwargs}
-        opt, cli, value = self._numeric_cli(
+        opt, input_control, value = self._numeric_input_control(
             start, stop, value, option, help_text, label, "slider", kwargs
         )
-        return self._cli_map.register(
-            cli.create_marimo_element(
-                value, **self._control_kwargs(opt, cli, help_text, on_change)
+        return self._input_map.register(
+            input_control.create_marimo_element(
+                value, **self._control_kwargs(opt, input_control, help_text, on_change)
             ),
-            cli,
+            input_control,
         )
 
     def range_slider(
@@ -459,7 +459,7 @@ class Group:
             **kwargs,
         }
         opt = self._make_opt(label=label, option=option)
-        cli = _options.RangeControl.from_slider(
+        input_control = _options.RangeControl.from_slider(
             option=opt.option,
             metavar=opt.label.upper().replace(" ", "_"),
             help_text=help_text,
@@ -470,12 +470,12 @@ class Group:
             step=step,
             extra_kwargs=kwargs,
         )
-        return self._cli_map.register(
-            cli.create_marimo_element(
-                self._get_value(cli, cli.default),
-                **self._control_kwargs(opt, cli, help_text, on_change),
+        return self._input_map.register(
+            input_control.create_marimo_element(
+                self._get_value(input_control, input_control.default),
+                **self._control_kwargs(opt, input_control, help_text, on_change),
             ),
-            cli,
+            input_control,
         )
 
     def custom(
@@ -497,14 +497,14 @@ class Group:
         control; outside notebooks, the fallback's value is used directly.
         """
 
-        cli = self._cli_map.get(fallback)
-        if cli is None:
+        input_control = self._input_map.get(fallback)
+        if input_control is None:
             raise ValueError("fallback must be a control created by this Group")
         wrapped = interface.CustomControl(
             active=control if mo.running_in_notebook() else fallback,
             value=value if mo.running_in_notebook() else None,
         )
-        return self._cli_map.register(wrapped, cli)
+        return self._input_map.register(wrapped, input_control)
 
     @staticmethod
     def run_button(
@@ -520,7 +520,7 @@ class Group:
         """
         return run_button(kind=kind, disabled=disabled, tooltip=tooltip, **kwargs)
 
-    def _numeric_cli(
+    def _numeric_input_control(
         self,
         start: float | None,
         stop: float | None,
@@ -534,7 +534,7 @@ class Group:
         if value is None:
             value = start
         opt = self._make_opt(label=label, option=option)
-        cli = _options.NumberControl(
+        input_control = _options.NumberControl(
             option=opt.option,
             metavar=opt.label.upper().replace(" ", "_"),
             help_text=help_text,
@@ -544,7 +544,7 @@ class Group:
             widget=widget,
             extra_kwargs=extra_kwargs or {},
         )
-        return opt, cli, self._get_value(cli, value)
+        return opt, input_control, self._get_value(input_control, value)
 
     def dropdown(
         self,
@@ -568,7 +568,7 @@ class Group:
         opt = self._make_opt(label=label, option=option)
         if value is None and not allow_select_none:
             value, *_ = [*options]
-        cli = _options.DropdownControl(
+        input_control = _options.DropdownControl(
             option=opt.option,
             dropdown_opts=options
             if isinstance(options, dict)
@@ -582,12 +582,12 @@ class Group:
                 **kwargs,
             },
         )
-        return self._cli_map.register(
-            cli.create_marimo_element(
-                self._get_value(cli, value),
-                **self._control_kwargs(opt, cli, help_text, on_change),
+        return self._input_map.register(
+            input_control.create_marimo_element(
+                self._get_value(input_control, value),
+                **self._control_kwargs(opt, input_control, help_text, on_change),
             ),
-            cli,
+            input_control,
         )
 
     def multiselect(
@@ -605,7 +605,7 @@ class Group:
         if value is None:
             value = []
         opt = self._make_opt(label=label, option=option)
-        cli = _options.MultiSelectControl(
+        input_control = _options.MultiSelectControl(
             option=opt.option,
             metavar=opt.label.upper().replace(" ", "_"),
             help_text=help_text,
@@ -613,12 +613,12 @@ class Group:
             select_opts=list(options),
             extra_kwargs=kwargs,
         )
-        return self._cli_map.register(
-            cli.create_marimo_element(
-                self._get_value(cli, value),
-                **self._control_kwargs(opt, cli, help_text, on_change),
+        return self._input_map.register(
+            input_control.create_marimo_element(
+                self._get_value(input_control, value),
+                **self._control_kwargs(opt, input_control, help_text, on_change),
             ),
-            cli,
+            input_control,
         )
 
     def controls_from(
@@ -663,14 +663,14 @@ class Group:
     def _control_kwargs(
         self,
         opt: _naming.OptionLabel,
-        cli: _options.InputControl,
+        input_control: _options.InputControl,
         help_text: str,
         on_change: typing.Callable[[typing.Any], None] | None,
     ) -> dict[str, typing.Any]:
         return {
             "label": opt.label_with_tooltip(help_text),
             "disabled": self._is_overridden(opt.option),
-            "on_change": self._query_on_change(cli, on_change),
+            "on_change": self._query_on_change(input_control, on_change),
         }
 
     def _get_value(
@@ -690,17 +690,17 @@ class Group:
     ) -> typing.Callable[[typing.Any], None] | None:
         return self._value_resolver.query_on_change(control, on_change)
 
-    def _create_from_cli(
+    def _create_from_input_control(
         self,
-        cli: _options.InputControl,
+        input_control: _options.InputControl,
         display_option: str,
     ) -> typing.Any:
         """Create a marimo element from an existing InputControl."""
         opt = self._make_opt(label=None, option=display_option)
-        cloned = dataclasses.replace(cli, option=opt.option)
+        cloned = dataclasses.replace(input_control, option=opt.option)
         value = self._get_value(cloned, getattr(cloned, "default", None))
         ctrl_kwargs = self._control_kwargs(opt, cloned, cloned.help_text, None)
-        return self._cli_map.register(
+        return self._input_map.register(
             cloned.create_marimo_element(value, **ctrl_kwargs),
             cloned,
         )
