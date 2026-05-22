@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import inspect
 import pathlib
 import typing
@@ -20,12 +21,7 @@ from . import (
     interface,
 )
 from ._run_button import run_button
-from ._ui_workarounds import (
-    FileBrowserFileInfo,
-    FileBrowserWithInitialSelection,
-    LockedMultiselect,
-    locked_dropdown_options,
-)
+from ._ui_workarounds import FileBrowserWithInitialSelection
 from .presets import Presets
 
 Numeric = int | float
@@ -223,13 +219,16 @@ class Group:
 
         opt = self._make_opt(label=label, option=flag, prefix="no-" if value else None)
         cli = _options.FlagControl(
-            option=opt.option, help_text=help_text, default=value
+            option=opt.option,
+            help_text=help_text,
+            default=value,
+            widget="switch",
+            extra_kwargs=kwargs,
         )
         return self._cli_map.register(
-            mo.ui.switch(
-                value=self._get_value(cli, value),
+            cli.create_marimo_element(
+                self._get_value(cli, value),
                 **self._control_kwargs(opt, cli, help_text, on_change),
-                **kwargs,
             ),
             cli,
         )
@@ -248,13 +247,16 @@ class Group:
 
         opt = self._make_opt(label=label, option=flag, prefix="no-" if value else None)
         cli = _options.FlagControl(
-            option=opt.option, help_text=help_text, default=value
+            option=opt.option,
+            help_text=help_text,
+            default=value,
+            widget="checkbox",
+            extra_kwargs=kwargs,
         )
         return self._cli_map.register(
-            mo.ui.checkbox(
-                value=self._get_value(cli, value),
+            cli.create_marimo_element(
+                self._get_value(cli, value),
                 **self._control_kwargs(opt, cli, help_text, on_change),
-                **kwargs,
             ),
             cli,
         )
@@ -278,12 +280,12 @@ class Group:
             metavar=placeholder or opt.label.upper().replace(" ", "_"),
             help_text=help_text,
             default=value,
+            extra_kwargs=kwargs,
         )
         return self._cli_map.register(
-            mo.ui.text(
-                value=self._get_value(cli, value),
+            cli.create_marimo_element(
+                self._get_value(cli, value),
                 **self._control_kwargs(opt, cli, help_text, on_change),
-                **kwargs,
             ),
             cli,
         )
@@ -307,12 +309,12 @@ class Group:
             metavar=placeholder or opt.label.upper().replace(" ", "_"),
             help_text=help_text,
             default=value,
+            extra_kwargs=kwargs,
         )
         return self._cli_map.register(
-            mo.ui.text_area(
-                value=self._get_value(cli, value),
+            cli.create_marimo_element(
+                self._get_value(cli, value),
                 **self._control_kwargs(opt, cli, help_text, on_change),
-                **kwargs,
             ),
             cli,
         )
@@ -331,45 +333,38 @@ class Group:
         """Create a file browser UI element that maps to a CLI path option."""
         opt = self._make_opt(label=label, option=option)
         initial_path = str(initial_path)
-        ctrl_opts = {
-            "option": opt.option,
-            "metavar": "PATH",
-            "help_text": help_text,
-        }
         if multiple:
             default: str | list[str] = [initial_path] if initial_path else []
-            cli = _options.MultiFileControl(default=default, **ctrl_opts)
+            cli: _options.FileControl | _options.MultiFileControl = (
+                _options.MultiFileControl(
+                    default=default,
+                    option=opt.option,
+                    metavar="PATH",
+                    help_text=help_text,
+                    extra_kwargs=kwargs,
+                )
+            )
         else:
             default = initial_path
-            cli = _options.FileControl(default=default, **ctrl_opts)
-        value = self._get_value(cli, default)
-        raw_on_change = self._query_on_change(cli, on_change)
-
-        def _on_change(infos: typing.Sequence[FileBrowserFileInfo]) -> None:
-            if raw_on_change is not None:
-                paths = [str(info.path) for info in infos]
-                raw_on_change(paths if multiple else (paths[0] if paths else ""))
-
-        paths = list(value) if multiple else ([value] if value else [])
-        first = paths[0] if paths else ""
-        p = pathlib.Path(first) if first else None
-        browser_kwargs: dict[str, typing.Any] = dict(
-            initial_path=str(p.parent) if (p and p.is_file()) else first,
-            label=opt.label_with_tooltip(help_text),
-            multiple=multiple,
-            on_change=_on_change,
-            **kwargs,
-        )
+            cli = _options.FileControl(
+                default=default,
+                option=opt.option,
+                metavar="PATH",
+                help_text=help_text,
+                extra_kwargs=kwargs,
+            )
         return self._cli_map.register(
-            FileBrowserWithInitialSelection(default=paths, **browser_kwargs)
-            if paths
-            else mo.ui.file_browser(**browser_kwargs),
+            cli.create_marimo_element(
+                self._get_value(cli, default),
+                **self._control_kwargs(opt, cli, help_text, on_change),
+            ),
             cli,
         )
 
     def number(
         self,
         start: float | None = None,
+        stop: float | None = None,
         value: float | None = None,
         option: str | None = None,
         *,
@@ -380,13 +375,12 @@ class Group:
     ) -> mo.ui.number:
         """Create a number input UI element that maps to a CLI option."""
 
-        opt, cli, value = self._numeric_cli(start, value, option, help_text, label)
+        opt, cli, value = self._numeric_cli(
+            start, stop, value, option, help_text, label, "number", kwargs
+        )
         return self._cli_map.register(
-            mo.ui.number(
-                start=start,
-                value=value,
-                **self._control_kwargs(opt, cli, help_text, on_change),
-                **kwargs,
+            cli.create_marimo_element(
+                value, **self._control_kwargs(opt, cli, help_text, on_change)
             ),
             cli,
         )
@@ -394,6 +388,7 @@ class Group:
     def slider(
         self,
         start: float | None = None,
+        stop: float | None = None,
         value: float | None = None,
         option: str | None = None,
         *,
@@ -404,13 +399,12 @@ class Group:
     ) -> mo.ui.slider:
         """Create a slider UI element that maps to a CLI option."""
 
-        opt, cli, value = self._numeric_cli(start, value, option, help_text, label)
+        opt, cli, value = self._numeric_cli(
+            start, stop, value, option, help_text, label, "slider", kwargs
+        )
         return self._cli_map.register(
-            mo.ui.slider(
-                start=start,
-                value=value,
-                **self._control_kwargs(opt, cli, help_text, on_change),
-                **kwargs,
+            cli.create_marimo_element(
+                value, **self._control_kwargs(opt, cli, help_text, on_change)
             ),
             cli,
         )
@@ -432,25 +426,21 @@ class Group:
         """Create a range slider UI element that maps to a CLI option."""
 
         opt = self._make_opt(label=label, option=option)
-        common_args: dict[str, typing.Any] = {
-            "start": start,
-            "stop": stop,
-            "steps": steps,
-        }
         cli = _options.RangeControl.from_slider(
             option=opt.option,
             metavar=opt.label.upper().replace(" ", "_"),
             help_text=help_text,
+            start=start,
+            stop=stop,
+            steps=steps,
             value=value,
-            **common_args,
+            step=step,
+            extra_kwargs=kwargs,
         )
         return self._cli_map.register(
-            mo.ui.range_slider(
-                step=step,
-                value=self._get_value(cli, cli.default),
-                **common_args,
+            cli.create_marimo_element(
+                self._get_value(cli, cli.default),
                 **self._control_kwargs(opt, cli, help_text, on_change),
-                **kwargs,
             ),
             cli,
         )
@@ -497,10 +487,13 @@ class Group:
     def _numeric_cli(
         self,
         start: float | None,
+        stop: float | None,
         value: float | None,
         option: str | None,
         help_text: str,
         label: str | None,
+        widget: typing.Literal["number", "slider"] = "number",
+        extra_kwargs: dict[str, typing.Any] | None = None,
     ) -> tuple[_naming.OptionLabel, _options.NumberControl, float | None]:
         if value is None:
             value = start
@@ -510,6 +503,10 @@ class Group:
             metavar=opt.label.upper().replace(" ", "_"),
             help_text=help_text,
             default=value,
+            start=start,
+            stop=stop,
+            widget=widget,
+            extra_kwargs=extra_kwargs or {},
         )
         return opt, cli, self._get_value(cli, value)
 
@@ -539,17 +536,12 @@ class Group:
             supports_none=allow_select_none,
             default=value,
             help_text=help_text,
+            extra_kwargs={"allow_select_none": allow_select_none, **kwargs},
         )
-        if self._is_overridden(opt.option):
-            options = locked_dropdown_options(self._get_value(cli, value), options)  # type: ignore[assignment]
         return self._cli_map.register(
-            mo.ui.dropdown(
-                options=options,
-                value=self._get_value(cli, value),
-                label=opt.label_with_tooltip(help_text),
-                allow_select_none=allow_select_none,
-                on_change=self._query_on_change(cli, on_change),
-                **kwargs,
+            cli.create_marimo_element(
+                self._get_value(cli, value),
+                **self._control_kwargs(opt, cli, help_text, on_change),
             ),
             cli,
         )
@@ -575,20 +567,12 @@ class Group:
             help_text=help_text,
             default=list(value),
             select_opts=list(options),
+            extra_kwargs=kwargs,
         )
-        selected = self._get_value(cli, value)
-        if self._is_overridden(opt.option):
-            return self._cli_map.register(
-                LockedMultiselect(selected, opt.label_with_tooltip(help_text)),
-                cli,
-            )
         return self._cli_map.register(
-            mo.ui.multiselect(
-                options=options,
-                value=selected,
-                label=opt.label_with_tooltip(help_text),
-                on_change=self._query_on_change(cli, on_change),
-                **kwargs,
+            cli.create_marimo_element(
+                self._get_value(cli, value),
+                **self._control_kwargs(opt, cli, help_text, on_change),
             ),
             cli,
         )
@@ -661,6 +645,21 @@ class Group:
         on_change: typing.Callable[[typing.Any], None] | None,
     ) -> typing.Callable[[typing.Any], None] | None:
         return self._value_resolver.query_on_change(control, on_change)
+
+    def _create_from_cli(
+        self,
+        cli: _options.InputControl,
+        display_option: str,
+    ) -> typing.Any:
+        """Create a marimo element from an existing InputControl."""
+        opt = self._make_opt(label=None, option=display_option)
+        cloned = dataclasses.replace(cli, option=opt.option)
+        value = self._get_value(cloned, getattr(cloned, "default", None))
+        ctrl_kwargs = self._control_kwargs(opt, cloned, cloned.help_text, None)
+        return self._cli_map.register(
+            cloned.create_marimo_element(value, **ctrl_kwargs),
+            cloned,
+        )
 
     def _make_opt(
         self, label: str | None, option: str | None, prefix: str | None = None

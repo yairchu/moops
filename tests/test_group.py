@@ -460,6 +460,16 @@ def test_parse_query_value_raises_runtime_error_for_broken_control() -> None:
         def format_usage_parts(self) -> list[str]:
             return []
 
+        def create_marimo_element(
+            self,
+            value: typing.Any,
+            label: str,
+            *,
+            on_change: typing.Any = None,
+            disabled: bool = False,
+        ) -> typing.Any:
+            return None
+
         def prompt_interactive(
             self, effective_default: typing.Any = None
         ) -> dict[str, str | None]:

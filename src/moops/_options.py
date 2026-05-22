@@ -10,7 +10,7 @@ import typing
 import marimo as mo
 from hypothesis import strategies as st
 
-from . import _parse
+from . import _parse, _ui_workarounds
 
 Numeric = int | float
 
@@ -33,6 +33,9 @@ class InputControl(abc.ABC):
 
     option: str
     help_text: str
+    extra_kwargs: dict[str, typing.Any] = dataclasses.field(  # type: ignore[assignment]
+        default_factory=dict, kw_only=True
+    )
 
     def options(self) -> set[str]:
         """Value options for this control."""
@@ -84,6 +87,17 @@ class InputControl(abc.ABC):
         """Format the command line arguments for a given value."""
 
     @abc.abstractmethod
+    def create_marimo_element(
+        self,
+        value: typing.Any,
+        label: str,
+        *,
+        on_change: typing.Callable[[typing.Any], None] | None = None,
+        disabled: bool = False,
+    ) -> typing.Any:
+        """Create the marimo UI element for this control."""
+
+    @abc.abstractmethod
     def prompt_interactive(
         self, effective_default: typing.Any = _UNSET
     ) -> dict[str, str | None]:
@@ -97,6 +111,7 @@ class InputControl(abc.ABC):
 @dataclasses.dataclass
 class FlagControl(InputControl):
     default: bool = False
+    widget: typing.Literal["switch", "checkbox"] = "switch"
 
     def options(self) -> set[str]:
         return set()
@@ -134,6 +149,30 @@ class FlagControl(InputControl):
     def format_query_value(self, value: typing.Any) -> str | None:
         return None if value == self.default else str(bool(value)).lower()
 
+    def create_marimo_element(
+        self,
+        value: typing.Any,
+        label: str,
+        *,
+        on_change: typing.Callable[[typing.Any], None] | None = None,
+        disabled: bool = False,
+    ) -> typing.Any:
+        if self.widget == "checkbox":
+            return mo.ui.checkbox(
+                value=value,
+                label=label,
+                on_change=on_change,
+                disabled=disabled,
+                **self.extra_kwargs,
+            )
+        return mo.ui.switch(
+            value=value,
+            label=label,
+            on_change=on_change,
+            disabled=disabled,
+            **self.extra_kwargs,
+        )
+
     def prompt_interactive(
         self, effective_default: typing.Any = _UNSET
     ) -> dict[str, str | None]:
@@ -168,6 +207,22 @@ class ValueControl(InputControl):
 class TextControl(ValueControl):
     default: str
 
+    def create_marimo_element(
+        self,
+        value: typing.Any,
+        label: str,
+        *,
+        on_change: typing.Callable[[typing.Any], None] | None = None,
+        disabled: bool = False,
+    ) -> typing.Any:
+        return mo.ui.text(
+            value=value,
+            label=label,
+            on_change=on_change,
+            disabled=disabled,
+            **self.extra_kwargs,
+        )
+
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         res = args.value_for(self.option)
         return None if res is None else ParseResult(res)
@@ -198,6 +253,39 @@ class TextControl(ValueControl):
 
 @dataclasses.dataclass
 class FileControl(TextControl):
+    def create_marimo_element(
+        self,
+        value: typing.Any,
+        label: str,
+        *,
+        on_change: typing.Callable[[typing.Any], None] | None = None,
+        disabled: bool = False,
+    ) -> typing.Any:
+        del disabled
+
+        def _on_change(
+            infos: typing.Sequence[_ui_workarounds.FileBrowserFileInfo],
+        ) -> None:
+            if on_change is not None:
+                paths = [str(info.path) for info in infos]
+                on_change(paths[0] if paths else "")
+
+        path = str(value) if value else ""
+        p = pathlib.Path(path) if path else None
+        initial_path = str(p.parent) if (p and p.is_file()) else path
+        browser_kwargs: dict[str, typing.Any] = dict(
+            initial_path=initial_path,
+            label=label,
+            multiple=False,
+            on_change=_on_change,
+            **self.extra_kwargs,
+        )
+        if path:
+            return _ui_workarounds.FileBrowserWithInitialSelection(
+                default=[path], **browser_kwargs
+            )
+        return mo.ui.file_browser(**browser_kwargs)
+
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         result = super().parse(args)
         match result:
@@ -225,6 +313,39 @@ class FileControl(TextControl):
 @dataclasses.dataclass
 class MultiFileControl(ValueControl):
     default: list[str]
+
+    def create_marimo_element(
+        self,
+        value: typing.Any,
+        label: str,
+        *,
+        on_change: typing.Callable[[typing.Any], None] | None = None,
+        disabled: bool = False,
+    ) -> typing.Any:
+        del disabled
+
+        def _on_change(
+            infos: typing.Sequence[_ui_workarounds.FileBrowserFileInfo],
+        ) -> None:
+            if on_change is not None:
+                on_change([str(info.path) for info in infos])
+
+        paths = list(value) if value else []
+        first = paths[0] if paths else ""
+        p = pathlib.Path(first) if first else None
+        initial_path = str(p.parent) if (p and p.is_file()) else first
+        browser_kwargs: dict[str, typing.Any] = dict(
+            initial_path=initial_path,
+            label=label,
+            multiple=True,
+            on_change=_on_change,
+            **self.extra_kwargs,
+        )
+        if paths:
+            return _ui_workarounds.FileBrowserWithInitialSelection(
+                default=paths, **browser_kwargs
+            )
+        return mo.ui.file_browser(**browser_kwargs)
 
     def allows_repeated_values(self) -> bool:
         return True
@@ -318,6 +439,22 @@ class MultiFileControl(ValueControl):
 class TextAreaControl(ValueControl):
     default: str
 
+    def create_marimo_element(
+        self,
+        value: typing.Any,
+        label: str,
+        *,
+        on_change: typing.Callable[[typing.Any], None] | None = None,
+        disabled: bool = False,
+    ) -> typing.Any:
+        return mo.ui.text_area(
+            value=value,
+            label=label,
+            on_change=on_change,
+            disabled=disabled,
+            **self.extra_kwargs,
+        )
+
     @property
     def _stdin_flag(self) -> str:
         return f"{self.option}-from-stdin"
@@ -368,6 +505,31 @@ class TextAreaControl(ValueControl):
 @dataclasses.dataclass
 class NumberControl(ValueControl):
     default: Numeric | None
+    start: Numeric | None = None
+    stop: Numeric | None = None
+    widget: typing.Literal["number", "slider"] = "number"
+
+    def create_marimo_element(
+        self,
+        value: typing.Any,
+        label: str,
+        *,
+        on_change: typing.Callable[[typing.Any], None] | None = None,
+        disabled: bool = False,
+    ) -> typing.Any:
+        ui_kwargs: dict[str, typing.Any] = {
+            "start": self.start,
+            "value": value,
+            "label": label,
+            "on_change": on_change,
+            "disabled": disabled,
+        }
+        if self.stop is not None:
+            ui_kwargs["stop"] = self.stop
+        ui_kwargs.update(self.extra_kwargs)
+        if self.widget == "slider":
+            return mo.ui.slider(**ui_kwargs)
+        return mo.ui.number(**ui_kwargs)
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         value = args.value_for(self.option)
@@ -413,6 +575,7 @@ class RangeControl(ValueControl):
     start: Numeric | None = None
     stop: Numeric | None = None
     allowed_values: list[Numeric] | None = None
+    step: Numeric | None = None
 
     @classmethod
     def from_slider(
@@ -425,6 +588,8 @@ class RangeControl(ValueControl):
         stop: Numeric | None,
         value: typing.Sequence[Numeric] | None,
         steps: typing.Sequence[Numeric] | None,
+        step: Numeric | None = None,
+        extra_kwargs: dict[str, typing.Any] | None = None,
     ) -> "RangeControl":
         return cls(
             option=option,
@@ -434,6 +599,28 @@ class RangeControl(ValueControl):
             start=_range_start(start=start, steps=steps),
             stop=_range_stop(stop=stop, steps=steps),
             allowed_values=list(steps) if steps is not None else None,
+            step=step,
+            extra_kwargs=extra_kwargs or {},
+        )
+
+    def create_marimo_element(
+        self,
+        value: typing.Any,
+        label: str,
+        *,
+        on_change: typing.Callable[[typing.Any], None] | None = None,
+        disabled: bool = False,
+    ) -> typing.Any:
+        return mo.ui.range_slider(
+            start=self.start,
+            stop=self.stop,
+            step=self.step,
+            steps=self.allowed_values,
+            value=value,
+            label=label,
+            on_change=on_change,
+            disabled=disabled,
+            **self.extra_kwargs,
         )
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
@@ -538,6 +725,24 @@ class RangeControl(ValueControl):
 class MultiSelectControl(ValueControl):
     default: list[str]
     select_opts: list[str]
+
+    def create_marimo_element(
+        self,
+        value: typing.Any,
+        label: str,
+        *,
+        on_change: typing.Callable[[typing.Any], None] | None = None,
+        disabled: bool = False,
+    ) -> typing.Any:
+        if disabled:
+            return _ui_workarounds.LockedMultiselect(value, label)
+        return mo.ui.multiselect(
+            options=self.select_opts,
+            value=value,
+            label=label,
+            on_change=on_change,
+            **self.extra_kwargs,
+        )
 
     @property
     def has_no_flag(self) -> bool:
@@ -648,6 +853,27 @@ class DropdownControl(InputControl):
     dropdown_opts: dict[str, typing.Any]
     supports_none: bool
     default: str | None
+
+    def create_marimo_element(
+        self,
+        value: typing.Any,
+        label: str,
+        *,
+        on_change: typing.Callable[[typing.Any], None] | None = None,
+        disabled: bool = False,
+    ) -> typing.Any:
+        opts: typing.Any = (
+            _ui_workarounds.locked_dropdown_options(value, self.dropdown_opts)
+            if disabled
+            else self.dropdown_opts
+        )
+        return mo.ui.dropdown(
+            options=opts,
+            value=value,
+            label=label,
+            on_change=on_change,
+            **self.extra_kwargs,
+        )
 
     @property
     def has_no_flag(self) -> bool:
