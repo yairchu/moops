@@ -265,7 +265,7 @@ class Group:
         self,
         value: str = "",
         placeholder: str = "",
-        kind: typing.Literal["text", "password"] = "text",
+        kind: typing.Literal["text", "password", "email", "url"] = "text",
         max_length: int | None = None,
         *,
         label: str | None = None,
@@ -331,8 +331,8 @@ class Group:
     def file_browser(
         self,
         initial_path: str | pathlib.Path = "",
-        filetypes: list[str] | None = None,
-        selection_mode: typing.Literal["file", "directory", "both"] = "file",
+        filetypes: typing.Sequence[str] | None = None,
+        selection_mode: typing.Literal["file", "directory"] = "file",
         multiple: bool = True,
         restrict_navigation: bool = False,
         *,
@@ -408,10 +408,10 @@ class Group:
 
     def slider(
         self,
-        start: float | None = None,
-        stop: float | None = None,
-        step: float | None = None,
-        value: float | None = None,
+        start: Numeric | None = None,
+        stop: Numeric | None = None,
+        step: Numeric | None = None,
+        value: Numeric | None = None,
         debounce: bool = False,
         *,
         label: str | None = None,
@@ -508,7 +508,7 @@ class Group:
 
     @staticmethod
     def run_button(
-        kind: str = "neutral",
+        kind: typing.Literal["neutral", "success", "warn", "danger"] = "neutral",
         disabled: bool = False,
         tooltip: str | None = None,
         **kwargs: typing.Any,
@@ -548,8 +548,8 @@ class Group:
 
     def dropdown(
         self,
-        options: list[str] | dict[str, typing.Any],
-        value: str | None = None,
+        options: typing.Sequence[typing.Any] | dict[str, typing.Any],
+        value: typing.Any | None = None,
         allow_select_none: bool | None = None,
         searchable: bool = False,
         *,
@@ -592,13 +592,13 @@ class Group:
 
     def multiselect(
         self,
-        options: list[str],
-        value: list[str] | None = None,
+        options: typing.Sequence[typing.Any] | dict[str, typing.Any],
+        value: typing.Sequence[typing.Any] | None = None,
         option: str | None = None,
         *,
         help_text: str,
         label: str | None = None,
-        on_change: typing.Callable[[list[str]], None] | None = None,
+        on_change: typing.Callable[[list[object]], None] | None = None,
         **kwargs: typing.Any,
     ) -> mo.ui.multiselect:
         """Create a multiselect UI element that maps to repeated CLI options."""
