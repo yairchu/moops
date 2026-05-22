@@ -566,13 +566,13 @@ class Group:
 
         assert len(options) > 0, "Dropdown options cannot be empty"
         opt = self._make_opt(label=label, option=option)
+        dropdown_opts = _option_values(options)
+        value = _option_key(dropdown_opts, value) if value is not None else None
         if value is None and not allow_select_none:
-            value, *_ = [*options]
+            value, *_ = [*dropdown_opts]
         input_control = _options.DropdownControl(
             option=opt.option,
-            dropdown_opts=options
-            if isinstance(options, dict)
-            else {opt: opt for opt in options},
+            dropdown_opts=dropdown_opts,
             supports_none=allow_select_none,
             default=value,
             help_text=help_text,
@@ -605,17 +605,19 @@ class Group:
         if value is None:
             value = []
         opt = self._make_opt(label=label, option=option)
+        select_opts = _option_values(options)
+        default = [_option_value(select_opts, item) for item in value]
         input_control = _options.MultiSelectControl(
             option=opt.option,
             metavar=opt.label.upper().replace(" ", "_"),
             help_text=help_text,
-            default=list(value),
-            select_opts=list(options),
+            default=default,
+            select_opts=select_opts,
             extra_kwargs=kwargs,
         )
         return self._input_map.register(
             input_control.create_marimo_element(
-                self._get_value(input_control, value),
+                self._get_value(input_control, default),
                 **self._control_kwargs(opt, input_control, help_text, on_change),
             ),
             input_control,
@@ -715,3 +717,26 @@ class Group:
                 option=f"{self.option}-{opt.option.lstrip('-')}",
             )
         return opt
+
+
+def _option_values(
+    options: typing.Sequence[typing.Any] | dict[str, typing.Any],
+) -> dict[str, typing.Any]:
+    if isinstance(options, dict):
+        return dict(options)
+    return {str(opt): opt for opt in options}
+
+
+def _option_key(options: dict[str, typing.Any], value: typing.Any) -> str:
+    if isinstance(value, str) and value in options:
+        return value
+    for key, option_value in options.items():
+        if value == option_value:
+            return key
+    return str(value)
+
+
+def _option_value(options: dict[str, typing.Any], value: typing.Any) -> typing.Any:
+    if isinstance(value, str) and value in options:
+        return options[value]
+    return value

@@ -723,8 +723,8 @@ class RangeControl(ValueControl):
 
 @dataclasses.dataclass
 class MultiSelectControl(ValueControl):
-    default: list[str]
-    select_opts: list[str]
+    default: list[typing.Any]
+    select_opts: dict[str, typing.Any]
 
     def create_marimo_element(
         self,
@@ -734,11 +734,14 @@ class MultiSelectControl(ValueControl):
         on_change: typing.Callable[[typing.Any], None] | None = None,
         disabled: bool = False,
     ) -> typing.Any:
+        selected_keys = [_option_key(self.select_opts, item) for item in value]
         if disabled:
-            return _ui_workarounds.LockedMultiselect(value, label)
+            return _ui_workarounds.LockedMultiselect(
+                [str(item) for item in value], label
+            )
         return mo.ui.multiselect(
             options=self.select_opts,
-            value=value,
+            value=selected_keys,
             label=label,
             on_change=on_change,
             **self.extra_kwargs,
@@ -780,9 +783,9 @@ class MultiSelectControl(ValueControl):
             if v not in self.select_opts:
                 return ParseError(
                     f"Option {self.option} must be one of"
-                    f" {self.select_opts!r}, got: {v!r}"
+                    f" {list(self.select_opts)!r}, got: {v!r}"
                 )
-        return ParseResult(flattened)
+        return ParseResult([self.select_opts[v] for v in flattened])
 
     def parse_query_value(self, value: str) -> ParseResult | ParseError:
         try:
@@ -791,18 +794,20 @@ class MultiSelectControl(ValueControl):
             raw = [value] if value else []
         if not isinstance(raw, list):
             return ParseError(f"Query parameter for {self.option} must be a JSON list")
+        keys: list[str] = []
         for item in typing.cast(list[typing.Any], raw):
             if not isinstance(item, str) or item not in self.select_opts:
                 return ParseError(
                     f"Query parameter for {self.option} must be a list of"
-                    f" {self.select_opts!r}, got item: {item!r}"
+                    f" {list(self.select_opts)!r}, got item: {item!r}"
                 )
-        return ParseResult(raw)
+            keys.append(item)
+        return ParseResult([self.select_opts[item] for item in keys])
 
     def strategy(self) -> st.SearchStrategy:
         if not self.select_opts:
             return st.just([])
-        return st.lists(st.sampled_from(self.select_opts), unique=True)
+        return st.lists(st.sampled_from(list(self.select_opts.values())), unique=True)
 
     def format_usage_parts(self) -> list[str]:
         values_text = "{" + "|".join(self.select_opts) + "}"
@@ -814,7 +819,11 @@ class MultiSelectControl(ValueControl):
         values_text = "{" + "|".join(self.select_opts) + "}"
         line = f"  {self.option} {values_text}: {self.help_text}"
         if self.default:
-            line += f" (default: {', '.join(self.default)})"
+            line += (
+                " (default: "
+                + ", ".join(_option_key(self.select_opts, v) for v in self.default)
+                + ")"
+            )
         line += f" (repeat {self.option} to select multiple)"
         lines = [line]
         if self._no_flag:
@@ -827,20 +836,25 @@ class MultiSelectControl(ValueControl):
             return []
         if not values and self._no_flag:
             return [self._no_flag]
-        return [f"{self.option} {shlex.quote(v)}" for v in values]
+        return [
+            f"{self.option} {shlex.quote(_option_key(self.select_opts, v))}"
+            for v in values
+        ]
 
     def format_query_value(self, value: typing.Any) -> str | None:
         values = list(value)
-        return None if values == self.default else json.dumps(values)
+        keys = [_option_key(self.select_opts, v) for v in values]
+        return None if values == self.default else json.dumps(keys)
 
     def prompt_interactive(
         self, effective_default: typing.Any = _UNSET
     ) -> dict[str, str | None]:
         d = self.default if effective_default is _UNSET else effective_default
+        default_keys = {_option_key(self.select_opts, v) for v in (d or [])}
         for i, v in enumerate(self.select_opts, 1):
-            mark = "*" if v in (d or []) else " "
+            mark = "*" if v in default_keys else " "
             print(f"  {mark}{i}) {v}")
-        default_display = f" [{', '.join(d)}]" if d else ""
+        default_display = f" [{', '.join(default_keys)}]" if default_keys else ""
         response = input(f"{self.help_text} (comma-separated){default_display}: ")
         if not response:
             return {}
@@ -1021,6 +1035,15 @@ def _range_stop(
     steps: typing.Sequence[Numeric] | None,
 ) -> Numeric | None:
     return max(steps) if steps else stop
+
+
+def _option_key(options: dict[str, typing.Any], value: typing.Any) -> str:
+    if isinstance(value, str) and value in options:
+        return value
+    for key, option_value in options.items():
+        if value == option_value:
+            return key
+    return str(value)
 
 
 def _format_range(value: typing.Iterable[typing.Any]) -> str:
