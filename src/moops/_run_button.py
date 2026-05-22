@@ -1,12 +1,18 @@
 import typing
 
 import marimo as mo
+from marimo._messaging.mimetypes import KnownMimeType
 
 
 class _RunButtonStub:
     """Returned by run_button() outside notebooks; always considered clicked."""
 
     value: bool = True
+
+    def _mime_(self) -> tuple[KnownMimeType, str]:
+        # Hide run buttons in embedded notebooks output
+        # to reflect that there is no run barrier.
+        return ("text/plain", "")
 
 
 def run_button(**kwargs: typing.Any) -> mo.ui.run_button | _RunButtonStub:
