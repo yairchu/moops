@@ -1,8 +1,7 @@
-import concurrent.futures
 import types
 import typing
 
-from . import group
+from . import group, workarounds
 from .interface import Interface
 
 
@@ -17,8 +16,7 @@ def interface_of(module: types.ModuleType) -> Interface:
     embedding it, e.g. when calling the notebook in a loop via ``moops.run()``.
     """
     args = group.Group.for_interface_query()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        _, defs = executor.submit(module.app.run, defs={"args": args}).result()
+    _, defs = workarounds.run_in_thread_if_in_async(module.app.run, defs={"args": args})
     return defs["interface"]
 
 
@@ -31,9 +29,7 @@ def run(module: types.ModuleType, **kwargs: typing.Any) -> typing.Any:
     All controls are overridable, including those not passed to interface.
     """
     args = group.Group.with_overrides(kwargs)
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        _, defs = executor.submit(module.app.run, defs={"args": args}).result()
+    _, defs = workarounds.run_in_thread_if_in_async(module.app.run, defs={"args": args})
     if "result" not in defs:
         raise RuntimeError(
             f"moops.run() expected {module.__name__} to expose a variable named "
