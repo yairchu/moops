@@ -10,10 +10,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- `moops.workarounds.run_in_thread_if_in_async(fn, *args, **kwargs)` — calls
-  `fn` directly outside an async context, or in a worker thread when a marimo
-  event loop is running (avoiding `asyncio.run()` conflicts). Useful for any
-  code that internally uses `asyncio.run()` and needs to work from notebook cells.
 - `group.multiselect(options, value, ...)` — multi-select UI element that maps
   to repeated CLI options (e.g. `--survive 2 --survive 3`).
 - `group.controls_from(iface, prefix=..., exclude=...)` — creates a prefixed
@@ -27,6 +23,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `Interface` without executing computation cells that respect
   `args.is_interface_query`. Useful for surfacing a notebook's controls into a
   parent that calls it in a loop via `moops.run()`.
+- `moops.workarounds.run_in_thread_if_in_async(fn, *args, **kwargs)` — calls
+  `fn` directly outside an async context, or in a worker thread when a marimo
+  event loop is running (avoiding `asyncio.run()` conflicts). Useful for any
+  code that internally uses `asyncio.run()` and needs to work from notebook cells.
 
 ### Changed
 
