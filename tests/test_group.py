@@ -839,6 +839,29 @@ def test_controls_from_values_are_in_standalone_query_values() -> None:
     }
 
 
+def test_controls_from_current_args_reflects_live_widget_changes() -> None:
+    # mo.ui.dictionary clones its elements; the sub-interface must track the
+    # live clones (step_controls.elements) not the originals, so that
+    # _current_args() picks up user-driven value changes.
+    source = Group(cli_args=["child.py"])
+    survive = source.multiselect(
+        options=[str(i) for i in range(9)],
+        value=["2", "3"],
+        option="--survive-rule",
+        help_text="Survive",
+    )
+    child_iface = source.interface(survive)
+
+    parent = Group(cli_args=["parent.py"])
+    step_controls = parent.controls_from(child_iface, prefix="step")
+    parent_iface = parent.interface(step_controls)
+
+    # Simulate user changing the mirrored control's value to a non-default.
+    step_controls.elements["survive_rule"]._value = ["1", "2"]  # type: ignore[attr-defined]
+
+    assert "--step-survive-rule" in parent_iface._current_args()  # type: ignore[attr-defined]
+
+
 def test_custom_control_is_bound_to_wrapped_ui_element() -> None:
     g = Group(cli_args=["script.py"])
     fallback = g.range_slider(
