@@ -56,6 +56,8 @@ class Group:
         self._markdown_heading_offset = 0
         self._disabled = False
         self._help_heading: str | None = None
+        self._usage_placeholder: str | None = None
+        self._usage_after_option: str | None = None
         self._subgroup_registry = interface.SubgroupRegistry()
         self._value_resolver = self._make_value_resolver()
 
@@ -129,6 +131,8 @@ class Group:
         )
         child._disabled = self._disabled
         child._help_heading = None
+        child._usage_placeholder = None
+        child._usage_after_option = None
         child._overrides = {**self._overrides.get(prefix, {}), **(overrides or {})}
         child.option = f"{self.option}-{prefix}" if self.option else f"--{prefix}"
         child._presets = presets
@@ -154,6 +158,7 @@ class Group:
         """
 
         selector_option = _variant.control_option(selector)
+        usage_placeholder = _variant.usage_placeholder(selector_option)
         selected = _variant.selected_key(selector)
         result: dict[typing.Any, Group] = {}
         for key in _variant.keys(selector):
@@ -161,6 +166,8 @@ class Group:
             group = self.subgroup(f"{prefix}-{key_text}")
             group._disabled = self._disabled or selected != key
             group._help_heading = _variant.help_heading(selector_option, key_text)
+            group._usage_placeholder = usage_placeholder
+            group._usage_after_option = selector_option
             result[key] = group
         return result
 
@@ -202,6 +209,8 @@ class Group:
             command=self._command,
             extra_missing_options=extra_missing_options,
             help_heading=self._help_heading,
+            usage_placeholder=self._usage_placeholder,
+            usage_after_option=self._usage_after_option,
             disabled=self._disabled,
         )
         if self._parent_group is not None:

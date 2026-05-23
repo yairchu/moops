@@ -33,6 +33,8 @@ class Interface:
     command: str = ""
     extra_missing_options: tuple[str, ...] = ()
     help_heading: str | None = None
+    usage_placeholder: str | None = None
+    usage_after_option: str | None = None
     disabled: bool = False
 
     def __post_init__(self) -> None:
@@ -79,11 +81,7 @@ class Interface:
                 yield f"{unexp_text}{k}"
 
     def help(self) -> str:
-        usage_parts = [
-            p
-            for input_control in self._all_input_controls()
-            for p in input_control.format_usage_parts()
-        ]
+        usage_parts = list(self._format_usage_parts(_usage_placeholders(self)))
         usage_parts.extend(("[--interactive]", "[-h/--help]"))
         name = self.command.rsplit("/", 1)[-1]
         segments = [f"Usage: {name} {' '.join(usage_parts)}"]
@@ -104,6 +102,21 @@ class Interface:
                 input_control = self.input_map.get(ctrl)
                 if input_control is not None and not self._is_overridden(input_control):
                     yield from input_control.format_help_lines()
+
+    def _format_usage_parts(
+        self, placeholders_by_option: dict[str, str]
+    ) -> typing.Iterator[str]:
+        for ctrl in self.controls:
+            if (sub_iface := _attached_interface(ctrl)) is not None:
+                if not sub_iface.usage_placeholder:
+                    yield from sub_iface._format_usage_parts(placeholders_by_option)
+            else:
+                input_control = self.input_map.get(ctrl)
+                if input_control is not None and not self._is_overridden(input_control):
+                    yield from input_control.format_usage_parts()
+                    for option in input_control.options() | input_control.flags():
+                        if placeholder := placeholders_by_option.pop(option, None):
+                            yield placeholder
 
     @property
     def default(self) -> dict[str, typing.Any]:
@@ -440,6 +453,23 @@ def _attached_interface(ctrl: typing.Any) -> Interface | None:
         return ctrl
     iface = getattr(ctrl, "_moops_interface", None)
     return iface if isinstance(iface, Interface) else None
+
+
+def _usage_placeholders(iface: Interface) -> dict[str, str]:
+    result: dict[str, str] = {}
+    _collect_usage_placeholders(iface, result)
+    return result
+
+
+def _collect_usage_placeholders(
+    iface: Interface,
+    result: dict[str, str],
+) -> None:
+    if iface.usage_placeholder and iface.usage_after_option:
+        result.setdefault(iface.usage_after_option, iface.usage_placeholder)
+    for ctrl in iface.controls:
+        if sub_iface := _attached_interface(ctrl):
+            _collect_usage_placeholders(sub_iface, result)
 
 
 class SubgroupRegistry:

@@ -33,3 +33,10 @@ def help_heading(selector_option: str | None, key_text: str) -> str:
     if selector_option:
         return f"Options for {selector_option} {key_text}"
     return f"Options for {key_text}"
+
+
+def usage_placeholder(selector_option: str | None) -> str:
+    if selector_option:
+        name = selector_option.lstrip("-").replace("-", " ").upper()
+        return f"[{name} OPTIONS]"
+    return "[VARIANT OPTIONS]"
