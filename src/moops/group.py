@@ -202,6 +202,7 @@ class Group:
             command=self._command,
             extra_missing_options=extra_missing_options,
             help_heading=self._help_heading,
+            disabled=self._disabled,
         )
         if self._parent_group is not None:
             self._parent_group._subgroup_registry.register(iface)

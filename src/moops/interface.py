@@ -33,6 +33,7 @@ class Interface:
     command: str = ""
     extra_missing_options: tuple[str, ...] = ()
     help_heading: str | None = None
+    disabled: bool = False
 
     def __post_init__(self) -> None:
         seen_ids: set[int] = set()
@@ -54,7 +55,7 @@ class Interface:
     def validate(self, state: _parse.ParseState) -> typing.Iterator[str]:
         flags: set[str] = set()
         value_options: dict[str, _options.InputControl] = {}
-        for input_control in self._all_input_controls():
+        for input_control in self._active_input_controls():
             flags.update(input_control.flags())
             for option in input_control.options():
                 value_options[option] = input_control
@@ -131,6 +132,17 @@ class Interface:
                 if input_control is not None and not self._is_overridden(input_control):
                     yield input_control
 
+    def _active_input_controls(self) -> typing.Iterator[_options.InputControl]:
+        if self.disabled:
+            return
+        for ctrl in self.controls:
+            if (iface := _attached_interface(ctrl)) is not None:
+                yield from iface._active_input_controls()
+            else:
+                input_control = self.input_map.get(ctrl)
+                if input_control is not None and not self._is_overridden(input_control):
+                    yield input_control
+
     def input_options(self) -> list[str]:
         return [input_control.option for input_control in self._all_input_controls()]
 
@@ -178,7 +190,7 @@ class Interface:
         values = self.cur_values()
         return " ".join(
             arg
-            for input_control in self._all_input_controls()
+            for input_control in self._active_input_controls()
             if input_control.option in values
             for arg in input_control.format_value(values[input_control.option])
         )
