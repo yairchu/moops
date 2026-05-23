@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-05-23
+
 ### Fixed
 
 - `controls_from`: `_current_args()` and preset saving now reflect live widget
