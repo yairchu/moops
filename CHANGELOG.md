@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `group.variant(prefix, selector)` creates branch subgroups whose controls are
+  automatically disabled when the selector points at another branch and grouped
+  under selector-specific headings in CLI help.
+
 ## [0.5.1] - 2026-05-23
 
 ### Fixed

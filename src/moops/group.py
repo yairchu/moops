@@ -18,6 +18,7 @@ from . import (
     _preset_state,
     _query_params,
     _value_resolution,
+    _variant,
     interface,
 )
 from ._run_button import run_button
@@ -53,6 +54,8 @@ class Group:
         self._preset_state = self._resolve_preset_state()
         self._parent_group: Group | None = None
         self._markdown_heading_offset = 0
+        self._disabled = False
+        self._help_heading: str | None = None
         self._subgroup_registry = interface.SubgroupRegistry()
         self._value_resolver = self._make_value_resolver()
 
@@ -124,6 +127,8 @@ class Group:
         child._markdown_heading_offset = (
             self._markdown_heading_offset + markdown_heading_offset
         )
+        child._disabled = self._disabled
+        child._help_heading = None
         child._overrides = {**self._overrides.get(prefix, {}), **(overrides or {})}
         child.option = f"{self.option}-{prefix}" if self.option else f"--{prefix}"
         child._presets = presets
@@ -134,6 +139,30 @@ class Group:
         child._is_interface_query = self._is_interface_query
         child._value_resolver = child._make_value_resolver()
         return child
+
+    def variant(
+        self,
+        prefix: str,
+        selector: typing.Any,
+    ) -> dict[typing.Any, Group]:
+        """Create branch subgroups disabled when `selector` selects another value.
+
+        The returned dict contains subgroups named ``{prefix}-{branch}``.
+        Controls from every branch should still be
+        passed to ``interface()`` so marimo's DAG can see them all; this helper
+        only centralizes branch namespacing and inactive-control disabling.
+        """
+
+        selector_option = _variant.control_option(selector)
+        selected = _variant.selected_key(selector)
+        result: dict[typing.Any, Group] = {}
+        for key in _variant.keys(selector):
+            key_text = _variant.key_text(key)
+            group = self.subgroup(f"{prefix}-{key_text}")
+            group._disabled = self._disabled or selected != key
+            group._help_heading = _variant.help_heading(selector_option, key_text)
+            result[key] = group
+        return result
 
     def _resolve_preset_state(self) -> _preset_state.PresetState:
         return _preset_state.PresetState.resolve(
@@ -172,6 +201,7 @@ class Group:
             query_params=self._query_params,
             command=self._command,
             extra_missing_options=extra_missing_options,
+            help_heading=self._help_heading,
         )
         if self._parent_group is not None:
             self._parent_group._subgroup_registry.register(iface)
@@ -679,7 +709,7 @@ class Group:
     ) -> dict[str, typing.Any]:
         return {
             "label": opt.label_with_tooltip(help_text),
-            "disabled": self._is_overridden(opt.option),
+            "disabled": self._is_overridden(opt.option) or self._disabled,
             "on_change": self._query_on_change(input_control, on_change),
         }
 
@@ -757,13 +787,11 @@ def _reattach_interface_to_clone(original: typing.Any, clone: typing.Any) -> Non
 def _option_key(options: dict[str, typing.Any], value: typing.Any) -> str:
     if isinstance(value, str) and value in options:
         return value
-    for key, option_value in options.items():
-        if value == option_value:
-            return key
-    return str(value)
+    return next(
+        (key for key, option_value in options.items() if value == option_value),
+        str(value),
+    )
 
 
 def _option_value(options: dict[str, typing.Any], value: typing.Any) -> typing.Any:
-    if isinstance(value, str) and value in options:
-        return options[value]
-    return value
+    return options[value] if isinstance(value, str) and value in options else value

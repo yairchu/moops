@@ -32,6 +32,7 @@ class Interface:
     )
     command: str = ""
     extra_missing_options: tuple[str, ...] = ()
+    help_heading: str | None = None
 
     def __post_init__(self) -> None:
         seen_ids: set[int] = set()
@@ -85,14 +86,23 @@ class Interface:
         usage_parts.extend(("[--interactive]", "[-h/--help]"))
         name = self.command.rsplit("/", 1)[-1]
         segments = [f"Usage: {name} {' '.join(usage_parts)}"]
-        help_lines = [
-            line
-            for input_control in self._all_input_controls()
-            for line in input_control.format_help_lines()
-        ]
+        help_lines = list(self._format_help_lines())
         if help_lines:
             segments.append("\n".join(help_lines))
         return "\n\n".join(segments)
+
+    def _format_help_lines(self) -> typing.Iterator[str]:
+        for ctrl in self.controls:
+            if (sub_iface := _attached_interface(ctrl)) is not None:
+                lines = list(sub_iface._format_help_lines())
+                if lines and sub_iface.help_heading:
+                    yield ""
+                    yield sub_iface.help_heading + ":"
+                yield from lines
+            else:
+                input_control = self.input_map.get(ctrl)
+                if input_control is not None and not self._is_overridden(input_control):
+                    yield from input_control.format_help_lines()
 
     @property
     def default(self) -> dict[str, typing.Any]:

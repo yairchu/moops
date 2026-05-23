@@ -77,6 +77,33 @@ those controls from the URL. Query keys use the same names as `moops.run`
 keyword arguments. For subgroups, use dot-separated names such as
 `?casing.style=camel_case`.
 
+## Variant inputs
+
+Use `args.variant()` to create branch subgroups controlled by a selector. Branch
+controls are normal controls and should still be passed to `args.interface()`;
+inactive branch controls are disabled automatically, and CLI help groups branch
+options under selector-specific headings.
+
+```python
+source = args.dropdown(
+    ["heuristic", "file"],
+    value="heuristic",
+    option="--source",
+    help_text="Seed source",
+    allow_select_none=False,
+)
+seed = args.variant("seed", source)
+
+budget = seed["heuristic"].number(value=100, help_text="Heuristic budget")
+path = seed["file"].text(value="", help_text="Result file")
+
+interface = args.interface(
+    source,
+    seed["heuristic"].interface(budget),
+    seed["file"].interface(path),
+)
+```
+
 ## Presets
 
 Presets save and restore named groups of control values from a JSON file stored
