@@ -651,13 +651,10 @@ class Group:
         }
         result = mo.ui.dictionary(controls)
         # mo.ui.dictionary clones its elements, so result.elements[key] is a
-        # different object than controls[key]. Propagate _moops_interface from
-        # original nested dictionaries to their clones so that
-        # _attached_interface still finds it on the clones.
+        # different object than controls[key]. Rebind nested dictionary clones
+        # to interfaces that track their own live cloned elements.
         for key, original in controls.items():
-            moops_iface = getattr(original, "_moops_interface", None)
-            if moops_iface is not None:
-                result.elements[key]._moops_interface = moops_iface  # type: ignore[attr-defined]
+            _reattach_interface_to_clone(original, result.elements[key])
         # Use the live clones (result.elements) rather than the originals so
         # that cur_values() reads up-to-date widget values.
         result._moops_interface = child.interface(*result.elements.values())  # type: ignore[attr-defined]
@@ -736,6 +733,25 @@ def _option_values(
     if isinstance(options, dict):
         return dict(options)
     return {str(opt): opt for opt in options}
+
+
+def _reattach_interface_to_clone(original: typing.Any, clone: typing.Any) -> None:
+    moops_iface = getattr(original, "_moops_interface", None)
+    if not isinstance(moops_iface, interface.Interface):
+        return
+    original_elements = getattr(original, "elements", None)
+    clone_elements = getattr(clone, "elements", None)
+    if isinstance(original_elements, dict) and isinstance(clone_elements, dict):
+        typed_original_elements = typing.cast(dict[str, typing.Any], original_elements)
+        typed_clone_elements = typing.cast(dict[str, typing.Any], clone_elements)
+        for key, original_child in typed_original_elements.items():
+            if key in typed_clone_elements:
+                _reattach_interface_to_clone(original_child, typed_clone_elements[key])
+        controls = tuple(typed_clone_elements.values())
+    else:
+        controls = moops_iface.controls
+    moops_iface.controls = controls
+    clone._moops_interface = moops_iface
 
 
 def _option_key(options: dict[str, typing.Any], value: typing.Any) -> str:
