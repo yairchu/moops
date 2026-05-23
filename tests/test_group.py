@@ -862,6 +862,34 @@ def test_controls_from_current_args_reflects_live_widget_changes() -> None:
     assert "--step-survive-rule" in parent_iface._current_args()  # type: ignore[attr-defined]
 
 
+def test_nested_controls_from_current_args_reflects_live_widget_changes() -> None:
+    source = Group(cli_args=["child.py"])
+    config = source.subgroup("config")
+    style = config.dropdown(
+        ["a", "b"],
+        value="a",
+        option="--style",
+        help_text="Style",
+    )
+    child_iface = source.interface(config.interface(style))
+
+    parent = Group(cli_args=["parent.py"])
+    step_controls = parent.controls_from(child_iface, prefix="step")
+    parent_iface = parent.interface(step_controls)
+
+    # Simulate user changing the nested mirrored control's value to a
+    # non-default.
+    nested_controls = typing.cast(typing.Any, step_controls.elements["config"]).elements
+    nested_style = nested_controls["style"]
+    nested_style._value = "b"  # type: ignore[attr-defined]
+    nested_style._selected_key = "b"  # type: ignore[attr-defined]
+
+    assert parent_iface._current_args() == "--step-config-style b"  # type: ignore[attr-defined]
+    assert parent_iface._standalone_query_values() == {  # type: ignore[attr-defined]
+        "step_config_style": "b"
+    }
+
+
 def test_custom_control_is_bound_to_wrapped_ui_element() -> None:
     g = Group(cli_args=["script.py"])
     fallback = g.range_slider(
