@@ -48,8 +48,14 @@ def _():
 
 
 @app.cell
-def _(moops):
-    args = moops.Group()
+def _(mo):
+    get_preset_sel, set_preset_sel = mo.state(None)
+    return get_preset_sel, set_preset_sel
+
+
+@app.cell
+def _(get_preset_sel, moops, set_preset_sel):
+    args = moops.Group(presets=moops.Presets(get_preset_sel, set_preset_sel))
     return (args,)
 
 
@@ -66,7 +72,7 @@ def _(args, game_of_life_iteration, mo, moops):
 @app.cell
 def _(args):
     steps = args.number(
-        value=1,
+        value=3,
         start=1,
         stop=100,
         step=1,
