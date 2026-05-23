@@ -650,7 +650,17 @@ class Group:
             if name not in excluded
         }
         result = mo.ui.dictionary(controls)
-        result._moops_interface = child.interface(*controls.values())  # type: ignore[attr-defined]
+        # mo.ui.dictionary clones its elements, so result.elements[key] is a
+        # different object than controls[key]. Propagate _moops_interface from
+        # original nested dictionaries to their clones so that
+        # _attached_interface still finds it on the clones.
+        for key, original in controls.items():
+            moops_iface = getattr(original, "_moops_interface", None)
+            if moops_iface is not None:
+                result.elements[key]._moops_interface = moops_iface  # type: ignore[attr-defined]
+        # Use the live clones (result.elements) rather than the originals so
+        # that cur_values() reads up-to-date widget values.
+        result._moops_interface = child.interface(*result.elements.values())  # type: ignore[attr-defined]
         return result
 
     def _make_value_resolver(self) -> _value_resolution.ValueResolver:

@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `controls_from`: `_current_args()` and preset saving now reflect live widget
+  values. Previously, `mo.ui.dictionary` clones its elements on construction,
+  so the sub-interface held stale pre-clone originals; user-driven changes were
+  invisible to `_current_args()` and were therefore not captured when saving a
+  preset.
+
 ## [0.5.0] - 2026-05-22
 
 ### Added

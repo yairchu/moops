@@ -66,7 +66,9 @@ class LockedMultiselect(UIElement[str, list[str]]):
         return list(self._locked_value)
 
     def _clone(self) -> "LockedMultiselect":
-        return LockedMultiselect(list(self._locked_value), self._label_html)
+        # Use the base UIElement deepcopy path so extra attributes set after
+        # construction (e.g., _moops_input) are preserved on the clone.
+        return super()._clone()  # type: ignore[return-value]
 
     def _mime_(self) -> tuple[KnownMimeType, str]:
         return ("text/html", self._html)
