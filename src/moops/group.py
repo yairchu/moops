@@ -332,7 +332,8 @@ class Group:
         self,
         initial_path: str | pathlib.Path = "",
         filetypes: typing.Sequence[str] | None = None,
-        selection_mode: typing.Literal["file", "directory"] = "file",
+        selection_mode: typing.Literal["file", "directory", "all"]
+        | typing.Sequence[typing.Literal["file", "directory"]] = "file",
         multiple: bool = True,
         restrict_navigation: bool = False,
         *,
