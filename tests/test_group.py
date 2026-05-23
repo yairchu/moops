@@ -952,3 +952,43 @@ def test_file_browser_multiple_current_args_repeats_option(
     assert iface._current_args() == (  # type: ignore[attr-defined]
         f"--file {first} --file '{second}'"
     )
+
+
+def test_variant_rejects_inactive_branch_options() -> None:
+    g = Group(
+        cli_args=[
+            "script.py",
+            "--mode",
+            "car",
+            "--travel-train-tickets",
+            "5",
+        ]
+    )
+    mode = g.dropdown(
+        ["car", "train"],
+        value="car",
+        option="--mode",
+        help_text="How to travel",
+        allow_select_none=False,
+    )
+    travel = g.variant("travel", mode)
+
+    distance = travel["car"].number(
+        value=120,
+        option="--distance",
+        help_text="Driving distance in miles",
+    )
+    tickets = travel["train"].number(
+        value=2,
+        option="--tickets",
+        help_text="Number of train tickets",
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        g.interface(
+            mode,
+            travel["car"].interface(distance),
+            travel["train"].interface(tickets),
+        )
+
+    assert exc_info.value.code != 0
