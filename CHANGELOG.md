@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `group.variant(prefix, selector)` creates branch subgroups whose controls are
   automatically disabled when the selector points at another branch and grouped
   under selector-specific headings in CLI help.
+- `moops.variant_embed(group, selector, apps, prefix=...)` prepares a selected
+  notebook app clone and argument subgroup for selector-driven embeds while
+  preserving CLI help for all notebook variants.
 
 ## [0.5.1] - 2026-05-23
 

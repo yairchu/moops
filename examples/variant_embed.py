@@ -1,0 +1,85 @@
+# /// script
+# dependencies = [
+#     "marimo>=0.23.1",
+#     "moops>=0.5.1",
+# ]
+# ///
+
+import marimo
+
+__generated_with = "0.23.8"
+app = marimo.App(width="full")
+
+
+@app.cell(hide_code=True)
+def _(args):
+    args.md("# Variant embed", notebook_only=True)
+    return
+
+
+@app.cell
+def _(args, embedded, notebook):
+    interface = args.interface(notebook, embedded.defs["interface"])
+    interface
+    return
+
+
+@app.cell
+def _():
+    import name_casing
+    import word_count
+
+    import moops
+
+    return moops, name_casing, word_count
+
+
+@app.cell
+def _(moops):
+    args = moops.Group()
+    return (args,)
+
+
+@app.cell
+def _(args):
+    notebook = args.dropdown(
+        ["name-casing", "word-count"],
+        value="name-casing",
+        option="--notebook",
+        help_text="Notebook to embed",
+        allow_select_none=False,
+    )
+    notebook
+    return (notebook,)
+
+
+@app.cell
+def _(args, moops, name_casing, notebook, word_count):
+    selected_app, embed_args = moops.variant_embed(
+        args,
+        notebook,
+        {
+            "name-casing": name_casing.app,
+            "word-count": word_count.app,
+        },
+        prefix="notebook",
+    )
+    return embed_args, selected_app
+
+
+@app.cell
+async def _(embed_args, moops, selected_app):
+    embedded = await moops.embed(selected_app, defs={"args": embed_args})
+    embedded.output
+    return (embedded,)
+
+
+@app.cell
+def _(args, embedded):
+    result = embedded.defs.get("result")
+    args.md(f"Selected notebook result: `{result}`")
+    return
+
+
+if __name__ == "__main__":
+    app.run()

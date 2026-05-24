@@ -20,6 +20,38 @@ class _App(typing.Protocol):
     ) -> tuple[typing.Iterable[typing.Any], typing.Mapping[str, object]]: ...
 
 
+def variant_embed(
+    group: typing.Any,
+    selector: typing.Any,
+    apps: typing.Mapping[typing.Any, _App],
+    *,
+    prefix: str,
+) -> tuple[_App, typing.Any]:
+    """Prepare the currently selected notebook app for embedding.
+
+    This function intentionally performs only sync work so it can live in the
+    marimo cell that chooses the app clone and argument subgroup. Pass the
+    returned subgroup explicitly to the async embed cell with
+    ``defs={"args": embed_args}``.
+    """
+
+    selected_key = getattr(selector, "_selected_key", selector.value)
+    try:
+        app = apps[selected_key]
+    except KeyError as exc:
+        raise KeyError(
+            f"selected embed variant {selected_key!r} has no matching app"
+        ) from exc
+    variants = group.variant(prefix, selector)
+    try:
+        args = variants[selected_key]
+    except KeyError as exc:
+        raise KeyError(
+            f"selected embed variant {selected_key!r} has no matching group"
+        ) from exc
+    return app.clone(), args
+
+
 async def embed(app: _App, defs: dict[str, typing.Any] | None = None) -> typing.Any:
     """
     Embed a marimo app, with lean script-mode embeds.

@@ -1,7 +1,7 @@
 from importlib.metadata import version
 
 from . import workarounds
-from ._embed import Passthrough, embed
+from ._embed import Passthrough, embed, variant_embed
 from ._run import interface_of, run
 from ._run_button import run_button
 from .group import Group
@@ -20,5 +20,6 @@ __all__ = [
     "interface_of",
     "run",
     "run_button",
+    "variant_embed",
     "workarounds",
 ]
