@@ -33,3 +33,18 @@ def test_example_notebooks_run_as_scripts(
     assert "UserWarning: " not in result.stderr, result.stderr
     if args == ("--help",):
         assert "Usage:" in result.stdout
+
+
+def test_variant_embed_help_lists_all_notebook_branches() -> None:
+    result = subprocess.run(
+        [sys.executable, "examples/variant_embed.py", "-h"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        timeout=10,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "Options for --notebook name-casing:" in result.stdout
+    assert "Options for --notebook word-count:" in result.stdout
