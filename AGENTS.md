@@ -44,6 +44,13 @@ change itself is release-relevant.
 Bug fixes for bugs introduced after the last release do not require changelog
 entries.
 
+## README
+
+Keep `README.md` focused on giving users a concise taste of the library and its
+core workflows. Do not add detailed walkthroughs for every feature or niche API;
+prefer example notebooks, API docs, or changelog entries for deeper or more
+specialized usage.
+
 ## Notebook cell ordering
 
 Place the `interface` cell second in each notebook — immediately after the title cell — even though it depends on controls and results defined later. Marimo's DAG handles execution order; the early position ensures the CLI callout and control summary are visible at the top when editing.
@@ -60,3 +67,10 @@ them into focused tests that document a real bug, surprising behavior, or
 important contract.
 
 When adding a test for a newly discovered bug, keep it focused on the observed failure. Only mark it `xfail` if the fix is not planned soon; for bugs being fixed in the same session, leave the test failing until the fix lands.
+
+## Examples
+
+When implementing a major new feature, add or update an example notebook that
+exercises the feature in realistic usage. The example notebooks are part of the
+automated checks: they are run as scripts, checked with marimo, type-checked,
+and included in the normal project validation flow.
