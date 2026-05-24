@@ -3,7 +3,7 @@ import typing
 
 import marimo as mo
 
-from . import interface, workarounds
+from . import _options, interface, workarounds
 
 
 class _Embed(typing.Protocol):
@@ -23,7 +23,6 @@ class _App(typing.Protocol):
 def variant_embed(
     group: typing.Any,
     selector: typing.Any,
-    apps: typing.Mapping[typing.Any, _App],
     *,
     prefix: str,
 ) -> tuple[_App, typing.Any, tuple[interface.Interface, ...]]:
@@ -37,6 +36,7 @@ def variant_embed(
     every notebook.
     """
 
+    apps = _apps_from_selector(selector)
     selected_key = getattr(selector, "_selected_key", selector.value)
     try:
         app = apps[selected_key]
@@ -63,6 +63,13 @@ def _interface_of_app(app: _App, args: typing.Any) -> interface.Interface:
     args._is_interface_query = True
     _, defs = workarounds.run_in_thread_if_in_async(app.run, defs={"args": args})
     return typing.cast(interface.Interface, defs["interface"])
+
+
+def _apps_from_selector(selector: typing.Any) -> typing.Mapping[typing.Any, _App]:
+    input_control = getattr(selector, "_moops_input", None)
+    if not isinstance(input_control, _options.DropdownControl):
+        raise TypeError("variant_embed apps can only be inferred from a moops dropdown")
+    return typing.cast(typing.Mapping[typing.Any, _App], input_control.dropdown_opts)
 
 
 async def embed(app: _App, defs: dict[str, typing.Any] | None = None) -> typing.Any:

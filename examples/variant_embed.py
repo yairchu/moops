@@ -45,9 +45,12 @@ def _(moops):
 
 
 @app.cell
-def _(args):
+def _(args, name_casing, word_count):
     notebook = args.dropdown(
-        ["name-casing", "word-count"],
+        {
+            "name-casing": name_casing.app,
+            "word-count": word_count.app,
+        },
         value="name-casing",
         option="--notebook",
         help_text="Notebook to embed",
@@ -58,14 +61,10 @@ def _(args):
 
 
 @app.cell
-def _(args, moops, name_casing, notebook, word_count):
+def _(args, moops, notebook):
     selected_app, embed_args, inactive_interfaces = moops.variant_embed(
         args,
         notebook,
-        {
-            "name-casing": name_casing.app,
-            "word-count": word_count.app,
-        },
         prefix="notebook",
     )
     return embed_args, inactive_interfaces, selected_app
