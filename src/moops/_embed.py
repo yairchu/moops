@@ -31,9 +31,8 @@ def variant_embed(
     This function intentionally performs only sync work so it can live in the
     marimo cell that chooses the app clone and argument subgroup. Pass the
     returned subgroup explicitly to the async embed cell with
-    ``defs={"args": embed_args}``. The third return value contains interfaces
-    for inactive branches, so CLI help can list every variant without embedding
-    every notebook.
+    ``defs={"args": embed_args}``. The third return value contains branch
+    interfaces, so CLI help and validation can run before embedding.
     """
 
     apps = _apps_from_selector(selector)
@@ -51,17 +50,22 @@ def variant_embed(
         raise KeyError(
             f"selected embed variant {selected_key!r} has no matching group"
         ) from exc
-    inactive_interfaces = tuple(
-        _interface_of_app(apps[key], branch_args)
-        for key, branch_args in variants.items()
-        if key != selected_key and key in apps
+    branch_keys = (selected_key, *(key for key in variants if key != selected_key))
+    branch_interfaces = tuple(
+        _interface_of_app(apps[key], variants[key])
+        for key in branch_keys
+        if key in apps
     )
-    return app.clone(), args, inactive_interfaces
+    return app.clone(), args, branch_interfaces
 
 
 def _interface_of_app(app: _App, args: typing.Any) -> interface.Interface:
+    was_interface_query = args._is_interface_query
     args._is_interface_query = True
-    _, defs = workarounds.run_in_thread_if_in_async(app.run, defs={"args": args})
+    try:
+        _, defs = workarounds.run_in_thread_if_in_async(app.run, defs={"args": args})
+    finally:
+        args._is_interface_query = was_interface_query
     return typing.cast(interface.Interface, defs["interface"])
 
 

@@ -18,11 +18,10 @@ def _(args):
 
 
 @app.cell
-def _(args, embedded, inactive_interfaces, notebook):
+def _(args, notebook, notebook_interfaces):
     interface = args.interface(
         notebook,
-        embedded.defs["interface"],
-        *inactive_interfaces,
+        *notebook_interfaces,
     )
     interface
     return
@@ -62,12 +61,12 @@ def _(args, name_casing, word_count):
 
 @app.cell
 def _(args, moops, notebook):
-    selected_app, embed_args, inactive_interfaces = moops.variant_embed(
+    selected_app, embed_args, notebook_interfaces = moops.variant_embed(
         args,
         notebook,
         prefix="notebook",
     )
-    return embed_args, inactive_interfaces, selected_app
+    return embed_args, notebook_interfaces, selected_app
 
 
 @app.cell
