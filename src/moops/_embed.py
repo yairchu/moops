@@ -3,7 +3,7 @@ import typing
 
 import marimo as mo
 
-from . import interface
+from . import interface, workarounds
 
 
 class _Embed(typing.Protocol):
@@ -26,13 +26,15 @@ def variant_embed(
     apps: typing.Mapping[typing.Any, _App],
     *,
     prefix: str,
-) -> tuple[_App, typing.Any]:
+) -> tuple[_App, typing.Any, tuple[interface.Interface, ...]]:
     """Prepare the currently selected notebook app for embedding.
 
     This function intentionally performs only sync work so it can live in the
     marimo cell that chooses the app clone and argument subgroup. Pass the
     returned subgroup explicitly to the async embed cell with
-    ``defs={"args": embed_args}``.
+    ``defs={"args": embed_args}``. The third return value contains interfaces
+    for inactive branches, so CLI help can list every variant without embedding
+    every notebook.
     """
 
     selected_key = getattr(selector, "_selected_key", selector.value)
@@ -49,7 +51,18 @@ def variant_embed(
         raise KeyError(
             f"selected embed variant {selected_key!r} has no matching group"
         ) from exc
-    return app.clone(), args
+    inactive_interfaces = tuple(
+        _interface_of_app(apps[key], branch_args)
+        for key, branch_args in variants.items()
+        if key != selected_key and key in apps
+    )
+    return app.clone(), args, inactive_interfaces
+
+
+def _interface_of_app(app: _App, args: typing.Any) -> interface.Interface:
+    args._is_interface_query = True
+    _, defs = workarounds.run_in_thread_if_in_async(app.run, defs={"args": args})
+    return typing.cast(interface.Interface, defs["interface"])
 
 
 async def embed(app: _App, defs: dict[str, typing.Any] | None = None) -> typing.Any:
