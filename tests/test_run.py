@@ -35,6 +35,40 @@ def test_script_mode_embed_forwards_interface() -> None:
     assert len(iface.controls) > 0
 
 
+def test_moops_embed_rejects_app_defined_in_same_cell(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _FakeApp:
+        def clone(self) -> "_FakeApp":
+            return self
+
+        async def embed(self, defs: dict[str, typing.Any] | None = None) -> typing.Any:
+            return defs
+
+        def run(
+            self, defs: dict[str, typing.Any]
+        ) -> tuple[typing.Iterable[typing.Any], typing.Mapping[str, object]]:
+            return (), defs
+
+    def defining_cells(var: str) -> set[str]:
+        return {"cell-1"} if var == "child_app" else set()
+
+    app = _FakeApp()
+    context = types.SimpleNamespace(
+        execution_context=types.SimpleNamespace(cell_id="cell-1"),
+        graph=types.SimpleNamespace(get_defining_cells=defining_cells),
+        globals={"child_app": app},
+    )
+    monkeypatch.setattr("moops._embed.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("marimo._runtime.context.get_context", lambda: context)
+
+    with pytest.raises(
+        RuntimeError,
+        match=r"App\.embed\(\) cannot be called in the cell that imports the app",
+    ):
+        asyncio.run(moops.embed(app))
+
+
 def test_run_does_not_use_thread_outside_async_context() -> None:
     # When there is no running event loop, run() should call app.run directly,
     # not via a ThreadPoolExecutor. A thread is only needed to avoid blocking
