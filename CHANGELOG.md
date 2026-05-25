@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-05-25 - Variant embeds
+
 ### Added
 
 - `group.variant(prefix, selector)` creates branch subgroups whose controls are
@@ -73,7 +75,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   instead of `moops.embed.App(app).clone()`. `moops.embed.Passthrough` is now
   `moops.Passthrough`.
 
-## [0.3.3] - 2026-05-20
+## [0.3.3] - 2026-05-20 - Multi-embed script fix
 
 ### Fixed
 
@@ -98,7 +100,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Dict-options dropdowns now correctly reflect the selected key in URL query
   parameters instead of the string representation of the mapped value.
 
-## [0.3.1] - 2026-05-18
+## [0.3.1] - 2026-05-18 - Nested embed helpers
 
 ### Added
 
@@ -171,6 +173,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Preset save button now correctly persists the preset
 - Preset dropdown now updates immediately after a preset is saved
 
-## [0.1.0] - 2026-05-05
+## [0.1.0] - 2026-05-05 - Initial release
 
 Initial release.
