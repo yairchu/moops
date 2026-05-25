@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `moops.embed()` now raises the same error as `App.embed()` when called from a
+  notebook cell that also defines the app instance being embedded.
+
 ## [0.6.0] - 2026-05-25 - Variant embeds
 
 ### Added

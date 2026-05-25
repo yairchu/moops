@@ -88,8 +88,28 @@ async def embed(app: _App, defs: dict[str, typing.Any] | None = None) -> typing.
     see https://github.com/marimo-team/marimo/issues/9572
     """
     if mo.running_in_notebook():
+        _raise_if_same_cell_app(app)
         return await app.embed(defs=defs)
     return await asyncio.to_thread(_embed_in_script, app, defs or {})
+
+
+def _raise_if_same_cell_app(app: _App) -> None:
+    """Mirror marimo's same-cell embed guard for the moops wrapper."""
+    from marimo._runtime.context import get_context
+
+    ctx = get_context()
+    execution_context = ctx.execution_context
+    if execution_context is None:
+        return
+    cell_id = execution_context.cell_id
+    for var, value in ctx.globals.items():
+        if (
+            value is app or getattr(value, "app", None) is app
+        ) and cell_id in ctx.graph.get_defining_cells(var):
+            raise RuntimeError(
+                "App.embed() cannot be called in the cell that "
+                "imports the app. Call embed() in another cell."
+            )
 
 
 class Passthrough:
