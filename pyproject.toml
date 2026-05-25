@@ -1,5 +1,5 @@
 [build-system]
-requires = ["uv_build>=0.6"]
+requires = ["uv_build>=0.6,<0.12"]
 build-backend = "uv_build"
 
 [project]
@@ -16,7 +16,6 @@ keywords = ["marimo", "notebooks", "cli", "testing"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -33,8 +32,8 @@ Homepage = "https://github.com/yairchu/moops"
 Repository = "https://github.com/yairchu/moops"
 Issues = "https://github.com/yairchu/moops/issues"
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "ruff>=0.1.0",
     "pyright>=1.1.409",
     "pytest>=9.0.3",
