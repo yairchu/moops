@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-05-25 - Fixes
+
 ### Fixed
 
 - `moops.embed()` now raises the same error as `App.embed()` when called from a
