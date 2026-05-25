@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   notebook app clone and argument subgroup from a dict-backed dropdown while
   preserving CLI help for all notebook variants.
 
-## [0.5.1] - 2026-05-23
+## [0.5.1] - 2026-05-23 - Fixes
 
 ### Fixed
 
@@ -27,23 +27,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   invisible to `_current_args()` and were therefore not captured when saving a
   preset.
 
-## [0.5.0] - 2026-05-22
+## [0.5.0] - 2026-05-22 - Notebook interface inspection
 
 ### Added
 
-- `group.multiselect(options, value, ...)` — multi-select UI element that maps
-  to repeated CLI options (e.g. `--survive 2 --survive 3`).
 - `group.controls_from(iface, prefix=..., exclude=...)` — creates a prefixed
   subgroup of controls mirroring another notebook's interface (obtained via
   `moops.interface_of()`) and returns them as a `mo.ui.dictionary`, avoiding
   duplication when a parent loops over a child notebook via `moops.run()`.
-- `args.is_interface_query` — `True` when a notebook is being run only to
-  obtain its interface (via `moops.interface_of()` or `--help`). Notebooks can
-  gate expensive computation with `mo.stop(args.is_interface_query)`.
 - `moops.interface_of(module)` — runs a notebook headlessly and returns its
   `Interface` without executing computation cells that respect
   `args.is_interface_query`. Useful for surfacing a notebook's controls into a
   parent that calls it in a loop via `moops.run()`.
+- `args.is_interface_query` — `True` when a notebook is being run only to
+  obtain its interface (via `moops.interface_of()` or `--help`). Notebooks can
+  gate expensive computation with `mo.stop(args.is_interface_query)`.
+- `group.multiselect(options, value, ...)` — multi-select UI element that maps
+  to repeated CLI options (e.g. `--survive 2 --survive 3`).
 - `moops.workarounds.run_in_thread_if_in_async(fn, *args, **kwargs)` — calls
   `fn` directly outside an async context, or in a worker thread when a marimo
   event loop is running (avoiding `asyncio.run()` conflicts). Useful for any
@@ -64,7 +64,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   has not yet produced a `result` (e.g. a file-picker with nothing selected on
   first load). The `result` key is now only forwarded when it is present.
 
-## [0.4.0] - 2026-05-21
+## [0.4.0] - 2026-05-21 - Fixes
 
 ### Fixed
 
@@ -81,7 +81,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   one notebook via `moops.embed.App` and passes all child interfaces to
   `args.interface()`.
 
-## [0.3.2] - 2026-05-19
+## [0.3.2] - 2026-05-19 - Run buttons
 
 ### Added
 
@@ -108,10 +108,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   embedded notebook's `result` definition in script mode and works around
   marimo script-mode nested embed failures.
 
-## [0.3.0] - 2026-05-13
+## [0.3.0] - 2026-05-13 - Embeds' markdown heading demotion
 
 ### Added
 
+- Markdown headings emitted by subgroups are demoted by one level by default,
+  with `markdown_heading_offset` available to customize the offset.
 - `group.file_browser(multiple=True)` now maps to repeated CLI options, e.g.
   `--file a.txt --file b.txt`.
 
@@ -119,15 +121,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - `Presets` now infers its JSON filename from the calling notebook or script by
   default. Pass `filename=` to customize where presets are stored.
-- Markdown headings emitted by subgroups are demoted by one level by default,
-  with `markdown_heading_offset` available to customize the offset.
 
 ### Fixed
 
 - Renaming a label-derived option in a notebook no longer leaves the old option
   reported as missing while marimo still retains the previous control object.
 
-## [0.2.0] - 2026-05-12
+## [0.2.0] - 2026-05-12 - Browser query-string support
 
 ### Added
 
@@ -147,7 +147,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Missing option warnings now include omitted subgroup interfaces.
 
-## [0.1.1] - 2026-05-09
+## [0.1.1] - 2026-05-09 - Tooltips
 
 ### Added
 
