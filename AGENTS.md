@@ -32,6 +32,12 @@ the same turn. In that state, verify the commit by running any pre-test checks
 that should still pass (for example formatting and type checks), then run the
 focused test that fails because of the documented bug.
 
+## Release handoff
+
+AI assistants may prepare release commits, run checks, and build release
+artifacts when asked. The maintainer is responsible for tagging, pushing, and
+publishing releases unless they explicitly ask the assistant to do those steps.
+
 ## Changelog
 
 Update `CHANGELOG.md` for user-visible behavior changes, API changes, bug fixes,
