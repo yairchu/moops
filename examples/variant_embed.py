@@ -30,17 +30,36 @@ def _(args, embedded, notebook, notebook_interfaces):
 
 @app.cell
 def _():
-    import name_casing
-    import word_count
+    import marimo as mo
 
     import moops
 
-    return moops, name_casing, word_count
+    return mo, moops
 
 
 @app.cell
-def _(moops):
-    args = moops.Group()
+def _():
+    import name_casing
+
+    return (name_casing,)
+
+
+@app.cell
+def _():
+    import word_count
+
+    return (word_count,)
+
+
+@app.cell
+def _(mo):
+    get_preset_sel, set_preset_sel = mo.state(None)
+    return get_preset_sel, set_preset_sel
+
+
+@app.cell
+def _(get_preset_sel, moops, set_preset_sel):
+    args = moops.Group(presets=moops.Presets(get_preset_sel, set_preset_sel))
     return (args,)
 
 
