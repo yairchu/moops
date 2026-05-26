@@ -170,7 +170,9 @@ class Group:
             group._disabled = self._disabled or not is_active
             heading = _variant.help_heading(selector_option, key_text)
             if is_active and not self._disabled:
-                explicit = bool(
+                input_control = getattr(selector, "_moops_input", None)
+                default_key = getattr(input_control, "default", None)
+                explicit = selected != default_key or bool(
                     selector_option and self._state.args.has(selector_option)
                 )
                 heading += " (selected)" if explicit else " (default)"
