@@ -27,6 +27,10 @@ class OptionLabel:
                 label = option.lstrip("-").replace("-", " ")
         return OptionLabel(label=label, option=option)
 
+    @property
+    def metavar(self) -> str:
+        return self.label.upper().replace(" ", "_")
+
     def label_with_tooltip(self, help_text: str) -> str:
         return (
             f'<span title="{html.escape(help_text, quote=True)} ({self.option})">'

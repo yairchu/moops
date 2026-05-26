@@ -335,7 +335,7 @@ class Group:
         opt = self._make_opt(label=label, option=option)
         input_control = _options.TextControl(
             option=opt.option,
-            metavar=placeholder or opt.label.upper().replace(" ", "_"),
+            metavar=placeholder or opt.metavar,
             help_text=help_text,
             default=value,
             extra_kwargs=kwargs,
@@ -366,7 +366,7 @@ class Group:
         opt = self._make_opt(label=label, option=option)
         input_control = _options.TextAreaControl(
             option=opt.option,
-            metavar=placeholder or opt.label.upper().replace(" ", "_"),
+            metavar=placeholder or opt.metavar,
             help_text=help_text,
             default=value,
             extra_kwargs=kwargs,
@@ -513,7 +513,7 @@ class Group:
         opt = self._make_opt(label=label, option=option)
         input_control = _options.RangeControl.from_slider(
             option=opt.option,
-            metavar=opt.label.upper().replace(" ", "_"),
+            metavar=opt.metavar,
             help_text=help_text,
             start=start,
             stop=stop,
@@ -588,7 +588,7 @@ class Group:
         opt = self._make_opt(label=label, option=option)
         input_control = _options.NumberControl(
             option=opt.option,
-            metavar=opt.label.upper().replace(" ", "_"),
+            metavar=opt.metavar,
             help_text=help_text,
             default=value,
             start=start,
@@ -665,7 +665,7 @@ class Group:
         default = [_choice_options.option_value(select_opts, item) for item in value]
         input_control = _options.MultiSelectControl(
             option=opt.option,
-            metavar=opt.label.upper().replace(" ", "_"),
+            metavar=opt.metavar,
             help_text=help_text,
             default=default,
             select_opts=select_opts,
