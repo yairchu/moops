@@ -33,6 +33,7 @@ class InputControl(abc.ABC):
 
     option: str
     help_text: str
+    default: typing.Any
     extra_kwargs: dict[str, typing.Any] = dataclasses.field(  # type: ignore[assignment]
         default_factory=dict, kw_only=True
     )

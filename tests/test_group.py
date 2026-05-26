@@ -612,7 +612,7 @@ def test_parse_query_value_raises_runtime_error_for_broken_control() -> None:
         def strategy(self):  # type: ignore[override]
             return None
 
-    ctrl = BrokenControl(option="--foo", help_text="foo")
+    ctrl = BrokenControl(option="--foo", help_text="foo", default=None)
     with pytest.raises(RuntimeError, match="bug in the control implementation"):
         ctrl.parse_query_value("bar")
 

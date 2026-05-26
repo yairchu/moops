@@ -276,13 +276,7 @@ class Group:
             widget="switch",
             extra_kwargs=kwargs,
         )
-        return self._register_control(
-            opt,
-            input_control,
-            self._get_value(input_control, value),
-            help_text,
-            on_change,
-        )
+        return self._register_control(opt, input_control, help_text, on_change)
 
     def checkbox(
         self,
@@ -304,13 +298,7 @@ class Group:
             widget="checkbox",
             extra_kwargs=kwargs,
         )
-        return self._register_control(
-            opt,
-            input_control,
-            self._get_value(input_control, value),
-            help_text,
-            on_change,
-        )
+        return self._register_control(opt, input_control, help_text, on_change)
 
     def text(
         self,
@@ -340,13 +328,7 @@ class Group:
             default=value,
             extra_kwargs=kwargs,
         )
-        return self._register_control(
-            opt,
-            input_control,
-            self._get_value(input_control, value),
-            help_text,
-            on_change,
-        )
+        return self._register_control(opt, input_control, help_text, on_change)
 
     def text_area(
         self,
@@ -371,13 +353,7 @@ class Group:
             default=value,
             extra_kwargs=kwargs,
         )
-        return self._register_control(
-            opt,
-            input_control,
-            self._get_value(input_control, value),
-            help_text,
-            on_change,
-        )
+        return self._register_control(opt, input_control, help_text, on_change)
 
     def file_browser(
         self,
@@ -423,13 +399,7 @@ class Group:
                 help_text=help_text,
                 extra_kwargs=kwargs,
             )
-        return self._register_control(
-            opt,
-            input_control,
-            self._get_value(input_control, default),
-            help_text,
-            on_change,
-        )
+        return self._register_control(opt, input_control, help_text, on_change)
 
     def number(
         self,
@@ -448,10 +418,10 @@ class Group:
         """Create a number input UI element that maps to a CLI option."""
 
         kwargs = {"step": step, "debounce": debounce, **kwargs}
-        opt, input_control, value = self._numeric_input_control(
+        opt, input_control = self._numeric_input_control(
             start, stop, value, option, help_text, label, "number", kwargs
         )
-        return self._register_control(opt, input_control, value, help_text, on_change)
+        return self._register_control(opt, input_control, help_text, on_change)
 
     def slider(
         self,
@@ -470,10 +440,10 @@ class Group:
         """Create a slider UI element that maps to a CLI option."""
 
         kwargs = {"step": step, "debounce": debounce, **kwargs}
-        opt, input_control, value = self._numeric_input_control(
+        opt, input_control = self._numeric_input_control(
             start, stop, value, option, help_text, label, "slider", kwargs
         )
-        return self._register_control(opt, input_control, value, help_text, on_change)
+        return self._register_control(opt, input_control, help_text, on_change)
 
     def range_slider(
         self,
@@ -512,13 +482,7 @@ class Group:
             step=step,
             extra_kwargs=kwargs,
         )
-        return self._register_control(
-            opt,
-            input_control,
-            self._get_value(input_control, input_control.default),
-            help_text,
-            on_change,
-        )
+        return self._register_control(opt, input_control, help_text, on_change)
 
     def custom(
         self,
@@ -572,7 +536,7 @@ class Group:
         label: str | None,
         widget: typing.Literal["number", "slider"] = "number",
         extra_kwargs: dict[str, typing.Any] | None = None,
-    ) -> tuple[_naming.OptionLabel, _options.NumberControl, float | None]:
+    ) -> tuple[_naming.OptionLabel, _options.NumberControl]:
         if value is None:
             value = start
         opt = self._make_opt(label=label, option=option)
@@ -586,7 +550,7 @@ class Group:
             widget=widget,
             extra_kwargs=extra_kwargs or {},
         )
-        return opt, input_control, self._get_value(input_control, value)
+        return opt, input_control
 
     def dropdown(
         self,
@@ -628,13 +592,7 @@ class Group:
                 **kwargs,
             },
         )
-        return self._register_control(
-            opt,
-            input_control,
-            self._get_value(input_control, value),
-            help_text,
-            on_change,
-        )
+        return self._register_control(opt, input_control, help_text, on_change)
 
     def multiselect(
         self,
@@ -661,13 +619,7 @@ class Group:
             select_opts=select_opts,
             extra_kwargs=kwargs,
         )
-        return self._register_control(
-            opt,
-            input_control,
-            self._get_value(input_control, default),
-            help_text,
-            on_change,
-        )
+        return self._register_control(opt, input_control, help_text, on_change)
 
     def controls_from(
         self,
@@ -701,13 +653,12 @@ class Group:
         self,
         opt: _naming.OptionLabel,
         input_control: _options.InputControl,
-        value: typing.Any,
         help_text: str,
         on_change: typing.Callable[[typing.Any], None] | None,
     ) -> typing.Any:
         return self._input_map.register(
             input_control.create_marimo_element(
-                value,
+                self._value_resolver.get_value(input_control, input_control.default),
                 label=opt.label_with_tooltip(help_text),
                 disabled=self._value_resolver.is_overridden(opt.option)
                 or self._disabled,
@@ -717,13 +668,6 @@ class Group:
             ),
             input_control,
         )
-
-    def _get_value(
-        self,
-        control: _options.InputControl,
-        default: typing.Any,
-    ) -> typing.Any:
-        return self._value_resolver.get_value(control, default)
 
     def _make_opt(
         self, label: str | None, option: str | None, prefix: str | None = None
