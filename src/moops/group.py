@@ -276,12 +276,12 @@ class Group:
             widget="switch",
             extra_kwargs=kwargs,
         )
-        return self._input_map.register(
-            input_control.create_marimo_element(
-                self._get_value(input_control, value),
-                **self._control_kwargs(opt, input_control, help_text, on_change),
-            ),
+        return self._register_control(
+            opt,
             input_control,
+            self._get_value(input_control, value),
+            help_text,
+            on_change,
         )
 
     def checkbox(
@@ -304,12 +304,12 @@ class Group:
             widget="checkbox",
             extra_kwargs=kwargs,
         )
-        return self._input_map.register(
-            input_control.create_marimo_element(
-                self._get_value(input_control, value),
-                **self._control_kwargs(opt, input_control, help_text, on_change),
-            ),
+        return self._register_control(
+            opt,
             input_control,
+            self._get_value(input_control, value),
+            help_text,
+            on_change,
         )
 
     def text(
@@ -340,12 +340,12 @@ class Group:
             default=value,
             extra_kwargs=kwargs,
         )
-        return self._input_map.register(
-            input_control.create_marimo_element(
-                self._get_value(input_control, value),
-                **self._control_kwargs(opt, input_control, help_text, on_change),
-            ),
+        return self._register_control(
+            opt,
             input_control,
+            self._get_value(input_control, value),
+            help_text,
+            on_change,
         )
 
     def text_area(
@@ -371,12 +371,12 @@ class Group:
             default=value,
             extra_kwargs=kwargs,
         )
-        return self._input_map.register(
-            input_control.create_marimo_element(
-                self._get_value(input_control, value),
-                **self._control_kwargs(opt, input_control, help_text, on_change),
-            ),
+        return self._register_control(
+            opt,
             input_control,
+            self._get_value(input_control, value),
+            help_text,
+            on_change,
         )
 
     def file_browser(
@@ -423,12 +423,12 @@ class Group:
                 help_text=help_text,
                 extra_kwargs=kwargs,
             )
-        return self._input_map.register(
-            input_control.create_marimo_element(
-                self._get_value(input_control, default),
-                **self._control_kwargs(opt, input_control, help_text, on_change),
-            ),
+        return self._register_control(
+            opt,
             input_control,
+            self._get_value(input_control, default),
+            help_text,
+            on_change,
         )
 
     def number(
@@ -451,12 +451,7 @@ class Group:
         opt, input_control, value = self._numeric_input_control(
             start, stop, value, option, help_text, label, "number", kwargs
         )
-        return self._input_map.register(
-            input_control.create_marimo_element(
-                value, **self._control_kwargs(opt, input_control, help_text, on_change)
-            ),
-            input_control,
-        )
+        return self._register_control(opt, input_control, value, help_text, on_change)
 
     def slider(
         self,
@@ -478,12 +473,7 @@ class Group:
         opt, input_control, value = self._numeric_input_control(
             start, stop, value, option, help_text, label, "slider", kwargs
         )
-        return self._input_map.register(
-            input_control.create_marimo_element(
-                value, **self._control_kwargs(opt, input_control, help_text, on_change)
-            ),
-            input_control,
-        )
+        return self._register_control(opt, input_control, value, help_text, on_change)
 
     def range_slider(
         self,
@@ -522,12 +512,12 @@ class Group:
             step=step,
             extra_kwargs=kwargs,
         )
-        return self._input_map.register(
-            input_control.create_marimo_element(
-                self._get_value(input_control, input_control.default),
-                **self._control_kwargs(opt, input_control, help_text, on_change),
-            ),
+        return self._register_control(
+            opt,
             input_control,
+            self._get_value(input_control, input_control.default),
+            help_text,
+            on_change,
         )
 
     def custom(
@@ -638,12 +628,12 @@ class Group:
                 **kwargs,
             },
         )
-        return self._input_map.register(
-            input_control.create_marimo_element(
-                self._get_value(input_control, value),
-                **self._control_kwargs(opt, input_control, help_text, on_change),
-            ),
+        return self._register_control(
+            opt,
             input_control,
+            self._get_value(input_control, value),
+            help_text,
+            on_change,
         )
 
     def multiselect(
@@ -671,12 +661,12 @@ class Group:
             select_opts=select_opts,
             extra_kwargs=kwargs,
         )
-        return self._input_map.register(
-            input_control.create_marimo_element(
-                self._get_value(input_control, default),
-                **self._control_kwargs(opt, input_control, help_text, on_change),
-            ),
+        return self._register_control(
+            opt,
             input_control,
+            self._get_value(input_control, default),
+            help_text,
+            on_change,
         )
 
     def controls_from(
@@ -705,6 +695,21 @@ class Group:
             query_params=self._query_params,
             preset_state=self._preset_state.selected,
             default_preset_state=self._preset_state.default,
+        )
+
+    def _register_control(
+        self,
+        opt: _naming.OptionLabel,
+        input_control: _options.InputControl,
+        value: typing.Any,
+        help_text: str,
+        on_change: typing.Callable[[typing.Any], None] | None,
+    ) -> typing.Any:
+        return self._input_map.register(
+            input_control.create_marimo_element(
+                value, **self._control_kwargs(opt, input_control, help_text, on_change)
+            ),
+            input_control,
         )
 
     def _control_kwargs(
