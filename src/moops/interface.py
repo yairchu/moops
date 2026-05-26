@@ -56,7 +56,7 @@ class Interface:
 
     def has_prefixed_options(self, state: _parse.ParseState) -> bool:
         """True if state has CLI options starting with this interface's prefix."""
-        prefix = self.option_prefix + "-" if self.option_prefix else "--"
+        prefix = f"{self.option_prefix}-" if self.option_prefix else "--"
         return any(
             k
             for k in state.args.options
@@ -107,7 +107,7 @@ class Interface:
                 lines = list(sub_iface._format_help_lines())
                 if lines and sub_iface.help_heading:
                     yield ""
-                    yield sub_iface.help_heading + ":"
+                    yield f"{sub_iface.help_heading}:"
                 yield from lines
             else:
                 input_control = self.input_map.get(ctrl)
@@ -118,10 +118,8 @@ class Interface:
         self, placeholders_by_option: dict[str, str]
     ) -> typing.Iterator[str]:
         for ctrl in self.controls:
-            if (sub_iface := _attached_interface(ctrl)) is not None:
-                if not sub_iface.usage_placeholder:
-                    yield from sub_iface._format_usage_parts(placeholders_by_option)
-            else:
+            sub_iface = _attached_interface(ctrl)
+            if sub_iface is None:
                 input_control = self.input_map.get(ctrl)
                 if input_control is not None and not self._is_overridden(input_control):
                     yield from input_control.format_usage_parts()
@@ -129,14 +127,17 @@ class Interface:
                         if placeholder := placeholders_by_option.pop(option, None):
                             yield placeholder
 
+            elif not sub_iface.usage_placeholder:
+                yield from sub_iface._format_usage_parts(placeholders_by_option)
+
     @property
     def default(self) -> dict[str, typing.Any]:
-        result: dict[str, typing.Any] = {}
-        for name, ctrl_or_sub in self.iter_controls():
-            if isinstance(ctrl_or_sub, Interface):
-                result[name] = ctrl_or_sub.default
-            elif hasattr(ctrl_or_sub, "default"):
-                result[name] = ctrl_or_sub.default  # type: ignore
+        result: dict[str, typing.Any] = {
+            name: ctrl_or_sub.default  # type: ignore
+            for name, ctrl_or_sub in self.iter_controls()
+            if isinstance(ctrl_or_sub, Interface)
+            or hasattr(ctrl_or_sub, "default")
+        }
         return result
 
     def strategy(self) -> st.SearchStrategy[dict[str, typing.Any]]:
