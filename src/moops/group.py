@@ -166,8 +166,15 @@ class Group:
         for key in _variant.keys(selector):
             key_text = _variant.key_text(key)
             group = self.subgroup(f"{prefix}-{key_text}")
-            group._disabled = self._disabled or selected != key
-            group._help_heading = _variant.help_heading(selector_option, key_text)
+            is_active = selected == key
+            group._disabled = self._disabled or not is_active
+            heading = _variant.help_heading(selector_option, key_text)
+            if is_active and not self._disabled:
+                explicit = bool(
+                    selector_option and self._state.args.has(selector_option)
+                )
+                heading += " (selected)" if explicit else " (default)"
+            group._help_heading = heading
             group._usage_placeholder = usage_placeholder
             group._usage_after_option = selector_option
             result[key] = group

@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   result (`embedded.defs["interface"]`), avoiding a redundant execution of the
   selected branch. Pass `embedded.defs["interface"]` to `args.interface()` in
   the interface cell to get the same CLI help and validation coverage as before.
+- Variant branch headings in CLI help now show `(default)` when the active
+  branch is selected by default, or `(selected)` when it was explicitly chosen
+  (via CLI flag or UI interaction).
 
 ## [0.6.1] - 2026-05-25 - Fixes
 

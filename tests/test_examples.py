@@ -46,8 +46,8 @@ def test_variant_embed_help_lists_all_notebook_branches() -> None:
     )
 
     assert result.returncode == 0, result.stderr
-    assert "Options for --notebook name-casing:" in result.stdout
-    assert "Options for --notebook word-count:" in result.stdout
+    assert "Options for --notebook name-casing" in result.stdout
+    assert "Options for --notebook word-count" in result.stdout
 
 
 def test_variant_embed_invalid_args_do_not_emit_child_output() -> None:
