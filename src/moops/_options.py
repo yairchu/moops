@@ -10,7 +10,7 @@ import typing
 import marimo as mo
 from hypothesis import strategies as st
 
-from . import _parse, _ui_workarounds
+from . import _choice_options, _parse, _ui_workarounds
 
 Numeric = int | float
 
@@ -734,7 +734,9 @@ class MultiSelectControl(ValueControl):
         on_change: typing.Callable[[typing.Any], None] | None = None,
         disabled: bool = False,
     ) -> typing.Any:
-        selected_keys = [_option_key(self.select_opts, item) for item in value]
+        selected_keys = [
+            _choice_options.option_key(self.select_opts, item) for item in value
+        ]
         if disabled:
             return _ui_workarounds.LockedMultiselect(
                 [str(item) for item in value], label
@@ -821,7 +823,10 @@ class MultiSelectControl(ValueControl):
         if self.default:
             line += (
                 " (default: "
-                + ", ".join(_option_key(self.select_opts, v) for v in self.default)
+                + ", ".join(
+                    _choice_options.option_key(self.select_opts, v)
+                    for v in self.default
+                )
                 + ")"
             )
         line += f" (repeat {self.option} to select multiple)"
@@ -836,21 +841,20 @@ class MultiSelectControl(ValueControl):
             return []
         if not values and self._no_flag:
             return [self._no_flag]
-        return [
-            f"{self.option} {shlex.quote(_option_key(self.select_opts, v))}"
-            for v in values
-        ]
+        return [f"{self.option} {shlex.quote(self._key_for(v))}" for v in values]
 
     def format_query_value(self, value: typing.Any) -> str | None:
         values = list(value)
-        keys = [_option_key(self.select_opts, v) for v in values]
+        keys = [_choice_options.option_key(self.select_opts, v) for v in values]
         return None if values == self.default else json.dumps(keys)
 
     def prompt_interactive(
         self, effective_default: typing.Any = _UNSET
     ) -> dict[str, str | None]:
         d = self.default if effective_default is _UNSET else effective_default
-        default_keys = {_option_key(self.select_opts, v) for v in (d or [])}
+        default_keys = {
+            _choice_options.option_key(self.select_opts, v) for v in (d or [])
+        }
         for i, v in enumerate(self.select_opts, 1):
             mark = "*" if v in default_keys else " "
             print(f"  {mark}{i}) {v}")
@@ -860,6 +864,9 @@ class MultiSelectControl(ValueControl):
             return {}
         parts = [p.strip() for p in response.split(",") if p.strip()]
         return {self.option: "\n".join(parts)}
+
+    def _key_for(self, value: typing.Any) -> str:
+        return _choice_options.option_key(self.select_opts, value)
 
 
 @dataclasses.dataclass
@@ -1035,15 +1042,6 @@ def _range_stop(
     steps: typing.Sequence[Numeric] | None,
 ) -> Numeric | None:
     return max(steps) if steps else stop
-
-
-def _option_key(options: dict[str, typing.Any], value: typing.Any) -> str:
-    if isinstance(value, str) and value in options:
-        return value
-    for key, option_value in options.items():
-        if value == option_value:
-            return key
-    return str(value)
 
 
 def _format_range(value: typing.Iterable[typing.Any]) -> str:

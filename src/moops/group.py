@@ -8,6 +8,7 @@ import warnings
 import marimo as mo
 
 from . import (
+    _choice_options,
     _control_mirroring,
     _input_map,
     _markdown,
@@ -617,8 +618,12 @@ class Group:
 
         assert len(options) > 0, "Dropdown options cannot be empty"
         opt = self._make_opt(label=label, option=option)
-        dropdown_opts = _option_values(options)
-        value = _option_key(dropdown_opts, value) if value is not None else None
+        dropdown_opts = _choice_options.option_values(options)
+        value = (
+            _choice_options.option_key(dropdown_opts, value)
+            if value is not None
+            else None
+        )
         if value is None and not allow_select_none:
             value, *_ = [*dropdown_opts]
         input_control = _options.DropdownControl(
@@ -656,8 +661,8 @@ class Group:
         if value is None:
             value = []
         opt = self._make_opt(label=label, option=option)
-        select_opts = _option_values(options)
-        default = [_option_value(select_opts, item) for item in value]
+        select_opts = _choice_options.option_values(options)
+        default = [_choice_options.option_value(select_opts, item) for item in value]
         input_control = _options.MultiSelectControl(
             option=opt.option,
             metavar=opt.label.upper().replace(" ", "_"),
@@ -742,24 +747,3 @@ class Group:
                 option=f"{self.option}-{opt.option.lstrip('-')}",
             )
         return opt
-
-
-def _option_values(
-    options: typing.Sequence[typing.Any] | dict[str, typing.Any],
-) -> dict[str, typing.Any]:
-    if isinstance(options, dict):
-        return dict(options)
-    return {str(opt): opt for opt in options}
-
-
-def _option_key(options: dict[str, typing.Any], value: typing.Any) -> str:
-    if isinstance(value, str) and value in options:
-        return value
-    return next(
-        (key for key, option_value in options.items() if value == option_value),
-        str(value),
-    )
-
-
-def _option_value(options: dict[str, typing.Any], value: typing.Any) -> typing.Any:
-    return options[value] if isinstance(value, str) and value in options else value
