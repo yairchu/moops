@@ -992,3 +992,25 @@ def test_variant_rejects_inactive_branch_options() -> None:
         )
 
     assert exc_info.value.code != 0
+
+
+def test_variant_heading_selected_when_non_default_chosen_without_cli_arg() -> None:
+    """Active branch should show (selected), not (default), when the dropdown
+    value differs from its default — even with no CLI arg (e.g. changed via UI)."""
+    import types
+
+    g = Group(cli_args=["script.py"])  # no --mode arg, simulating notebook mode
+    mock_selector = types.SimpleNamespace(
+        value="train",
+        _moops_input=_options.DropdownControl(
+            option="--mode",
+            help_text="",
+            dropdown_opts={"car": "by car", "train": "by train"},
+            supports_none=False,
+            default="car",
+        ),
+    )
+    variants = g.variant("travel", mock_selector)
+    iface = variants["train"].interface()
+    assert iface.help_heading is not None
+    assert "(selected)" in iface.help_heading
