@@ -65,6 +65,10 @@ def variant_embed(
     inactive_interfaces = tuple(
         _interface_of_app(apps[k], v) for k, v in variants.items() if k != selected_key
     )
+    if not mo.running_in_notebook() and any(
+        iface.has_prefix_errors(group._state) for iface in inactive_interfaces
+    ):
+        group._state.failed_validation = True
     return app.clone(), args, inactive_interfaces
 
 

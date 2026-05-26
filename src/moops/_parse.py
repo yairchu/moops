@@ -66,6 +66,7 @@ class ParseState:
     validation_errors: dict[str, str] = dataclasses.field(
         default_factory=dict[str, str]
     )
+    failed_validation: bool = False
 
 
 def split_argv(args: list[str] | None) -> tuple[str, list[str]]:

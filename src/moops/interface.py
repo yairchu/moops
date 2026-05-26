@@ -54,6 +54,26 @@ class Interface:
             else None
         )
 
+    def has_prefix_errors(self, state: _parse.ParseState) -> bool:
+        """True if state has unrecognized options starting with this interface's prefix.
+
+        Uses all controls (not just active) so disabled/inactive interfaces can
+        be checked without running validation on the full state.
+        """
+        recognized: set[str] = set()
+        for input_control in self._all_input_controls():
+            recognized.update(input_control.flags())
+            recognized.update(input_control.options())
+        prefix = self.option_prefix + "-" if self.option_prefix else "--"
+        return any(
+            k
+            for k in state.args.options
+            if k.startswith(prefix)
+            and k not in recognized
+            and k not in _parse.help_flags
+            and k != _parse.interactive_flag
+        )
+
     def validate(self, state: _parse.ParseState) -> typing.Iterator[str]:
         flags: set[str] = set()
         value_options: dict[str, _options.InputControl] = {}

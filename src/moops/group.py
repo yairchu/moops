@@ -69,10 +69,12 @@ class Group:
 
             mo.stop(args.is_interface_query)
 
-        This is set automatically when ``--help`` is passed on the CLI and when
-        the notebook is run via ``moops.interface_of()``.
+        This is set automatically when ``--help`` is passed on the CLI, when
+        the notebook is run via ``moops.interface_of()``, and when a sibling
+        branch has already failed validation (so output is suppressed before
+        the error is reported).
         """
-        return self._is_interface_query
+        return self._is_interface_query or self._state.failed_validation
 
     @classmethod
     def with_overrides(cls, overrides: dict[str, typing.Any]) -> Group:
