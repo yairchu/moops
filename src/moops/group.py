@@ -707,24 +707,16 @@ class Group:
     ) -> typing.Any:
         return self._input_map.register(
             input_control.create_marimo_element(
-                value, **self._control_kwargs(opt, input_control, help_text, on_change)
+                value,
+                label=opt.label_with_tooltip(help_text),
+                disabled=self._value_resolver.is_overridden(opt.option)
+                or self._disabled,
+                on_change=self._value_resolver.query_on_change(
+                    input_control, on_change
+                ),
             ),
             input_control,
         )
-
-    def _control_kwargs(
-        self,
-        opt: _naming.OptionLabel,
-        input_control: _options.InputControl,
-        help_text: str,
-        on_change: typing.Callable[[typing.Any], None] | None,
-    ) -> dict[str, typing.Any]:
-        return {
-            "label": opt.label_with_tooltip(help_text),
-            "disabled": self._value_resolver.is_overridden(opt.option)
-            or self._disabled,
-            "on_change": self._value_resolver.query_on_change(input_control, on_change),
-        }
 
     def _get_value(
         self,

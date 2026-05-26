@@ -58,11 +58,7 @@ def _create_from_input_control(
     opt = group._make_opt(label=None, option=display_option)
     cloned = dataclasses.replace(input_control, option=opt.option)
     value = group._get_value(cloned, getattr(cloned, "default", None))
-    ctrl_kwargs = group._control_kwargs(opt, cloned, cloned.help_text, None)
-    return group._input_map.register(
-        cloned.create_marimo_element(value, **ctrl_kwargs),
-        cloned,
-    )
+    return group._register_control(opt, cloned, value, cloned.help_text, None)
 
 
 def _unprefixed_option(iface: interface.Interface, option: str) -> str:
