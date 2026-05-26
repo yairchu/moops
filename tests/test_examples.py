@@ -68,3 +68,23 @@ def test_variant_embed_invalid_args_do_not_emit_child_output() -> None:
     assert result.returncode != 0
     assert "Unexpected argument: --notebook-word-count-test" in result.stdout
     assert "LoremIpsum" not in result.stdout
+
+
+def test_variant_embed_inactive_branch_args_do_not_emit_child_output() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "examples/variant_embed.py",
+            "--notebook-word-count-text",
+            "hi",
+        ],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        timeout=10,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "Unexpected argument: --notebook-word-count-text" in result.stdout
+    assert "LoremIpsum" not in result.stdout
