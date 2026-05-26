@@ -18,9 +18,10 @@ def _(args):
 
 
 @app.cell
-def _(args, notebook, notebook_interfaces):
+def _(args, embedded, notebook, notebook_interfaces):
     interface = args.interface(
         notebook,
+        embedded.defs["interface"],
         *notebook_interfaces,
     )
     interface

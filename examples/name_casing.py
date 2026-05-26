@@ -7,7 +7,7 @@
 
 import marimo
 
-__generated_with = "0.23.6"
+__generated_with = "0.23.8"
 app = marimo.App(width="full")
 
 
@@ -33,7 +33,7 @@ def _(args, input_text, mode_dropdown):
 def _():
     import marimo as mo
 
-    return
+    return (mo,)
 
 
 @app.cell
@@ -90,7 +90,9 @@ def _(args):
 
 
 @app.cell
-def _(input_text, mode_dropdown):
+def _(args, input_text, mo, mode_dropdown):
+    mo.stop(args.is_interface_query)
+
     result = (
         mode_dropdown.value(input_text.value)
         if mode_dropdown.value

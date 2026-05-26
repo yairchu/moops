@@ -31,13 +31,13 @@ def variant_embed(
     This function intentionally performs only sync work so it can live in the
     marimo cell that chooses the app clone and argument subgroup.
 
-    Returns ``(selected_app, embed_args, branch_interfaces)``:
+    Returns ``(selected_app, embed_args, inactive_interfaces)``:
 
     * ``selected_app`` is a clone of the selected app, for passing to
       ``moops.embed()``.
     * ``embed_args`` is the selected variant subgroup, for passing as
       ``defs={"args": embed_args}``.
-    * ``branch_interfaces`` contains inspected interfaces for the selected
+    * ``inactive_interfaces`` contains inspected interfaces for the selected
       branch first, followed by the unselected branches, so CLI help and
       validation can run before embedding.
 
@@ -62,13 +62,10 @@ def variant_embed(
         raise KeyError(
             f"selected embed variant {selected_key!r} has no matching group"
         ) from exc
-    branch_keys = (selected_key, *(key for key in variants if key != selected_key))
-    branch_interfaces = tuple(
-        _interface_of_app(apps[key], variants[key])
-        for key in branch_keys
-        if key in apps
+    inactive_interfaces = tuple(
+        _interface_of_app(apps[k], v) for k, v in variants.items() if k != selected_key
     )
-    return app.clone(), args, branch_interfaces
+    return app.clone(), args, inactive_interfaces
 
 
 def _interface_of_app(app: _App, args: typing.Any) -> interface.Interface:
