@@ -716,8 +716,9 @@ class Group:
     ) -> dict[str, typing.Any]:
         return {
             "label": opt.label_with_tooltip(help_text),
-            "disabled": self._is_overridden(opt.option) or self._disabled,
-            "on_change": self._query_on_change(input_control, on_change),
+            "disabled": self._value_resolver.is_overridden(opt.option)
+            or self._disabled,
+            "on_change": self._value_resolver.query_on_change(input_control, on_change),
         }
 
     def _get_value(
@@ -726,16 +727,6 @@ class Group:
         default: typing.Any,
     ) -> typing.Any:
         return self._value_resolver.get_value(control, default)
-
-    def _is_overridden(self, option: str) -> bool:
-        return self._value_resolver.is_overridden(option)
-
-    def _query_on_change(
-        self,
-        control: _options.InputControl,
-        on_change: typing.Callable[[typing.Any], None] | None,
-    ) -> typing.Callable[[typing.Any], None] | None:
-        return self._value_resolver.query_on_change(control, on_change)
 
     def _make_opt(
         self, label: str | None, option: str | None, prefix: str | None = None
