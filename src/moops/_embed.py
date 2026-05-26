@@ -37,9 +37,9 @@ def variant_embed(
       ``moops.embed()``.
     * ``embed_args`` is the selected variant subgroup, for passing as
       ``defs={"args": embed_args}``.
-    * ``inactive_interfaces`` contains inspected interfaces for the selected
-      branch first, followed by the unselected branches, so CLI help and
-      validation can run before embedding.
+    * ``inactive_interfaces`` contains inspected interfaces for unselected
+      branches, so CLI help and validation can include inactive branch options
+      before embedding.
 
     The tuple return is deliberate: marimo's embed dependency tracking expects
     app clones to be bound directly to cell variables. Unpacking the tuple into
