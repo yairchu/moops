@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-05-26 - Variant embed improvements
+
 ### Changed
 
 - `moops.variant_embed()` no longer dry-runs the selected notebook to obtain
