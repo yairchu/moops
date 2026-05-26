@@ -313,9 +313,9 @@ class Interface:
         items: list[typing.Any] = [
             mo.callout(
                 mo.md(
-                    f"This notebook also works as a script:\n```\n{self.help()}\n```\n"
-                    "To run the script with the current values in the notebook use:\n"
-                    f"```\n{current_command}\n```"
+                    "This notebook also works as a script:\n\n"
+                    f"```\n{current_command}\n```\n\n"
+                    f"<details><summary>Usage</summary>\n\n```\n{self.help()}\n```\n</details>\n\n"
                     f"{missing_options_msg}"
                 ),
                 "warn" if missing_options else "info",

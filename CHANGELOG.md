@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- The script callout in the interface panel now shows the current command
+  prominently and collapses the full usage text under a `Usage` disclosure
+  widget.
+
 ## [0.7.0] - 2026-05-26 - Variant embed improvements
 
 ### Changed
