@@ -29,10 +29,22 @@ def variant_embed(
     """Prepare the currently selected notebook app for embedding.
 
     This function intentionally performs only sync work so it can live in the
-    marimo cell that chooses the app clone and argument subgroup. Pass the
-    returned subgroup explicitly to the async embed cell with
-    ``defs={"args": embed_args}``. The third return value contains branch
-    interfaces, so CLI help and validation can run before embedding.
+    marimo cell that chooses the app clone and argument subgroup.
+
+    Returns ``(selected_app, embed_args, branch_interfaces)``:
+
+    * ``selected_app`` is a clone of the selected app, for passing to
+      ``moops.embed()``.
+    * ``embed_args`` is the selected variant subgroup, for passing as
+      ``defs={"args": embed_args}``.
+    * ``branch_interfaces`` contains inspected interfaces for the selected
+      branch first, followed by the unselected branches, so CLI help and
+      validation can run before embedding.
+
+    The tuple return is deliberate: marimo's embed dependency tracking expects
+    app clones to be bound directly to cell variables. Unpacking the tuple into
+    ``selected_app`` and ``embed_args`` keeps embedded notebook widgets
+    responsive to interactive changes.
     """
 
     apps = _apps_from_selector(selector)

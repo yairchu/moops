@@ -57,6 +57,20 @@ core workflows. Do not add detailed walkthroughs for every feature or niche API;
 prefer example notebooks, API docs, or changelog entries for deeper or more
 specialized usage.
 
+## API design
+
+Prefer dataclasses with named fields for public APIs, documented helper return
+values, and multi-value results that callers may keep around or pass between
+cells. This makes field renames and additions explicit and reviewable.
+
+Use bare tuples only for very small internal helpers where the meaning is
+obvious at the call site and the values are immediately unpacked nearby.
+
+Bare tuples are also acceptable for marimo notebook helpers when the returned
+values must be bound directly to cell variables for marimo's dependency
+tracking. In those cases, document the tuple fields and the marimo tracking
+reason in the helper docstring.
+
 ## Notebook cell ordering
 
 Place the `interface` cell second in each notebook — immediately after the title cell — even though it depends on controls and results defined later. Marimo's DAG handles execution order; the early position ensures the CLI callout and control summary are visible at the top when editing.
