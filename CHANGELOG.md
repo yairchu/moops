@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- `moops.variant_embed()` no longer dry-runs the selected notebook to obtain
+  its interface. The selected notebook's interface is now read from the embed
+  result (`embedded.defs["interface"]`), avoiding a redundant execution of the
+  selected branch. Pass `embedded.defs["interface"]` to `args.interface()` in
+  the interface cell to get the same CLI help and validation coverage as before.
+
 ## [0.6.1] - 2026-05-25 - Fixes
 
 ### Fixed
