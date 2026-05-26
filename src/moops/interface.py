@@ -135,8 +135,7 @@ class Interface:
         result: dict[str, typing.Any] = {
             name: ctrl_or_sub.default  # type: ignore
             for name, ctrl_or_sub in self.iter_controls()
-            if isinstance(ctrl_or_sub, Interface)
-            or hasattr(ctrl_or_sub, "default")
+            if isinstance(ctrl_or_sub, Interface) or hasattr(ctrl_or_sub, "default")
         }
         return result
 
