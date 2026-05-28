@@ -1164,3 +1164,30 @@ def test_interactive_list_prompts_for_items(
     )
     g.interface(ctrl)
     assert ctrl.value == [2.0, 5.0]
+
+
+@pytest.mark.xfail(reason="non-merged anchor interactive mode not yet implemented")
+def test_interactive_list_non_merged_anchor_prompts_for_items(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """In --interactive mode, non-merged list controls should prompt for items.
+
+    Non-merged parse() reads raw_args via _segment_by_anchor(), but interactive
+    prompting only injects into args.options, so the segments are never found
+    and the list stays empty."""
+    responses = iter(["2", "5", ""])  # two items, empty to stop
+
+    def fake_input(_prompt: str) -> str:
+        return next(responses)
+
+    monkeypatch.setattr("builtins.input", fake_input)
+    g = Group(cli_args=["script.py", "--interactive"])
+    ctrl = g.list(
+        option="--add",
+        item=lambda grp: grp.number(value=1.0, option="--factor", help_text="Factor"),
+        help_text="Factors",
+        value=[],
+        on_change=lambda _: None,
+    )
+    g.interface(ctrl)
+    assert ctrl.value == [2.0, 5.0]
