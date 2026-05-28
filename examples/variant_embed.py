@@ -18,11 +18,12 @@ def _(args):
 
 
 @app.cell
-def _(args, embedded, notebook, notebook_interfaces):
+def _(another_opt, args, embedded, notebook, notebook_interfaces):
     interface = args.interface(
         notebook,
         embedded.defs["interface"],
         *notebook_interfaces,
+        another_opt,
     )
     interface
     return
@@ -101,6 +102,15 @@ def _(args, embedded):
     result = embedded.defs.get("result")
     args.md(f"Selected notebook result: `{result}`")
     return
+
+
+@app.cell
+def _(args):
+    another_opt = args.checkbox(
+        label="Nothing", help_text="This option does nothing, just for test"
+    )
+    another_opt
+    return (another_opt,)
 
 
 if __name__ == "__main__":

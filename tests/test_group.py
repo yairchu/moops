@@ -1014,3 +1014,35 @@ def test_variant_heading_selected_when_non_default_chosen_without_cli_arg() -> N
     iface = variants["train"].interface()
     assert iface.help_heading is not None
     assert "(selected)" in iface.help_heading
+
+
+def test_standalone_option_after_variant_group_is_separated_in_help(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A standalone option that follows variant group sections must be separated
+    by a blank line, not run on as if it belongs to the last variant group."""
+    g = Group(cli_args=["script.py", "--help"])
+    mode = g.dropdown(
+        ["car", "train"],
+        value="car",
+        option="--mode",
+        help_text="Travel mode",
+        allow_select_none=False,
+    )
+    travel = g.variant("travel", mode)
+    distance = travel["car"].number(value=120, option="--distance", help_text="Miles")
+    tickets = travel["train"].number(value=2, option="--tickets", help_text="Tickets")
+    extra = g.checkbox(label="Extra", help_text="Standalone option")
+
+    with pytest.raises(SystemExit):
+        g.interface(
+            mode,
+            travel["car"].interface(distance),
+            travel["train"].interface(tickets),
+            extra,
+        )
+
+    lines = capsys.readouterr().out.splitlines()
+    [_usage_idx, extra_idx] = [i for i, line in enumerate(lines) if "--extra" in line]
+    # standalone option must be separated from the last variant group by a blank line
+    assert lines[extra_idx - 1] == ""
