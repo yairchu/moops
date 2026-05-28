@@ -1095,3 +1095,47 @@ def test_list_non_merged_anchor_parses_correctly() -> None:
     iface = g.interface(ctrl)
     assert iface.missing_options() == []
     assert ctrl.value == [2.0, 5.0]
+
+
+def test_list_current_args_keeps_items_equal_to_item_default() -> None:
+    """List items equal to the item control's default are still list data.
+
+    Before the fix, rendering delegated to item_control.format_value(), which
+    omitted default-valued items and changed [1.0, 2.0] into just [2.0]."""
+    g = Group(cli_args=["script.py"])
+    ctrl = g.list(
+        option="--factor",
+        item=lambda grp: grp.number(value=1.0, option="--factor", help_text="Factor"),
+        help_text="Factors",
+        value=[1.0, 2.0],
+    )
+    iface = g.interface(ctrl)
+
+    assert iface._current_args() == "--factor 1.0 --factor 2.0"  # type: ignore[attr-defined]
+
+
+def test_list_standalone_query_value_round_trips(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Generated standalone query values should hydrate the same list value."""
+    source = Group(cli_args=["script.py"])
+    source_ctrl = source.list(
+        option="--factor",
+        item=lambda grp: grp.number(value=1.0, option="--factor", help_text="Factor"),
+        help_text="Factors",
+        value=[2.0, 5.0],
+    )
+    query_values = source.interface(source_ctrl)._standalone_query_values()  # type: ignore[attr-defined]
+
+    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
+    monkeypatch.setattr(group_module.mo, "query_params", lambda: query_values)
+
+    target = Group(cli_args=["script.py"])
+    target_ctrl = target.list(
+        option="--factor",
+        item=lambda grp: grp.number(value=1.0, option="--factor", help_text="Factor"),
+        help_text="Factors",
+        value=[],
+    )
+
+    assert target_ctrl.value == [2.0, 5.0]
