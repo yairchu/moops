@@ -457,6 +457,21 @@ def test_usage_wraps_at_88_columns(
     assert all(len(line) <= 88 for line in usage_block_lines)
 
 
+def test_help_option_lines_wrap_at_88_columns(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    g = Group(cli_args=["script.py", "--help"])
+    ctrl = g.text(
+        option="--long-option-name",
+        help_text="A help text long enough to overflow eighty-eight columns",
+    )
+    with pytest.raises(SystemExit):
+        g.interface(ctrl)
+    out = capsys.readouterr().out
+    option_lines = [line for line in out.splitlines() if line.startswith("  --")]
+    assert all(len(line) <= 88 for line in option_lines)
+
+
 def test_dropdown_no_flag_shown_as_mutex_in_usage(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
