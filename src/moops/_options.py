@@ -1010,6 +1010,132 @@ class DropdownControl(InputControl):
             return {self.option: chosen}
 
 
+class _ListUI:
+    """Notebook UI wrapper for a list control with add/remove buttons."""
+
+    def __init__(
+        self,
+        array: typing.Any,
+        add_btn: typing.Any,
+        remove_btn: typing.Any,
+    ) -> None:
+        self._array = array
+        self._add_btn = add_btn
+        self._remove_btn = remove_btn
+        self._id = array._id
+
+    @property
+    def value(self) -> list[typing.Any]:
+        return list(self._array.value)
+
+    def _mime_(self) -> typing.Any:
+        combined = mo.vstack(
+            [self._array, mo.hstack([self._add_btn, self._remove_btn])]
+        )
+        return combined._mime_()  # type: ignore[reportPrivateUsage]
+
+
+@dataclasses.dataclass
+class ListControl(InputControl):
+    """A list of repeated items sharing the same option name and value type."""
+
+    item_control: InputControl
+    default: list[typing.Any]
+
+    def allows_repeated_values(self) -> bool:
+        return True
+
+    def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
+        raw_values = args.values_for(self.option)
+        if not raw_values:
+            return None
+        result: list[typing.Any] = []
+        for raw in raw_values:
+            item_args = _parse.ParsedArgs(
+                options={self.item_control.option: [raw]}, unexpected=[]
+            )
+            item_result = self.item_control.parse(item_args)
+            if isinstance(item_result, ParseError):
+                return item_result
+            if isinstance(item_result, ParseResult):
+                result.append(item_result.value)
+        return ParseResult(result)
+
+    def format_usage_parts(self) -> list[str]:
+        parts = self.item_control.format_usage_parts()
+        return [p[:-1] + " ...]" if p.endswith("]") else p for p in parts]
+
+    def format_help_lines(self) -> list[str]:
+        lines = self.item_control.format_help_lines()
+        if not lines:
+            return lines
+        return [lines[0] + f" (repeat {self.option} to add more)", *lines[1:]]
+
+    def format_value(self, value: typing.Any) -> list[str]:
+        result: list[str] = []
+        for v in value:
+            result.extend(self.item_control.format_value(v))
+        return result
+
+    def format_query_value(self, value: typing.Any) -> str | None:
+        items = list(value)
+        if not items:
+            return None
+        return json.dumps([self.item_control.format_query_value(v) for v in items])
+
+    def strategy(self) -> st.SearchStrategy:
+        return st.lists(self.item_control.strategy())
+
+    def create_marimo_element(
+        self,
+        value: typing.Any,
+        label: str,
+        *,
+        on_change: typing.Callable[[typing.Any], None] | None = None,
+        disabled: bool = False,
+    ) -> typing.Any:
+        items = list(value)
+
+        def make_item_on_change(
+            idx: int,
+            notify: typing.Callable[[typing.Any], None],
+        ) -> typing.Callable[[typing.Any], None]:
+            def handler(new_val: typing.Any) -> None:
+                new_list = list(items)
+                new_list[idx] = new_val
+                notify(new_list)
+
+            return handler
+
+        elements = [
+            self.item_control.create_marimo_element(
+                v,
+                label=f"{label} [{i + 1}]",
+                disabled=disabled,
+                on_change=make_item_on_change(i, on_change) if on_change else None,
+            )
+            for i, v in enumerate(items)
+        ]
+        array = mo.ui.array(elements)
+        if on_change is not None and mo.running_in_notebook():
+            item_default = self.item_control.default
+            add_btn = mo.ui.button(
+                label="+ Add",
+                on_click=lambda _: on_change([*items, item_default]),
+            )
+            remove_btn = mo.ui.button(
+                label="- Remove",
+                on_click=lambda _: on_change(items[:-1]) if items else None,
+            )
+            return _ListUI(array, add_btn, remove_btn)
+        return array
+
+    def prompt_interactive(
+        self, effective_default: typing.Any = _UNSET
+    ) -> dict[str, str | None]:
+        return {}
+
+
 def _parse_number(option: str, value: str) -> ParseResult | ParseError:
     try:
         num = float(value)

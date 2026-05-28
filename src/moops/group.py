@@ -639,6 +639,46 @@ class Group:
             self, iface, prefix=prefix, exclude=exclude
         )
 
+    def list(
+        self,
+        item: typing.Callable[[Group], typing.Any],
+        *,
+        option: str,
+        help_text: str,
+        label: str | None = None,
+        value: list[typing.Any] | None = None,
+        on_change: typing.Callable[[list[typing.Any]], None] | None = None,
+    ) -> typing.Any:
+        """Create a list of repeated items with a shared anchor option.
+
+        ``item`` is a factory called with a Group; it must create and return
+        a single moops control using the same option name as ``option``.
+        Each CLI occurrence of that option adds one item::
+
+            --factor 2 --factor 5 --factor 10
+
+        Returns a ``mo.ui.array`` whose ``.value`` is the list of item values.
+        """
+        opt = self._make_opt(label=label, option=option)
+
+        # Probe the factory with a temporary group to discover the item's
+        # InputControl. The probe has the same option prefix as self but
+        # its own empty args and input_map.
+        probe = type(self)(["_probe"])
+        probe.option = self.option
+        probe_ctrl = item(probe)
+        item_input_ctrl = probe._input_map.get(probe_ctrl)
+        if item_input_ctrl is None:
+            raise ValueError("args.list() item factory must return a moops control")
+
+        list_input_ctrl = _options.ListControl(
+            option=opt.option,
+            help_text=help_text,
+            default=list(value) if value is not None else [],
+            item_control=item_input_ctrl,
+        )
+        return self._register_control(opt, list_input_ctrl, help_text, on_change)
+
     def _make_value_resolver(self) -> _value_resolution.ValueResolver:
         return _value_resolution.ValueResolver(
             option_prefix=self.option,
