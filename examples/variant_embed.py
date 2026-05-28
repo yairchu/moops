@@ -108,7 +108,8 @@ def _(args, embedded):
 def _(args):
     another_opt = args.checkbox(
         label="Nothing",
-        help_text=f"This option does nothing, just for test! {'... ' * 30} Just some long help",
+        help_text="This option does nothing, just for test! "
+        f"{'... ' * 30} Just some long help",
     )
     another_opt
     return (another_opt,)
