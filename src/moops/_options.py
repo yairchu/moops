@@ -1131,7 +1131,8 @@ class ListControl(InputControl):
         for v in value:
             if not self._is_merged:
                 result.append(self.option)
-            result.extend(self.item_control.format_value(v))
+            formatted = self.item_control.format_value(v)
+            result.extend(formatted or self._format_default_item_value(v))
         return result
 
     def format_query_value(self, value: typing.Any) -> str | None:
@@ -1139,6 +1140,30 @@ class ListControl(InputControl):
         if not items:
             return None
         return json.dumps([self.item_control.format_query_value(v) for v in items])
+
+    def parse_query_value(self, value: str) -> ParseResult | ParseError:
+        try:
+            raw_items: typing.Any = json.loads(value)
+        except json.JSONDecodeError:
+            return ParseError(f"Query parameter for {self.option} must be a JSON list")
+        if not isinstance(raw_items, list):
+            return ParseError(f"Query parameter for {self.option} must be a JSON list")
+        result: list[typing.Any] = []
+        for raw_item in typing.cast(list[typing.Any], raw_items):
+            if raw_item is None:
+                result.append(self.item_control.default)
+                continue
+            item_result = self.item_control.parse_query_value(str(raw_item))
+            if isinstance(item_result, ParseError):
+                return item_result
+            result.append(item_result.value)
+        return ParseResult(result)
+
+    def _format_default_item_value(self, value: typing.Any) -> list[str]:
+        query_value = self.item_control.format_query_value(value)
+        if query_value is None:
+            query_value = str(value)
+        return [f"{self.item_control.option} {shlex.quote(query_value)}"]
 
     def strategy(self) -> st.SearchStrategy:
         return st.lists(self.item_control.strategy())
