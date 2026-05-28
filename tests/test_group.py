@@ -442,6 +442,21 @@ def test_help_usage_line_has_no_double_spaces(
     assert "  " not in usage_line
 
 
+def test_usage_wraps_at_88_columns(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    g = Group(cli_args=["script.py", "--help"])
+    ctrls = [
+        g.text(option=f"--option-number-{i}", help_text="An option") for i in range(8)
+    ]
+    with pytest.raises(SystemExit):
+        g.interface(*ctrls)
+    out = capsys.readouterr().out
+    assert out.startswith("Usage:")
+    usage_block_lines = out.split("\n\n")[0].splitlines()
+    assert all(len(line) <= 88 for line in usage_block_lines)
+
+
 def test_dropdown_no_flag_shown_as_mutex_in_usage(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
