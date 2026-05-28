@@ -101,11 +101,14 @@ class InputControl(abc.ABC):
     @abc.abstractmethod
     def prompt_interactive(
         self, effective_default: typing.Any = _UNSET
-    ) -> dict[str, str | None]:
+    ) -> typing.Mapping[str, str | list[str | None] | None]:
         """Prompt the user for a value. Returns option values to inject into args.
 
         effective_default overrides self.default for display when the caller
         has a better default (e.g. from a preset).
+
+        Values may be a list to inject multiple occurrences of the same option
+        (used by ListControl).
         """
 
 
@@ -1214,8 +1217,17 @@ class ListControl(InputControl):
 
     def prompt_interactive(
         self, effective_default: typing.Any = _UNSET
-    ) -> dict[str, str | None]:
-        return {}
+    ) -> dict[str, str | list[str | None] | None]:
+        if not self._is_merged:
+            # Non-merged mode requires raw_args injection; not yet supported.
+            return {}
+        values: list[str | None] = []
+        while True:
+            item_prompted = self.item_control.prompt_interactive()
+            if self.option not in item_prompted:
+                break
+            values.append(typing.cast(str | None, item_prompted[self.option]))
+        return {self.option: values} if values else {}
 
 
 def _parse_number(option: str, value: str) -> ParseResult | ParseError:

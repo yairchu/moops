@@ -86,7 +86,10 @@ class ValueResolver:
             print("\nAborted.")
             sys.exit(1)
         for option, value in prompted.items():
-            self.state.args.set_value(option, value)
+            if isinstance(value, list):
+                self.state.args.set_values(option, value)
+            else:
+                self.state.args.set_value(option, value)
         match control.parse(self.state.args):
             case _options.ParseResult(value=v):
                 return v
