@@ -1076,3 +1076,22 @@ def test_standalone_option_after_variant_group_is_separated_in_help(
     [_usage_idx, extra_idx] = [i for i, line in enumerate(lines) if "--extra" in line]
     # standalone option must be separated from the last variant group by a blank line
     assert lines[extra_idx - 1] == ""
+
+
+def test_list_non_merged_anchor_parses_correctly() -> None:
+    """Non-merged list: bare --add anchors each item; --factor VALUE follows it.
+    Before the fix, --factor was flagged as unexpected and --add was not treated
+    as the anchor, so parsing returned an empty list."""
+    g = Group(
+        cli_args=["script.py", "--add", "--factor", "2", "--add", "--factor", "5"]
+    )
+    ctrl = g.list(
+        option="--add",
+        item=lambda grp: grp.number(value=1.0, option="--factor", help_text="Factor"),
+        help_text="Factors",
+        value=[],
+        on_change=lambda _: None,
+    )
+    iface = g.interface(ctrl)
+    assert iface.missing_options() == []
+    assert ctrl.value == [2.0, 5.0]
