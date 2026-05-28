@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Standalone CLI options that follow variant group sections in help output are
+  now separated by a blank line, so they are no longer visually grouped with
+  the last variant branch.
+
 ## [0.7.1] - 2026-05-27 - UI polish
 
 ### Changed

@@ -102,6 +102,7 @@ class Interface:
         return "\n\n".join(segments)
 
     def _format_help_lines(self) -> typing.Iterator[str]:
+        prev_was_group_with_content = False
         for ctrl in self.controls:
             if (sub_iface := _attached_interface(ctrl)) is not None:
                 lines = list(sub_iface._format_help_lines())
@@ -109,10 +110,14 @@ class Interface:
                     yield ""
                     yield f"{sub_iface.help_heading}:"
                 yield from lines
+                prev_was_group_with_content = bool(lines)
             else:
                 input_control = self.input_map.get(ctrl)
                 if input_control is not None and not self._is_overridden(input_control):
+                    if prev_was_group_with_content:
+                        yield ""
                     yield from input_control.format_help_lines()
+                prev_was_group_with_content = False
 
     def _format_usage_parts(
         self, placeholders_by_option: dict[str, str]
