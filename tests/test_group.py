@@ -1139,3 +1139,28 @@ def test_list_standalone_query_value_round_trips(
     )
 
     assert target_ctrl.value == [2.0, 5.0]
+
+
+def test_interactive_list_prompts_for_items(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """In --interactive mode, list controls should prompt for items.
+
+    The current prompt_interactive() stub returns {} unconditionally, so the
+    list stays empty instead of collecting the user's inputs."""
+    responses = iter(["2", "5", ""])  # two items, empty to stop
+
+    def fake_input(_prompt: str) -> str:
+        return next(responses)
+
+    monkeypatch.setattr("builtins.input", fake_input)
+    g = Group(cli_args=["script.py", "--interactive"])
+    ctrl = g.list(
+        option="--factor",
+        item=lambda grp: grp.number(value=1.0, option="--factor", help_text="Factor"),
+        help_text="Factors",
+        value=[],
+        on_change=lambda _: None,
+    )
+    g.interface(ctrl)
+    assert ctrl.value == [2.0, 5.0]
