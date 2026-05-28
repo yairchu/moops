@@ -13,6 +13,23 @@ from . import _input_map, _options, _parse, _query_params
 from .presets import Presets
 
 
+def _wrap_usage(prefix: str, parts: list[str], width: int = 88) -> str:
+    indent = " " * len(prefix)
+    lines: list[str] = []
+    current = prefix
+    first_on_line = True
+    for part in parts:
+        attempt = current + part if first_on_line else current + " " + part
+        if first_on_line or len(attempt) <= width:
+            current = attempt
+            first_on_line = False
+        else:
+            lines.append(current)
+            current = indent + part
+    lines.append(current)
+    return "\n".join(lines)
+
+
 @dataclasses.dataclass
 class Interface:
     """Controls registered by a subgroup's interface, for passing to the parent."""
@@ -95,7 +112,8 @@ class Interface:
         usage_parts = list(self._format_usage_parts(_usage_placeholders(self)))
         usage_parts.extend(("[--interactive]", "[-h/--help]"))
         name = self.command.rsplit("/", 1)[-1]
-        segments = [f"Usage: {name} {' '.join(usage_parts)}"]
+        prefix = f"Usage: {name} "
+        segments = [_wrap_usage(prefix, usage_parts)]
         help_lines = list(self._format_help_lines())
         if help_lines:
             segments.append("\n".join(help_lines))
