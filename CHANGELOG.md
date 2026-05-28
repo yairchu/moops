@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-05-28 - CLI help formatting
+
 ### Fixed
 
 - Standalone CLI options that follow variant group sections in help output are
@@ -15,8 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   the last variant branch.
 - The `Usage:` line in CLI help now wraps at 88 columns when many options are
   present, with continuation lines aligned under the first option.
-- Individual option help lines in CLI output now wrap at 88 columns, with
-  continuation lines aligned under the start of the help text.
+- Individual option help lines in CLI output now wrap at 88 columns; when an
+  option declaration plus its help text would exceed 88 columns, the help text
+  moves to the next line with a fixed indent.
 
 ## [0.7.1] - 2026-05-27 - UI polish
 
