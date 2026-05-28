@@ -99,16 +99,17 @@ class InputControl(abc.ABC):
         """Create the marimo UI element for this control."""
 
     @abc.abstractmethod
-    def prompt_interactive(
-        self, effective_default: typing.Any = _UNSET
-    ) -> typing.Mapping[str, str | list[str | None] | None]:
-        """Prompt the user for a value. Returns option values to inject into args.
+    def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
+        """Prompt the user for a value. Returns raw CLI tokens to append to args.
+
+        For example, NumberControl returns ``["--factor", "2"]`` and ListControl
+        in non-merged mode returns ``["--add", "--factor", "2", "--add",
+        "--factor", "5"]``. The resolver appends the tokens to ``args.raw_args``
+        and re-derives ``args.options`` so ``parse()`` sees them.
 
         effective_default overrides self.default for display when the caller
-        has a better default (e.g. from a preset).
-
-        Values may be a list to inject multiple occurrences of the same option
-        (used by ListControl).
+        has a better default (e.g. from a preset). An empty list means "no
+        change" (user accepted the default).
         """
 
 
@@ -177,16 +178,14 @@ class FlagControl(InputControl):
             **self.extra_kwargs,
         )
 
-    def prompt_interactive(
-        self, effective_default: typing.Any = _UNSET
-    ) -> dict[str, str | None]:
+    def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
         d = self.default if effective_default is _UNSET else effective_default
         default_str = "y" if d else "n"
         while True:
             response = input(f"{self.help_text} [y/n] (default: {default_str}): ")
             response = response.strip().lower()
             if not response:
-                return {}
+                return []
             if response in ("y", "yes", "1", "true"):
                 wants = True
             elif response in ("n", "no", "0", "false"):
@@ -194,7 +193,7 @@ class FlagControl(InputControl):
             else:
                 print("Please enter y or n.")
                 continue
-            return {} if wants == self.default else {self.option: None}
+            return [] if wants == self.default else [self.option]
 
 
 @dataclasses.dataclass
@@ -246,13 +245,11 @@ class TextControl(ValueControl):
     def format_query_value(self, value: typing.Any) -> str | None:
         return None if value == self.default else str(value)
 
-    def prompt_interactive(
-        self, effective_default: typing.Any = _UNSET
-    ) -> dict[str, str | None]:
+    def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
         d = self.default if effective_default is _UNSET else effective_default
         default_display = f" [{d}]" if d else ""
         response = input(f"{self.help_text}{default_display}: ")
-        return {self.option: response} if response else {}
+        return [self.option, response] if response else []
 
 
 @dataclasses.dataclass
@@ -300,14 +297,12 @@ class FileControl(TextControl):
                 pass
         return result
 
-    def prompt_interactive(
-        self, effective_default: typing.Any = _UNSET
-    ) -> dict[str, str | None]:
+    def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
         while True:
             result = super().prompt_interactive(effective_default)
             if not result:
                 return result
-            v = result[self.option]
+            v = result[1]
             if v and not pathlib.Path(v).exists():
                 print(f"File not found: {v!r}")
                 continue
@@ -420,9 +415,7 @@ class MultiFileControl(ValueControl):
         values = list(value)
         return None if values == self.default else json.dumps(values)
 
-    def prompt_interactive(
-        self, effective_default: typing.Any = _UNSET
-    ) -> dict[str, str | None]:
+    def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
         d = self.default if effective_default is _UNSET else effective_default
         default_display = f" [{', '.join(d)}]" if d else ""
         while True:
@@ -430,13 +423,13 @@ class MultiFileControl(ValueControl):
                 f"{self.help_text} (comma-separated paths){default_display}: "
             )
             if not response:
-                return {}
+                return []
             paths = [part.strip() for part in response.split(",") if part.strip()]
             missing = [path for path in paths if not pathlib.Path(path).exists()]
             if missing:
                 print(f"File not found: {missing[0]!r}")
                 continue
-            return {self.option: "\n".join(paths)}
+            return [tok for path in paths for tok in (self.option, path)]
 
 
 @dataclasses.dataclass
@@ -496,14 +489,12 @@ class TextAreaControl(ValueControl):
     def format_query_value(self, value: typing.Any) -> str | None:
         return None if value == self.default else str(value)
 
-    def prompt_interactive(
-        self, effective_default: typing.Any = _UNSET
-    ) -> dict[str, str | None]:
+    def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
         d = self.default if effective_default is _UNSET else effective_default
         default_display = f" [{d!r}]" if d else ""
         print(f"  (for multi-line input, use {self._stdin_flag} instead)")
         response = input(f"{self.help_text}{default_display}: ")
-        return {self.option: response} if response else {}
+        return [self.option, response] if response else []
 
 
 @dataclasses.dataclass
@@ -557,18 +548,16 @@ class NumberControl(ValueControl):
     def format_query_value(self, value: typing.Any) -> str | None:
         return None if value == self.default else str(value)
 
-    def prompt_interactive(
-        self, effective_default: typing.Any = _UNSET
-    ) -> dict[str, str | None]:
+    def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
         d = self.default if effective_default is _UNSET else effective_default
         default_display = f" [{d}]" if d is not None else ""
         while True:
             response = input(f"{self.help_text}{default_display}: ").strip()
             if not response:
-                return {}
+                return []
             try:
                 float(response)
-                return {self.option: response}
+                return [self.option, response]
             except ValueError:
                 print("Please enter a valid number.")
 
@@ -700,9 +689,7 @@ class RangeControl(ValueControl):
             return None
         return _format_range(value)
 
-    def prompt_interactive(
-        self, effective_default: typing.Any = _UNSET
-    ) -> dict[str, str | None]:
+    def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
         d = self.default if effective_default is _UNSET else effective_default
         if self.allowed_values:
             print(f"  Allowed values: {', '.join(str(v) for v in self.allowed_values)}")
@@ -712,7 +699,7 @@ class RangeControl(ValueControl):
         while True:
             response = input(f"{self.help_text} (min,max){default_display}: ").strip()
             if not response:
-                return {}
+                return []
             parts = response.split(",")
             if len(parts) != 2 or not all(parts):
                 print("Please enter two numbers separated by a comma, e.g. 10,20")
@@ -722,7 +709,7 @@ class RangeControl(ValueControl):
             except ValueError:
                 print("Please enter valid numbers, e.g. 10,20")
                 continue
-            return {self.option: response}
+            return [self.option, response]
 
 
 @dataclasses.dataclass
@@ -852,9 +839,7 @@ class MultiSelectControl(ValueControl):
         keys = [_choice_options.option_key(self.select_opts, v) for v in values]
         return None if values == self.default else json.dumps(keys)
 
-    def prompt_interactive(
-        self, effective_default: typing.Any = _UNSET
-    ) -> dict[str, str | None]:
+    def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
         d = self.default if effective_default is _UNSET else effective_default
         default_keys = {
             _choice_options.option_key(self.select_opts, v) for v in (d or [])
@@ -865,9 +850,9 @@ class MultiSelectControl(ValueControl):
         default_display = f" [{', '.join(default_keys)}]" if default_keys else ""
         response = input(f"{self.help_text} (comma-separated){default_display}: ")
         if not response:
-            return {}
+            return []
         parts = [p.strip() for p in response.split(",") if p.strip()]
-        return {self.option: "\n".join(parts)}
+        return [tok for part in parts for tok in (self.option, part)]
 
     def _key_for(self, value: typing.Any) -> str:
         return _choice_options.option_key(self.select_opts, value)
@@ -978,9 +963,7 @@ class DropdownControl(InputControl):
             "" if value is None else str(value),
         )
 
-    def prompt_interactive(
-        self, effective_default: typing.Any = _UNSET
-    ) -> dict[str, str | None]:
+    def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
         d = self.default if effective_default is _UNSET else effective_default
         choices = [*(["none"] if self.supports_none else []), *self.dropdown_opts]
         for i, v in enumerate(choices, 1):
@@ -989,7 +972,7 @@ class DropdownControl(InputControl):
         while True:
             response = input(f"{self.help_text}{default_display}: ").strip()
             if not response:
-                return {}
+                return []
             select_none = False
             chosen = ""
             if response.isdigit() and 1 <= int(response) <= len(choices):
@@ -1009,8 +992,8 @@ class DropdownControl(InputControl):
                 continue
             if select_none:
                 no_flag = self._no_flag
-                return {no_flag: None} if no_flag else {}
-            return {self.option: chosen}
+                return [no_flag] if no_flag else []
+            return [self.option, chosen]
 
 
 class _ListUI:
@@ -1215,19 +1198,16 @@ class ListControl(InputControl):
             return _ListUI(array, add_btn, remove_btn)
         return array
 
-    def prompt_interactive(
-        self, effective_default: typing.Any = _UNSET
-    ) -> dict[str, str | list[str | None] | None]:
-        if not self._is_merged:
-            # Non-merged mode requires raw_args injection; not yet supported.
-            return {}
-        values: list[str | None] = []
+    def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
+        tokens: list[str] = []
         while True:
-            item_prompted = self.item_control.prompt_interactive()
-            if self.option not in item_prompted:
+            item_tokens = self.item_control.prompt_interactive()
+            if not item_tokens:
                 break
-            values.append(typing.cast(str | None, item_prompted[self.option]))
-        return {self.option: values} if values else {}
+            if not self._is_merged:
+                tokens.append(self.option)
+            tokens.extend(item_tokens)
+        return tokens
 
 
 def _parse_number(option: str, value: str) -> ParseResult | ParseError:

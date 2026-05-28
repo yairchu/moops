@@ -634,10 +634,8 @@ def test_parse_query_value_raises_runtime_error_for_broken_control() -> None:
         ) -> typing.Any:
             return None
 
-        def prompt_interactive(
-            self, effective_default: typing.Any = None
-        ) -> dict[str, str | None]:
-            return {}
+        def prompt_interactive(self, effective_default: typing.Any = None) -> list[str]:
+            return []
 
         def strategy(self):  # type: ignore[override]
             return None
@@ -1166,15 +1164,10 @@ def test_interactive_list_prompts_for_items(
     assert ctrl.value == [2.0, 5.0]
 
 
-@pytest.mark.xfail(reason="non-merged anchor interactive mode not yet implemented")
 def test_interactive_list_non_merged_anchor_prompts_for_items(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """In --interactive mode, non-merged list controls should prompt for items.
-
-    Non-merged parse() reads raw_args via _segment_by_anchor(), but interactive
-    prompting only injects into args.options, so the segments are never found
-    and the list stays empty."""
+    """In --interactive mode, non-merged list controls should prompt for items."""
     responses = iter(["2", "5", ""])  # two items, empty to stop
 
     def fake_input(_prompt: str) -> str:

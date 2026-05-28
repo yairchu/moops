@@ -23,12 +23,6 @@ class ParsedArgs:
     def has(self, option: str) -> bool:
         return option in self.options
 
-    def set_value(self, option: str, value: str | None) -> None:
-        self.options[option] = [value]
-
-    def set_values(self, option: str, values: list[str | None]) -> None:
-        self.options[option] = values
-
     @property
     def is_help(self) -> bool:
         return any(self.has(x) for x in help_flags)

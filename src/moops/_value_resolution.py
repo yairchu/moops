@@ -81,15 +81,13 @@ class ValueResolver:
                 case _:
                     pass
         try:
-            prompted = control.prompt_interactive(effective_default)
+            tokens = control.prompt_interactive(effective_default)
         except KeyboardInterrupt:
             print("\nAborted.")
             sys.exit(1)
-        for option, value in prompted.items():
-            if isinstance(value, list):
-                self.state.args.set_values(option, value)
-            else:
-                self.state.args.set_value(option, value)
+        if tokens:
+            new_raw = [*self.state.args.raw_args, *tokens]
+            self.state.args = _parse.ParsedArgs.from_options(new_raw)
         match control.parse(self.state.args):
             case _options.ParseResult(value=v):
                 return v
