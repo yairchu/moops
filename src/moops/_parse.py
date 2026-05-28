@@ -11,6 +11,7 @@ interactive_flag = "--interactive"
 class ParsedArgs:
     options: dict[str, list[str | None]]
     unexpected: list[str]
+    raw_args: list[str] = dataclasses.field(default_factory=list[str])
 
     def values_for(self, option: str) -> list[str | None]:
         return self.options.get(option, [])
@@ -55,7 +56,7 @@ class ParsedArgs:
                 prev = None
             else:
                 unexpected.append(arg)
-        return cls(options=options, unexpected=unexpected)
+        return cls(options=options, unexpected=unexpected, raw_args=args)
 
 
 @dataclasses.dataclass

@@ -1035,45 +1035,102 @@ class _ListUI:
         return combined._mime_()  # type: ignore[reportPrivateUsage]
 
 
+def _segment_by_anchor(raw_args: list[str], anchor: str) -> list[list[str]]:
+    """Split raw_args into per-item segments at each bare anchor occurrence."""
+    segments: list[list[str]] = []
+    current: list[str] | None = None
+    for token in raw_args:
+        if token == anchor:
+            if current is not None:
+                segments.append(current)
+            current = []
+        elif current is not None:
+            current.append(token)
+    if current is not None:
+        segments.append(current)
+    return segments
+
+
 @dataclasses.dataclass
 class ListControl(InputControl):
-    """A list of repeated items sharing the same option name and value type."""
+    """A list of repeated items with a shared anchor option.
+
+    Merged mode (option == item option): each ``--factor VALUE`` occurrence
+    is one item. Non-merged mode (option != item option): each bare ``--add``
+    starts a new item and the following per-item options belong to it.
+    """
 
     item_control: InputControl
     default: list[typing.Any]
+
+    @property
+    def _is_merged(self) -> bool:
+        return self.option == self.item_control.option
+
+    def flags(self) -> set[str]:
+        return set() if self._is_merged else {self.option}
+
+    def options(self) -> set[str]:
+        return {self.option} if self._is_merged else self.item_control.options()
 
     def allows_repeated_values(self) -> bool:
         return True
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
-        raw_values = args.values_for(self.option)
-        if not raw_values:
+        if self._is_merged:
+            raw_values = args.values_for(self.option)
+            if not raw_values:
+                return None
+            result: list[typing.Any] = []
+            for raw in raw_values:
+                item_args = _parse.ParsedArgs(
+                    options={self.item_control.option: [raw]}, unexpected=[]
+                )
+                item_result = self.item_control.parse(item_args)
+                if isinstance(item_result, ParseError):
+                    return item_result
+                if isinstance(item_result, ParseResult):
+                    result.append(item_result.value)
+            return ParseResult(result)
+        segments = _segment_by_anchor(args.raw_args, self.option)
+        if not segments:
             return None
-        result: list[typing.Any] = []
-        for raw in raw_values:
-            item_args = _parse.ParsedArgs(
-                options={self.item_control.option: [raw]}, unexpected=[]
-            )
+        result = []
+        for segment in segments:
+            item_args = _parse.ParsedArgs.from_options(segment)
             item_result = self.item_control.parse(item_args)
             if isinstance(item_result, ParseError):
                 return item_result
-            if isinstance(item_result, ParseResult):
-                result.append(item_result.value)
+            result.append(
+                item_result.value
+                if isinstance(item_result, ParseResult)
+                else self.item_control.default
+            )
         return ParseResult(result)
 
     def format_usage_parts(self) -> list[str]:
-        parts = self.item_control.format_usage_parts()
-        return [p[:-1] + " ...]" if p.endswith("]") else p for p in parts]
+        if self._is_merged:
+            parts = self.item_control.format_usage_parts()
+            return [p[:-1] + " ...]" if p.endswith("]") else p for p in parts]
+        item_usage = " ".join(self.item_control.format_usage_parts())
+        return [f"[{self.option} {item_usage} ...]"]
 
     def format_help_lines(self) -> list[str]:
-        lines = self.item_control.format_help_lines()
-        if not lines:
-            return lines
-        return [lines[0] + f" (repeat {self.option} to add more)", *lines[1:]]
+        if self._is_merged:
+            lines = self.item_control.format_help_lines()
+            if not lines:
+                return lines
+            return [lines[0] + f" (repeat {self.option} to add more)", *lines[1:]]
+        return [
+            f"  {self.option}: Add an item (repeat to add more)",
+            *[line + " (per item)" for line in self.item_control.format_help_lines()],
+        ]
 
     def format_value(self, value: typing.Any) -> list[str]:
         result: list[str] = []
         for v in value:
+            if not self._is_merged:
+                result.append(self.option)
             result.extend(self.item_control.format_value(v))
         return result
 
