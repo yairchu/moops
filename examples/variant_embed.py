@@ -107,7 +107,8 @@ def _(args, embedded):
 @app.cell
 def _(args):
     another_opt = args.checkbox(
-        label="Nothing", help_text="This option does nothing, just for test"
+        label="Nothing",
+        help_text=f"This option does nothing, just for test! {'... ' * 30} Just some long help",
     )
     another_opt
     return (another_opt,)

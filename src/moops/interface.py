@@ -30,6 +30,30 @@ def _wrap_usage(prefix: str, parts: list[str], width: int = 88) -> str:
     return "\n".join(lines)
 
 
+def _wrap_help_line(line: str, width: int = 88) -> list[str]:
+    if len(line) <= width:
+        return [line]
+    sep = ": "
+    sep_idx = line.find(sep)
+    if sep_idx == -1:
+        return [line]
+    header = line[: sep_idx + 1]  # e.g. "  --option METAVAR:"
+    indent = "      "
+    result = [header]
+    current = indent
+    first_on_line = True
+    for word in line[sep_idx + len(sep) :].split():
+        attempt = current + word if first_on_line else current + " " + word
+        if first_on_line or len(attempt) <= width:
+            current = attempt
+            first_on_line = False
+        else:
+            result.append(current)
+            current = indent + word
+    result.append(current)
+    return result
+
+
 @dataclasses.dataclass
 class Interface:
     """Controls registered by a subgroup's interface, for passing to the parent."""
@@ -134,7 +158,8 @@ class Interface:
                 if input_control is not None and not self._is_overridden(input_control):
                     if prev_was_group_with_content:
                         yield ""
-                    yield from input_control.format_help_lines()
+                    for help_line in input_control.format_help_lines():
+                        yield from _wrap_help_line(help_line)
                 prev_was_group_with_content = False
 
     def _format_usage_parts(

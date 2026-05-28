@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   the last variant branch.
 - The `Usage:` line in CLI help now wraps at 88 columns when many options are
   present, with continuation lines aligned under the first option.
+- Individual option help lines in CLI output now wrap at 88 columns, with
+  continuation lines aligned under the start of the help text.
 
 ## [0.7.1] - 2026-05-27 - UI polish
 
