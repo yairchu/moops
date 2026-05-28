@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `Group.list()` creates a control for repeated CLI options (e.g. `--factor 2
+  --factor 5`) with a matching add/remove UI in notebooks. Supports both merged
+  mode (anchor option == item option) and non-merged mode (bare anchor option
+  separates items).
+
 ## [0.7.2] - 2026-05-28 - CLI help formatting
 
 ### Fixed
