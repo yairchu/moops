@@ -1064,12 +1064,16 @@ class ListControl(InputControl):
                 if isinstance(item_result, ParseResult):
                     result.append(item_result.value)
             return ParseResult(result)
+        if err := self._validate_non_merged_item_placement(args.raw_args):
+            return err
         segments = _segment_by_anchor(args.raw_args, self.option)
         if not segments:
             return None
         result = []
         for segment in segments:
             item_args = _parse.ParsedArgs.from_options(segment)
+            if err := self._validate_item_args(item_args):
+                return err
             item_result = self.item_control.parse(item_args)
             if isinstance(item_result, ParseError):
                 return item_result
@@ -1079,6 +1083,40 @@ class ListControl(InputControl):
                 else self.item_control.default
             )
         return ParseResult(result)
+
+    def _validate_non_merged_item_placement(
+        self, raw_args: list[str]
+    ) -> ParseError | None:
+        in_item = False
+        item_args = self.item_control.options() | self.item_control.flags()
+        for token in raw_args:
+            if token == self.option:
+                in_item = True
+            elif not in_item and token in item_args:
+                return ParseError(f"Unexpected argument: {token}")
+        return None
+
+    def _validate_item_args(self, args: _parse.ParsedArgs) -> ParseError | None:
+        flags = self.item_control.flags()
+        options = self.item_control.options()
+        for unexpected in args.unexpected:
+            return ParseError(f"Unexpected argument: {unexpected}")
+        for option, values in args.options.items():
+            if option in flags:
+                for value in values:
+                    if value is not None:
+                        return ParseError(
+                            f"{option} does not take a value, but was given: {value}"
+                        )
+            elif option in options:
+                if len(values) > 1 and not self.item_control.allows_repeated_values():
+                    return ParseError(f"{option} was provided multiple times")
+                for value in values:
+                    if value is None:
+                        return ParseError(f"Option {option} requires a value")
+            else:
+                return ParseError(f"Unexpected argument: {option}")
+        return None
 
     def format_usage_parts(self) -> list[str]:
         if self._is_merged:

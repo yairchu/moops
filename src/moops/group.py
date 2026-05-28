@@ -670,6 +670,8 @@ class Group:
         item_input_ctrl = probe._input_map.get(probe_ctrl)
         if item_input_ctrl is None:
             raise ValueError("args.list() item factory must return a moops control")
+        if not item_input_ctrl.options():
+            raise ValueError("args.list() item factory must return a value control")
 
         list_input_ctrl = _options.ListControl(
             option=opt.option,
