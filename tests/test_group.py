@@ -1095,6 +1095,60 @@ def test_list_non_merged_anchor_parses_correctly() -> None:
     assert ctrl.value == [2.0, 5.0]
 
 
+def test_list_non_merged_item_option_without_anchor_is_rejected(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A per-item option outside an anchor segment must not be silently ignored."""
+    g = Group(cli_args=["script.py", "--factor", "2"])
+    ctrl = g.list(
+        option="--add",
+        item=lambda grp: grp.number(value=1.0, option="--factor", help_text="Factor"),
+        help_text="Factors",
+        value=[],
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        g.interface(ctrl)
+
+    assert exc_info.value.code != 0
+    assert "Unexpected argument: --factor" in capsys.readouterr().out
+
+
+def test_list_non_merged_rejects_duplicate_scalar_item_option_in_segment(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A single list item must not silently keep only the last scalar value."""
+    g = Group(cli_args=["script.py", "--add", "--factor", "2", "--factor", "5"])
+    ctrl = g.list(
+        option="--add",
+        item=lambda grp: grp.number(value=1.0, option="--factor", help_text="Factor"),
+        help_text="Factors",
+        value=[],
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        g.interface(ctrl)
+
+    assert exc_info.value.code != 0
+    assert "--factor was provided multiple times" in capsys.readouterr().out
+
+
+def test_list_rejects_flag_item_controls() -> None:
+    """Flag item controls are currently ambiguous and should fail fast."""
+    g = Group(cli_args=["script.py"])
+
+    with pytest.raises(ValueError, match=r"list.*value.*control"):
+        g.list(
+            option="--enabled",
+            item=lambda grp: grp.switch(
+                flag="--enabled",
+                help_text="Enable item",
+            ),
+            help_text="Enabled items",
+            value=[],
+        )
+
+
 def test_list_current_args_keeps_items_equal_to_item_default() -> None:
     """List items equal to the item control's default are still list data.
 
