@@ -353,18 +353,8 @@ class MultiFileControl(ValueControl):
         values = args.values_for(self.option)
         if not values:
             return None
-        flattened = [
-            part
-            for value in values
-            for part in (
-                value.splitlines()
-                if isinstance(value, str) and "\n" in value
-                else [value]
-            )
-            if part or part is None
-        ]
         paths: list[str] = []
-        for value in flattened:
+        for value in values:
             if value is None:
                 return ParseError(f"Option {self.option} requires a value")
             if value and not pathlib.Path(value).exists():
@@ -764,21 +754,17 @@ class MultiSelectControl(ValueControl):
         values = args.values_for(self.option)
         if not values:
             return None
-        flattened: list[str] = []
+        result: list[typing.Any] = []
         for value in values:
             if value is None:
                 return ParseError(f"Option {self.option} requires a value")
-            if "\n" in value:
-                flattened.extend(value.splitlines())
-            else:
-                flattened.append(value)
-        for v in flattened:
-            if v not in self.select_opts:
+            if value not in self.select_opts:
                 return ParseError(
                     f"Option {self.option} must be one of"
-                    f" {list(self.select_opts)!r}, got: {v!r}"
+                    f" {list(self.select_opts)!r}, got: {value!r}"
                 )
-        return ParseResult([self.select_opts[v] for v in flattened])
+            result.append(self.select_opts[value])
+        return ParseResult(result)
 
     def parse_query_value(self, value: str) -> ParseResult | ParseError:
         try:
