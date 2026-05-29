@@ -9,7 +9,7 @@ import marimo as mo
 from hypothesis import strategies as st
 from marimo._plugins.ui._core.ui_element import UIElement
 
-from . import _input_map, _options, _parse, _query_params
+from . import _input_map, _interface_utils, _options, _parse, _query_params
 from .presets import Presets
 
 
@@ -583,10 +583,7 @@ def _ctrl_value(ctrl: typing.Any) -> typing.Any:
 
 
 def _attached_interface(ctrl: typing.Any) -> Interface | None:
-    if isinstance(ctrl, Interface):
-        return ctrl
-    iface = getattr(ctrl, "_moops_interface", None)
-    return iface if isinstance(iface, Interface) else None
+    return _interface_utils.attached_interface(ctrl, Interface)
 
 
 def _usage_placeholders(iface: Interface) -> dict[str, str]:

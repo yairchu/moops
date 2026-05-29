@@ -3,7 +3,7 @@ from __future__ import annotations
 import shlex
 import typing
 
-from . import _options, interface
+from . import _interface_utils, _options, interface
 
 
 def subgroup_leaves(
@@ -20,27 +20,14 @@ def subgroup_leaves(
             yield _options.SubgroupListLeaf(
                 value_path=child_path,
                 control=ctrl_or_sub,
-                bare_option=unprefixed_option(top, ctrl_or_sub.option),
+                bare_option=_interface_utils.unprefixed_option(top, ctrl_or_sub.option),
             )
-
-
-def unprefixed_option(iface: interface.Interface, option: str) -> str:
-    if iface.option_prefix and option.startswith(f"{iface.option_prefix}-"):
-        return f"--{option[len(iface.option_prefix) :].lstrip('-')}"
-    return option
 
 
 def relative_stem(parent_prefix: str, option: str) -> str:
     if parent_prefix and option.startswith(f"{parent_prefix}-"):
         return option[len(parent_prefix) :].lstrip("-")
     return option.lstrip("-")
-
-
-def attached_interface(ctrl: typing.Any) -> interface.Interface | None:
-    if isinstance(ctrl, interface.Interface):
-        return ctrl
-    iface = getattr(ctrl, "_moops_interface", None)
-    return iface if isinstance(iface, interface.Interface) else None
 
 
 def value_at_path(

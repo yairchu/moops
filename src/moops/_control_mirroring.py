@@ -5,7 +5,7 @@ import typing
 
 import marimo as mo
 
-from . import _options, interface
+from . import _interface_utils, _options, interface
 
 
 def controls_from(
@@ -159,10 +159,7 @@ def _selected_value_for_option(
 
 
 def _attached_interface(ctrl: typing.Any) -> interface.Interface | None:
-    if isinstance(ctrl, interface.Interface):
-        return ctrl
-    iface = getattr(ctrl, "_moops_interface", None)
-    return iface if isinstance(iface, interface.Interface) else None
+    return _interface_utils.attached_interface(ctrl, interface.Interface)
 
 
 def _copy_variant_metadata(
@@ -219,9 +216,7 @@ def _create_from_input_control(
 
 
 def _unprefixed_option(iface: interface.Interface, option: str) -> str:
-    if iface.option_prefix and option.startswith(f"{iface.option_prefix}-"):
-        return f"--{option[len(iface.option_prefix) :].lstrip('-')}"
-    return option
+    return _interface_utils.unprefixed_option(iface, option)
 
 
 def _reattach_interface_to_clone(original: typing.Any, clone: typing.Any) -> None:
