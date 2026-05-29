@@ -9,7 +9,7 @@
 
 import marimo
 
-__generated_with = "0.23.6"
+__generated_with = "0.23.8"
 app = marimo.App(width="full")
 
 
@@ -83,6 +83,8 @@ def _(board_cli, set_board):
 
 @app.cell
 def _(args, board_cli, get_board, mo):
+    # A custom control is necessary to enable the "Step" mechanism.
+
     _board_display = mo.ui.text_area(
         value=get_board(),
         label="Current board",
