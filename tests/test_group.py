@@ -442,6 +442,18 @@ def test_help_usage_line_has_no_double_spaces(
     assert "  " not in usage_line
 
 
+def test_no_options_usage_omits_interactive(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """With no controls there is nothing to prompt for, so --interactive is
+    inert and should not be advertised in the usage line."""
+    g = Group(cli_args=["script.py", "--help"])
+    with pytest.raises(SystemExit):
+        g.interface()
+    usage_line = capsys.readouterr().out.splitlines()[0]
+    assert "--interactive" not in usage_line
+
+
 def test_usage_wraps_at_88_columns(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
