@@ -1522,6 +1522,70 @@ def test_list_controls_from_rejects_item_option_without_anchor(
     assert "Unexpected argument: --mode" in capsys.readouterr().out
 
 
+def test_list_controls_from_allows_following_sibling_options() -> None:
+    variant_iface = moops.interface_of(variant_trip)
+    g = Group(
+        cli_args=[
+            "script.py",
+            "--trip",
+            "--mode",
+            "car",
+            "--name",
+            "Bob",
+        ]
+    )
+    trips = g.list(
+        option="--trip",
+        item=lambda grp: grp.controls_from(variant_iface, prefix="trip"),
+        help_text="Trips",
+        value=[],
+    )
+    name = g.text(option="--name", help_text="Name")
+
+    iface = g.interface(trips, name)
+
+    assert iface.missing_options() == []
+    assert trips.value == [
+        {
+            "mode": "car",
+            "travel-car": {"distance": 120, "gas_price": 3.75},
+            "travel-train": {"tickets": 2},
+        }
+    ]
+    assert name.value == "Bob"
+
+
+def test_list_controls_from_rejects_item_option_after_sibling_option(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    variant_iface = moops.interface_of(variant_trip)
+    g = Group(
+        cli_args=[
+            "script.py",
+            "--trip",
+            "--mode",
+            "car",
+            "--name",
+            "Bob",
+            "--travel-train-tickets",
+            "4",
+        ]
+    )
+    trips = g.list(
+        option="--trip",
+        item=lambda grp: grp.controls_from(variant_iface, prefix="trip"),
+        help_text="Trips",
+        value=[],
+    )
+    name = g.text(option="--name", help_text="Name")
+
+    with pytest.raises(SystemExit) as exc_info:
+        g.interface(trips, name)
+
+    assert exc_info.value.code != 0
+    assert "Unexpected argument: --travel-train-tickets" in capsys.readouterr().out
+
+
 def test_list_standalone_query_value_round_trips(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

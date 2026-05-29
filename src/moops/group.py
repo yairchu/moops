@@ -583,8 +583,9 @@ class Group:
         if inner is None:
             raise ValueError("fallback must be a control created by this Group")
         custom_control = _options.CustomControl.wrap(inner, build, value)
+        fallback_value = fallback._value
         element = (
-            interface.CustomElement(build(fallback.value), fallback, value)
+            interface.CustomElement(build(fallback_value), fallback, value)
             if mo.running_in_notebook()
             else fallback
         )

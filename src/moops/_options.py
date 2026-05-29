@@ -1046,20 +1046,85 @@ class SubgroupListLeaf:
         return self.control.with_option(self.bare_option)
 
 
-def _segment_by_anchor(raw_args: list[str], anchor: str) -> list[list[str]]:
+def _option_key(token: str) -> str:
+    return token.split("=", 1)[0]
+
+
+def _is_option_token(token: str) -> bool:
+    return token.startswith("-") and not (
+        len(token) > 1 and token[0] == "-" and token[1].isdigit()
+    )
+
+
+def _segment_by_anchor(
+    raw_args: list[str],
+    anchor: str,
+    *,
+    item_options: set[str] | None = None,
+    item_flags: set[str] | None = None,
+) -> list[list[str]]:
     """Split raw_args into per-item segments at each bare anchor occurrence."""
     segments: list[list[str]] = []
     current: list[str] | None = None
+    expecting_item_value = False
     for token in raw_args:
         if token == anchor:
             if current is not None:
                 segments.append(current)
             current = []
+            expecting_item_value = False
         elif current is not None:
+            if expecting_item_value:
+                current.append(token)
+                expecting_item_value = False
+                continue
+            if _is_option_token(token) and item_options is not None:
+                option = _option_key(token)
+                if option in item_options:
+                    current.append(token)
+                    expecting_item_value = "=" not in token
+                    continue
+                if item_flags is not None and option in item_flags:
+                    current.append(token)
+                    expecting_item_value = False
+                    continue
+                segments.append(current)
+                current = None
+                expecting_item_value = False
+                continue
             current.append(token)
     if current is not None:
         segments.append(current)
     return segments
+
+
+def _validate_item_placement(
+    raw_args: list[str],
+    anchor: str,
+    item_options: set[str],
+    item_flags: set[str],
+) -> ParseError | None:
+    in_item = False
+    expecting_item_value = False
+    item_args = item_options | item_flags
+    for token in raw_args:
+        if token == anchor:
+            in_item = True
+            expecting_item_value = False
+        elif in_item and expecting_item_value:
+            expecting_item_value = False
+        elif in_item and _is_option_token(token):
+            option = _option_key(token)
+            if option in item_options:
+                expecting_item_value = "=" not in token
+            elif option in item_flags:
+                expecting_item_value = False
+            else:
+                in_item = False
+                expecting_item_value = False
+        elif not in_item and _option_key(token) in item_args:
+            return ParseError(f"Unexpected argument: {_option_key(token)}")
+    return None
 
 
 def _set_path(
@@ -1121,7 +1186,12 @@ class SubgroupListControl(InputControl):
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         if err := self._validate_item_placement(args.raw_args):
             return err
-        segments = _segment_by_anchor(args.raw_args, self.option)
+        segments = _segment_by_anchor(
+            args.raw_args,
+            self.option,
+            item_options=self.options(),
+            item_flags=self.flags() - {self.option},
+        )
         if not segments:
             return None
         result: list[dict[str, typing.Any]] = []
@@ -1145,14 +1215,12 @@ class SubgroupListControl(InputControl):
         return ParseResult(result)
 
     def _validate_item_placement(self, raw_args: list[str]) -> ParseError | None:
-        in_item = False
-        item_args = self.options() | (self.flags() - {self.option})
-        for token in raw_args:
-            if token == self.option:
-                in_item = True
-            elif not in_item and token in item_args:
-                return ParseError(f"Unexpected argument: {token}")
-        return None
+        return _validate_item_placement(
+            raw_args,
+            self.option,
+            self.options(),
+            self.flags() - {self.option},
+        )
 
     def _validate_item_args(self, args: _parse.ParsedArgs) -> ParseError | None:
         flags = self.flags() - {self.option}
@@ -1360,7 +1428,12 @@ class ListControl(InputControl):
             return ParseResult(result)
         if err := self._validate_non_merged_item_placement(args.raw_args):
             return err
-        segments = _segment_by_anchor(args.raw_args, self.option)
+        segments = _segment_by_anchor(
+            args.raw_args,
+            self.option,
+            item_options=self.item_control.options(),
+            item_flags=self.item_control.flags(),
+        )
         if not segments:
             return None
         result = []
@@ -1381,14 +1454,12 @@ class ListControl(InputControl):
     def _validate_non_merged_item_placement(
         self, raw_args: list[str]
     ) -> ParseError | None:
-        in_item = False
-        item_args = self.item_control.options() | self.item_control.flags()
-        for token in raw_args:
-            if token == self.option:
-                in_item = True
-            elif not in_item and token in item_args:
-                return ParseError(f"Unexpected argument: {token}")
-        return None
+        return _validate_item_placement(
+            raw_args,
+            self.option,
+            self.item_control.options(),
+            self.item_control.flags(),
+        )
 
     def _validate_item_args(self, args: _parse.ParsedArgs) -> ParseError | None:
         flags = self.item_control.flags()
