@@ -1065,6 +1065,16 @@ def _get_path(
     return current
 
 
+def _element_at_path(root: typing.Any, path: tuple[str, ...]) -> typing.Any | None:
+    current: typing.Any = root
+    for part in path:
+        elements: typing.Any = getattr(current, "elements", None)
+        if not isinstance(elements, dict) or part not in elements:
+            return None
+        current = typing.cast(dict[str, typing.Any], elements)[part]
+    return current
+
+
 @dataclasses.dataclass
 class SubgroupListControl(InputControl):
     """A list whose items are mirrored subgroup interfaces."""
@@ -1220,6 +1230,7 @@ class SubgroupListControl(InputControl):
         elements = [self.item_builder(i, item) for i, item in enumerate(items)]
         array = mo.ui.array(elements)
         if on_change is not None and mo.running_in_notebook():
+            self._attach_item_change_handlers(array, on_change)
             add_btn = mo.ui.button(
                 label="+ Add",
                 on_click=lambda _: on_change(
@@ -1234,6 +1245,40 @@ class SubgroupListControl(InputControl):
             )
             return _ListUI(array, add_btn, remove_btn)
         return array
+
+    def _attach_item_change_handlers(
+        self,
+        array: typing.Any,
+        on_change: typing.Callable[[typing.Any], None],
+    ) -> None:
+        for idx, item_element in enumerate(array.elements):
+            for leaf in self.leaves:
+                element = _element_at_path(item_element, leaf.value_path)
+                if element is not None:
+                    self._attach_leaf_change_handler(
+                        array, idx, leaf.value_path, element, on_change
+                    )
+
+    def _attach_leaf_change_handler(
+        self,
+        array: typing.Any,
+        idx: int,
+        path: tuple[str, ...],
+        element: typing.Any,
+        on_change: typing.Callable[[typing.Any], None],
+    ) -> None:
+        previous_on_change = getattr(element, "_on_change", None)
+
+        def handle_change(new_value: typing.Any) -> None:
+            if callable(previous_on_change):
+                previous_on_change(new_value)
+            items = [copy.deepcopy(item) for item in array.value]
+            if idx >= len(items):
+                return
+            _set_path(items[idx], path, new_value)
+            on_change(items)
+
+        element._on_change = handle_change
 
     def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
         del effective_default

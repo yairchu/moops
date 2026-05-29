@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import pathlib
+import shlex
 import typing
 import warnings
 
@@ -63,6 +64,17 @@ def _attached_interface(ctrl: typing.Any) -> interface.Interface | None:
         return ctrl
     iface = getattr(ctrl, "_moops_interface", None)
     return iface if isinstance(iface, interface.Interface) else None
+
+
+def _value_at_path(
+    source: dict[str, typing.Any], path: tuple[str, ...], default: typing.Any
+) -> typing.Any:
+    current: typing.Any = source
+    for part in path:
+        if not isinstance(current, dict) or part not in current:
+            return default
+        current = typing.cast(dict[str, typing.Any], current)[part]
+    return current
 
 
 class Group:
@@ -760,7 +772,30 @@ class Group:
             stem = _relative_stem(self.option, opt.option)
 
             def item_builder(i: int, item_dict: dict[str, typing.Any]) -> typing.Any:
-                child = self.subgroup(f"{stem}-{i}", overrides={stem: item_dict})
+                child = self.subgroup(f"{stem}-{i}")
+                item_prefix = f"{child.option}-{stem}"
+                seed_args = [
+                    token
+                    for leaf in leaves
+                    for rel_option in [
+                        leaf.control.option[len(opt.option) :].lstrip("-")
+                    ]
+                    for formatted in leaf.control.with_option(
+                        f"{item_prefix}-{rel_option}"
+                    ).format_value(
+                        _value_at_path(item_dict, leaf.value_path, leaf.control.default)
+                    )
+                    for token in shlex.split(formatted)
+                ]
+                child._state = _parse.ParseState(
+                    args=_parse.ParsedArgs.from_options(seed_args)
+                )
+                child._preset_state = _preset_state.PresetState(
+                    selected=None,
+                    default=None,
+                    active=None,
+                )
+                child._value_resolver = child._make_value_resolver()
                 return item(child)
 
             list_input_ctrl = _options.SubgroupListControl(
