@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   --factor 5`) with a matching add/remove UI in notebooks. Supports both merged
   mode (anchor option == item option) and non-merged mode (bare anchor option
   separates items).
+- `Group.list()` can now repeat `Group.controls_from()` mirrors, allowing
+  notebooks to build dynamic lists of child-notebook runs with nested controls.
 - `Group.controls_from()` now recreates custom controls (`Group.custom()`) when
   mirroring a child notebook, rebuilding the notebook component in the parent
   instead of falling back to the bare fallback control.

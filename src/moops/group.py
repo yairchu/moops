@@ -28,6 +28,43 @@ from .presets import Presets
 Numeric = int | float
 
 
+def _list_subgroup_leaves(
+    template: interface.Interface,
+    path: tuple[str, ...] = (),
+    top_template: interface.Interface | None = None,
+) -> typing.Iterator[_options.SubgroupListLeaf]:
+    top = template if top_template is None else top_template
+    for name, ctrl_or_sub in template.iter_controls():
+        child_path = (*path, name)
+        if isinstance(ctrl_or_sub, interface.Interface):
+            yield from _list_subgroup_leaves(ctrl_or_sub, child_path, top)
+        else:
+            yield _options.SubgroupListLeaf(
+                value_path=child_path,
+                control=ctrl_or_sub,
+                bare_option=_unprefixed_option(top, ctrl_or_sub.option),
+            )
+
+
+def _unprefixed_option(iface: interface.Interface, option: str) -> str:
+    if iface.option_prefix and option.startswith(f"{iface.option_prefix}-"):
+        return f"--{option[len(iface.option_prefix) :].lstrip('-')}"
+    return option
+
+
+def _relative_stem(parent_prefix: str, option: str) -> str:
+    if parent_prefix and option.startswith(f"{parent_prefix}-"):
+        return option[len(parent_prefix) :].lstrip("-")
+    return option.lstrip("-")
+
+
+def _attached_interface(ctrl: typing.Any) -> interface.Interface | None:
+    if isinstance(ctrl, interface.Interface):
+        return ctrl
+    iface = getattr(ctrl, "_moops_interface", None)
+    return iface if isinstance(iface, interface.Interface) else None
+
+
 class Group:
     """Unified CLI argument parser and marimo UI element generator."""
 
@@ -665,12 +702,34 @@ class Group:
         """Create a list of repeated items with a shared anchor option.
 
         ``item`` is a factory called with a Group; it must create and return
-        a single moops control using the same option name as ``option``.
-        Each CLI occurrence of that option adds one item::
+        either a single moops control using the same option name as ``option``,
+        or a ``controls_from(...)`` mirror whose prefix matches ``option``.
+        Each scalar CLI occurrence of that option adds one item::
 
             --factor 2 --factor 5 --factor 10
 
+        For mirrored subgroup items, each bare occurrence of ``option`` starts a
+        new item and following unprefixed child options belong to it::
+
+            --trip --mode car --travel-car-distance 100 --trip --mode train
+
         Returns a ``mo.ui.array`` whose ``.value`` is the list of item values.
+        In notebooks, pass a ``mo.state`` value and setter so the add/remove
+        buttons can update the list and trigger a rerun::
+
+            get_factors, set_factors = mo.state([])
+            factors = args.list(
+                lambda g: g.number(value=1.0, option="--factor", help_text="Factor"),
+                option="--factor",
+                help_text="Factors",
+                value=get_factors(),
+                on_change=set_factors,
+            )
+
+        For scalar item edits, ``Group.list`` wires each item to ``on_change``.
+        For mirrored ``controls_from`` items, pass ``on_change`` for add/remove
+        support; the nested child controls keep their own widget values during
+        normal notebook interaction.
         """
         opt = self._make_opt(label=label, option=option)
 
@@ -680,6 +739,40 @@ class Group:
         probe = type(self)(["_probe"])
         probe.option = self.option
         probe_ctrl = item(probe)
+        item_template = _attached_interface(probe_ctrl)
+        if item_template is not None:
+            if item_template.option_prefix != opt.option:
+                raise ValueError(
+                    "args.list() controls_from item prefix must match the list option"
+                )
+            leaves = tuple(_list_subgroup_leaves(item_template))
+            if not leaves:
+                raise ValueError("args.list() item factory must return a value control")
+            leaf_args = {
+                arg
+                for leaf in leaves
+                for arg in (leaf.bare_control().options() | leaf.bare_control().flags())
+            }
+            if opt.option in leaf_args:
+                raise ValueError(
+                    f"args.list() option {opt.option!r} conflicts with an item option"
+                )
+            stem = _relative_stem(self.option, opt.option)
+
+            def item_builder(i: int, item_dict: dict[str, typing.Any]) -> typing.Any:
+                child = self.subgroup(f"{stem}-{i}", overrides={stem: item_dict})
+                return item(child)
+
+            list_input_ctrl = _options.SubgroupListControl(
+                option=opt.option,
+                help_text=help_text,
+                default=list(value) if value is not None else [],
+                item_template_default=item_template.default,
+                leaves=leaves,
+                item_builder=item_builder,
+            )
+            return self._register_control(opt, list_input_ctrl, help_text, on_change)
+
         item_input_ctrl = probe._input_map.get(probe_ctrl)
         if item_input_ctrl is None:
             raise ValueError("args.list() item factory must return a moops control")

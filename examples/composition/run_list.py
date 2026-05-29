@@ -13,13 +13,13 @@ app = marimo.App(width="full")
 
 @app.cell(hide_code=True)
 def _(args):
-    args.md("# Trip planner — a list of notebook runs", notebook_only=True)
+    args.md("# Trip planner - a list of notebook runs", notebook_only=True)
     return
 
 
 @app.cell
-def _(args, count, trip_controls):
-    interface = args.interface(count, *trip_controls)
+def _(args, trips):
+    interface = args.interface(trips)
     interface
     return
 
@@ -49,55 +49,42 @@ def _(moops):
 
 
 @app.cell
-def _(args):
-    count = args.number(
-        value=2,
-        start=1,
-        stop=8,
-        step=1,
-        option="--trips",
-        help_text="How many trips to plan",
+def _(mo):
+    get_trips, set_trips = mo.state([])
+    return get_trips, set_trips
+
+
+@app.cell
+def _(get_trips):
+    trips_val = get_trips()
+    return (trips_val,)
+
+
+@app.cell
+def _(args, moops, set_trips, trips_val, variant_trip):
+    trips = args.list(
+        lambda g: g.controls_from(moops.interface_of(variant_trip), prefix="trip"),
+        option="--trip",
+        help_text="Trip to plan",
+        value=trips_val,
+        on_change=set_trips,
     )
-    count
-    return (count,)
+    trips
+    return (trips,)
 
 
 @app.cell
-def _(args, count, moops, variant_trip):
-    # One mirror of variant_trip's controls per trip, each in its own prefixed
-    # subgroup. controls_from recreates the child's controls here (including its
-    # variant branches) rather than embedding the app, so this stays a plain
-    # synchronous notebook. Changing the trip count rebuilds the list.
-    trip_controls = [
-        args.controls_from(moops.interface_of(variant_trip), prefix=f"trip-{i}")
-        for i in range(int(count.value))
-    ]
-    return (trip_controls,)
-
-
-@app.cell
-def _(mo, trip_controls):
-    mo.vstack(
-        [
-            mo.vstack([mo.md(f"### Trip {i + 1}"), *controls.values()])
-            for i, controls in enumerate(trip_controls)
-        ]
-    )
-    return
-
-
-@app.cell
-def _(moops, trip_controls, variant_trip):
+def _(moops, trips, variant_trip):
     # Run variant_trip once per trip with that trip's mirrored control values.
-    costs = [moops.run(variant_trip, **controls.value) for controls in trip_controls]
+    costs = [moops.run(variant_trip, **trip) for trip in trips.value]
     total = sum(costs)
     return (total,)
 
 
 @app.cell
-def _(args, total, trip_controls):
+def _(args, total, trips):
     result = total
-    args.md(f"## Total for {len(trip_controls)} trips: **${total:.2f}**")
+    args.md(f"## Total for {len(trips.value)} trips: **${total:.2f}**")
     return
 
 

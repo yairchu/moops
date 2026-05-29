@@ -13,6 +13,7 @@ from marimo._plugins.ui._core.ui_element import UIElement
 
 import moops
 import moops.group as group_module
+from examples.composition import variant_trip
 from moops import Group, _input_map, _options, _parse
 from moops.interface import CustomElement
 
@@ -1226,6 +1227,80 @@ def test_list_current_args_keeps_items_equal_to_item_default() -> None:
     iface = g.interface(ctrl)
 
     assert iface._current_args() == "--factor 1.0 --factor 2.0"  # type: ignore[attr-defined]
+
+
+def test_list_controls_from_variant_parses_nested_items() -> None:
+    variant_iface = moops.interface_of(variant_trip)
+    g = Group(
+        cli_args=[
+            "script.py",
+            "--trip",
+            "--mode",
+            "car",
+            "--travel-car-distance",
+            "100",
+            "--trip",
+            "--mode",
+            "train",
+            "--travel-train-tickets",
+            "4",
+        ]
+    )
+    ctrl = g.list(
+        option="--trip",
+        item=lambda grp: grp.controls_from(variant_iface, prefix="trip"),
+        help_text="Trips",
+        value=[],
+    )
+
+    g.interface(ctrl)
+
+    assert ctrl.value == [
+        {
+            "mode": "car",
+            "travel-car": {"distance": 100, "gas_price": 3.75},
+            "travel-train": {"tickets": 2},
+        },
+        {
+            "mode": "train",
+            "travel-car": {"distance": 120, "gas_price": 3.75},
+            "travel-train": {"tickets": 4},
+        },
+    ]
+
+
+def test_list_controls_from_current_args_round_trips_default_item() -> None:
+    variant_iface = moops.interface_of(variant_trip)
+    g = Group(cli_args=["script.py"])
+    ctrl = g.list(
+        option="--trip",
+        item=lambda grp: grp.controls_from(variant_iface, prefix="trip"),
+        help_text="Trips",
+        value=[variant_iface.default],
+    )
+
+    iface = g.interface(ctrl)
+
+    assert iface._current_args() == "--trip"  # type: ignore[attr-defined]
+
+
+def test_list_controls_from_rejects_item_option_without_anchor(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    variant_iface = moops.interface_of(variant_trip)
+    g = Group(cli_args=["script.py", "--mode", "train"])
+    ctrl = g.list(
+        option="--trip",
+        item=lambda grp: grp.controls_from(variant_iface, prefix="trip"),
+        help_text="Trips",
+        value=[],
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        g.interface(ctrl)
+
+    assert exc_info.value.code != 0
+    assert "Unexpected argument: --mode" in capsys.readouterr().out
 
 
 def test_list_standalone_query_value_round_trips(

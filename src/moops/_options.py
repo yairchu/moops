@@ -1,4 +1,5 @@
 import abc
+import copy
 import dataclasses
 import json
 import math
@@ -1015,6 +1016,16 @@ class _ListUI:
         return combined._mime_()  # type: ignore[reportPrivateUsage]
 
 
+@dataclasses.dataclass(frozen=True)
+class SubgroupListLeaf:
+    value_path: tuple[str, ...]
+    control: InputControl
+    bare_option: str
+
+    def bare_control(self) -> InputControl:
+        return self.control.with_option(self.bare_option)
+
+
 def _segment_by_anchor(raw_args: list[str], anchor: str) -> list[list[str]]:
     """Split raw_args into per-item segments at each bare anchor occurrence."""
     segments: list[list[str]] = []
@@ -1029,6 +1040,204 @@ def _segment_by_anchor(raw_args: list[str], anchor: str) -> list[list[str]]:
     if current is not None:
         segments.append(current)
     return segments
+
+
+def _set_path(
+    target: dict[str, typing.Any], path: tuple[str, ...], value: typing.Any
+) -> None:
+    current = target
+    for part in path[:-1]:
+        child = current.setdefault(part, {})
+        if not isinstance(child, dict):
+            raise TypeError(f"Cannot assign nested list item value at {path!r}")
+        current = typing.cast(dict[str, typing.Any], child)
+    current[path[-1]] = value
+
+
+def _get_path(
+    source: typing.Any, path: tuple[str, ...], default: typing.Any
+) -> typing.Any:
+    current: typing.Any = source
+    for part in path:
+        if not isinstance(current, dict) or part not in current:
+            return default
+        current = typing.cast(dict[str, typing.Any], current)[part]
+    return current
+
+
+@dataclasses.dataclass
+class SubgroupListControl(InputControl):
+    """A list whose items are mirrored subgroup interfaces."""
+
+    item_template_default: dict[str, typing.Any]
+    leaves: tuple[SubgroupListLeaf, ...]
+    item_builder: typing.Callable[[int, dict[str, typing.Any]], typing.Any]
+    default: list[dict[str, typing.Any]]
+
+    def options(self) -> set[str]:
+        return {
+            option for leaf in self.leaves for option in leaf.bare_control().options()
+        }
+
+    def flags(self) -> set[str]:
+        return {
+            self.option,
+            *(flag for leaf in self.leaves for flag in leaf.bare_control().flags()),
+        }
+
+    def allows_repeated_values(self) -> bool:
+        return True
+
+    def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
+        if err := self._validate_item_placement(args.raw_args):
+            return err
+        segments = _segment_by_anchor(args.raw_args, self.option)
+        if not segments:
+            return None
+        result: list[dict[str, typing.Any]] = []
+        for segment in segments:
+            item_args = _parse.ParsedArgs.from_options(segment)
+            if err := self._validate_item_args(item_args):
+                return err
+            item_value = copy.deepcopy(self.item_template_default)
+            for leaf in self.leaves:
+                bare_control = leaf.bare_control()
+                leaf_result = bare_control.parse(item_args)
+                if isinstance(leaf_result, ParseError):
+                    return leaf_result
+                value = (
+                    leaf_result.value
+                    if isinstance(leaf_result, ParseResult)
+                    else bare_control.default
+                )
+                _set_path(item_value, leaf.value_path, value)
+            result.append(item_value)
+        return ParseResult(result)
+
+    def _validate_item_placement(self, raw_args: list[str]) -> ParseError | None:
+        in_item = False
+        item_args = self.options() | (self.flags() - {self.option})
+        for token in raw_args:
+            if token == self.option:
+                in_item = True
+            elif not in_item and token in item_args:
+                return ParseError(f"Unexpected argument: {token}")
+        return None
+
+    def _validate_item_args(self, args: _parse.ParsedArgs) -> ParseError | None:
+        flags = self.flags() - {self.option}
+        options = {
+            option: leaf.bare_control()
+            for leaf in self.leaves
+            for option in leaf.bare_control().options()
+        }
+        for unexpected in args.unexpected:
+            return ParseError(f"Unexpected argument: {unexpected}")
+        for option, values in args.options.items():
+            if option in flags:
+                for value in values:
+                    if value is not None:
+                        return ParseError(
+                            f"{option} does not take a value, but was given: {value}"
+                        )
+            elif option in options:
+                control = options[option]
+                if len(values) > 1 and not control.allows_repeated_values():
+                    return ParseError(f"{option} was provided multiple times")
+                for value in values:
+                    if value is None:
+                        return ParseError(f"Option {option} requires a value")
+            else:
+                return ParseError(f"Unexpected argument: {option}")
+        return None
+
+    def format_usage_parts(self) -> list[str]:
+        inner = " ".join(
+            part
+            for leaf in self.leaves
+            for part in leaf.bare_control().format_usage_parts()
+        )
+        return [f"[{self.option} {inner} ...]"]
+
+    def format_help_lines(self) -> list[str]:
+        return [
+            f"  {self.option}: Add an item (repeat to add more)",
+            *[
+                line + " (per item)"
+                for leaf in self.leaves
+                for line in leaf.bare_control().format_help_lines()
+            ],
+        ]
+
+    def format_value(self, value: typing.Any) -> list[str]:
+        result: list[str] = []
+        for item in value:
+            result.append(self.option)
+            for leaf in self.leaves:
+                bare_control = leaf.bare_control()
+                result.extend(
+                    bare_control.format_value(
+                        _get_path(item, leaf.value_path, bare_control.default)
+                    )
+                )
+        return result
+
+    def format_query_value(self, value: typing.Any) -> str | None:
+        del value
+        return None
+
+    def parse_query_value(self, value: str) -> ParseResult | ParseError:
+        del value
+        return ParseError(
+            f"Query parameters are not supported for compound list {self.option}"
+        )
+
+    def strategy(self) -> st.SearchStrategy:
+        leaf_strategies = {
+            leaf.value_path: leaf.bare_control().strategy() for leaf in self.leaves
+        }
+
+        def assemble(
+            values: dict[tuple[str, ...], typing.Any],
+        ) -> dict[str, typing.Any]:
+            item = copy.deepcopy(self.item_template_default)
+            for path, value in values.items():
+                _set_path(item, path, value)
+            return item
+
+        return st.lists(st.fixed_dictionaries(leaf_strategies).map(assemble))
+
+    def create_marimo_element(
+        self,
+        value: typing.Any,
+        label: str,
+        *,
+        on_change: typing.Callable[[typing.Any], None] | None = None,
+        disabled: bool = False,
+    ) -> typing.Any:
+        del label, disabled
+        items = [copy.deepcopy(item) for item in value]
+        elements = [self.item_builder(i, item) for i, item in enumerate(items)]
+        array = mo.ui.array(elements)
+        if on_change is not None and mo.running_in_notebook():
+            add_btn = mo.ui.button(
+                label="+ Add",
+                on_click=lambda _: on_change(
+                    [*list(array.value), copy.deepcopy(self.item_template_default)]
+                ),
+            )
+            remove_btn = mo.ui.button(
+                label="- Remove",
+                on_click=lambda _: (
+                    on_change(list(array.value)[:-1]) if array.value else None
+                ),
+            )
+            return _ListUI(array, add_btn, remove_btn)
+        return array
+
+    def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
+        del effective_default
+        return []
 
 
 @dataclasses.dataclass
