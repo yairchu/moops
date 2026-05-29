@@ -29,6 +29,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   factory is what lets `controls_from` recreate the component. `value` now
   receives `(component, fallback)` so it can read the fallback supplied in the
   current context (e.g. after mirroring).
+- `Group.controls_from()` now hides inactive variant branches in notebook UI,
+  while keeping their controls present for CLI validation and value passing.
 
 ### Fixed
 

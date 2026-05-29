@@ -12,6 +12,7 @@ import pytest
 from marimo._plugins.ui._core.ui_element import UIElement
 
 import moops
+import moops._control_mirroring as control_mirroring
 import moops.group as group_module
 from examples.composition import variant_trip
 from moops import Group, _input_map, _options, _parse
@@ -706,6 +707,66 @@ def test_controls_from_creates_prefixed_dictionary_controls() -> None:
     }
 
 
+def test_variant_interfaces_expose_branch_metadata() -> None:
+    g = Group(cli_args=["script.py"])
+    mode = g.dropdown(
+        ["car", "train"],
+        value="car",
+        option="--mode",
+        help_text="Mode",
+        allow_select_none=False,
+    )
+    branches = g.variant("travel", mode)
+    distance = branches["car"].number(option="--distance", help_text="Miles")
+    car_iface = branches["car"].interface(distance)
+
+    assert car_iface.variant_selector_option == "--mode"
+    assert car_iface.variant_selector_parent_prefix == ""
+    assert car_iface.variant_key == "car"
+    assert car_iface.variant_group_prefix == "travel"
+
+
+def test_controls_from_variant_displays_only_active_branch() -> None:
+    variant_iface = moops.interface_of(variant_trip)
+    parent = Group(cli_args=["parent.py"])
+    trip = parent.controls_from(variant_iface, prefix="trip")
+    visible = typing.cast(typing.Any, trip)
+
+    assert list(trip.elements) == ["mode", "travel-car", "travel-train"]
+    assert list(visible._moops_visible_elements()) == ["mode", "travel-car"]
+
+    parent = Group(cli_args=["parent.py", "--trip-mode", "train"])
+    trip = parent.controls_from(variant_iface, prefix="trip")
+    visible = typing.cast(typing.Any, trip)
+
+    assert list(visible._moops_visible_elements()) == ["mode", "travel-train"]
+
+
+def test_variant_display_uses_selected_key_without_reading_value() -> None:
+    class GuardedValueControl:
+        _selected_key = "train"
+        _moops_input = _options.DropdownControl(
+            option="--mode",
+            dropdown_opts={"car": "car", "train": "train"},
+            supports_none=False,
+            default="car",
+            help_text="Mode",
+        )
+
+        @property
+        def value(self) -> typing.NoReturn:
+            raise RuntimeError("value should not be read")
+
+    ctrl = GuardedValueControl()
+    iface = moops.Interface((ctrl,))
+    select = typing.cast(
+        typing.Callable[[moops.Interface, str], typing.Any],
+        typing.cast(typing.Any, control_mirroring)._selected_value_for_option,
+    )
+
+    assert select(iface, "--mode") == "train"
+
+
 def test_controls_from_supports_overridden_multiselect() -> None:
     source = Group(cli_args=["child.py"])
     survive = source.multiselect(
@@ -1336,6 +1397,33 @@ def test_list_controls_from_item_edits_update_outer_list_state(
 
     assert changes[-2][0]["mode"] == "train"
     assert changes[-1][0]["travel-train"]["tickets"] == 4
+
+
+def test_list_controls_from_variant_displays_only_active_branch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    variant_iface = moops.interface_of(variant_trip)
+    g = Group(cli_args=["script.py"])
+    monkeypatch.setattr(_options.mo, "running_in_notebook", lambda: True)
+    fake_query_params: dict[str, typing.Any] = {}
+    monkeypatch.setattr(_options.mo, "query_params", lambda: fake_query_params)
+    ctrl = g.list(
+        option="--trip",
+        item=lambda grp: grp.controls_from(variant_iface, prefix="trip"),
+        help_text="Trips",
+        value=[
+            {
+                "mode": "train",
+                "travel-car": {"distance": 120, "gas_price": 3.75},
+                "travel-train": {"tickets": 4},
+            }
+        ],
+        on_change=lambda _: None,
+    )
+
+    item = ctrl._array.elements[0]  # type: ignore[attr-defined]
+
+    assert list(item._moops_visible_elements()) == ["mode", "travel-train"]
 
 
 def test_list_controls_from_rejects_item_option_without_anchor(

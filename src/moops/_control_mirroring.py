@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import typing
 
 import marimo as mo
@@ -13,7 +14,7 @@ def controls_from(
     *,
     prefix: str,
     exclude: typing.Iterable[str] = (),
-) -> mo.ui.dictionary:
+) -> typing.Any:
     """Create a subgroup of controls mirroring another notebook's interface."""
     child = group.subgroup(prefix)
     excluded = set(exclude)
@@ -34,8 +35,154 @@ def controls_from(
         _reattach_interface_to_clone(original, result.elements[key])
     # Use the live clones (result.elements) rather than the originals so
     # that cur_values() reads up-to-date widget values.
-    result._moops_interface = child.interface(*result.elements.values())  # type: ignore[attr-defined]
+    mirrored_iface = child.interface(*result.elements.values())
+    _copy_variant_metadata(iface, mirrored_iface, group.option)
+    result._moops_interface = mirrored_iface  # type: ignore[attr-defined]
+    if _has_variant_branches(mirrored_iface):
+        return VariantAwareDictionary(result)
     return result
+
+
+class VariantAwareDictionary:
+    """Display proxy that hides inactive variant branches in notebooks."""
+
+    def __init__(self, dictionary: mo.ui.dictionary) -> None:
+        self._dictionary = dictionary
+        self._id = getattr(dictionary, "_id", f"variant-dict-{id(self)}")
+        self._moops_interface = typing.cast(typing.Any, dictionary)._moops_interface
+
+    @property
+    def value(self) -> typing.Any:
+        return self._dictionary.value
+
+    @property
+    def elements(self) -> dict[str, typing.Any]:
+        return self._dictionary.elements
+
+    def _moops_visible_elements(self) -> dict[str, typing.Any]:
+        iface = typing.cast(interface.Interface, self._moops_interface)
+        result: dict[str, typing.Any] = {}
+        rendered_variant_groups: set[tuple[str, str]] = set()
+        for name, element in self.elements.items():
+            sub_iface = _attached_interface(element)
+            if sub_iface is None or sub_iface.variant_group_prefix is None:
+                result[name] = element
+                continue
+            assert sub_iface.variant_selector_option is not None
+            group_key = (
+                sub_iface.variant_selector_option,
+                sub_iface.variant_group_prefix,
+            )
+            if group_key in rendered_variant_groups:
+                continue
+            rendered_variant_groups.add(group_key)
+            active = _active_variant_element(iface, self.elements, sub_iface)
+            if active is not None:
+                active_name, active_element = active
+                result[active_name] = active_element
+        return result
+
+    def _mime_(self) -> typing.Any:
+        visible = mo.vstack(list(self._moops_visible_elements().values()))
+        return typing.cast(typing.Any, visible)._mime_()
+
+    def __deepcopy__(self, memo: dict[int, typing.Any]) -> VariantAwareDictionary:
+        return type(self)(copy.deepcopy(self._dictionary, memo))
+
+    def __getattr__(self, name: str) -> typing.Any:
+        return getattr(self._dictionary, name)
+
+
+def _active_variant_element(
+    root_iface: interface.Interface,
+    elements: dict[str, typing.Any],
+    variant_iface: interface.Interface,
+) -> tuple[str, typing.Any] | None:
+    selector_option = variant_iface.variant_selector_option
+    variant_group_prefix = variant_iface.variant_group_prefix
+    selected = _selected_value_for_option(root_iface, selector_option)
+    if selected is None:
+        return None
+    selected_key = (
+        str(selected).lower() if isinstance(selected, bool) else str(selected)
+    )
+    for name, element in elements.items():
+        sub_iface = _attached_interface(element)
+        if (
+            sub_iface is not None
+            and sub_iface.variant_selector_option == selector_option
+            and sub_iface.variant_group_prefix == variant_group_prefix
+            and sub_iface.variant_key == selected_key
+        ):
+            return name, element
+    return None
+
+
+def _selected_value_for_option(
+    iface: interface.Interface, selector_option: str | None
+) -> typing.Any:
+    if selector_option is None:
+        return None
+    for ctrl in iface.controls:
+        sub_iface = _attached_interface(ctrl)
+        if sub_iface is not None:
+            selected = _selected_value_for_option(sub_iface, selector_option)
+            if selected is not None:
+                return selected
+            continue
+        input_control = iface.input_map.get(ctrl)
+        if input_control is not None and input_control.option == selector_option:
+            if hasattr(ctrl, "_selected_key"):
+                return ctrl._selected_key
+            return ctrl.value
+    return None
+
+
+def _has_variant_branches(iface: interface.Interface) -> bool:
+    return any(
+        (sub_iface := _attached_interface(ctrl)) is not None
+        and sub_iface.variant_group_prefix is not None
+        for ctrl in iface.controls
+    )
+
+
+def _attached_interface(ctrl: typing.Any) -> interface.Interface | None:
+    if isinstance(ctrl, interface.Interface):
+        return ctrl
+    iface = getattr(ctrl, "_moops_interface", None)
+    return iface if isinstance(iface, interface.Interface) else None
+
+
+def _copy_variant_metadata(
+    source: interface.Interface,
+    target: interface.Interface,
+    mirrored_parent_prefix: str,
+) -> None:
+    target.variant_key = source.variant_key
+    target.variant_group_prefix = source.variant_group_prefix
+    target.variant_selector_parent_prefix = source.variant_selector_parent_prefix
+    target.variant_selector_option = _mirrored_selector_option(
+        source.variant_selector_option,
+        source.variant_selector_parent_prefix,
+        mirrored_parent_prefix,
+    )
+
+
+def _mirrored_selector_option(
+    selector_option: str | None,
+    source_parent_prefix: str,
+    mirrored_parent_prefix: str,
+) -> str | None:
+    if selector_option is None:
+        return None
+    relative = selector_option
+    if source_parent_prefix and selector_option.startswith(f"{source_parent_prefix}-"):
+        relative = f"--{selector_option[len(source_parent_prefix) :].lstrip('-')}"
+    return (
+        f"{mirrored_parent_prefix}-{relative.lstrip('-')}"
+        if mirrored_parent_prefix
+        else relative
+    )
 
 
 def _create_control(

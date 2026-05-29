@@ -999,21 +999,41 @@ class _ListUI:
         array: typing.Any,
         add_btn: typing.Any,
         remove_btn: typing.Any,
+        *,
+        display: typing.Any | None = None,
+        value_getter: typing.Callable[[], list[typing.Any]] | None = None,
     ) -> None:
         self._array = array
+        self._display = display if display is not None else array
+        self._value_getter = value_getter
         self._add_btn = add_btn
         self._remove_btn = remove_btn
         self._id = array._id
 
     @property
     def value(self) -> list[typing.Any]:
+        if self._value_getter is not None:
+            return self._value_getter()
         return list(self._array.value)
 
     def _mime_(self) -> typing.Any:
         combined = mo.vstack(
-            [self._array, mo.hstack([self._add_btn, self._remove_btn])]
+            [self._display, mo.hstack([self._add_btn, self._remove_btn])]
         )
         return combined._mime_()  # type: ignore[reportPrivateUsage]
+
+
+class _ElementList:
+    """Minimal array-like adapter for live child elements."""
+
+    def __init__(self, elements: list[typing.Any]) -> None:
+        self.elements = elements
+        fallback_id = f"list-{id(self)}"
+        self._id = getattr(elements[0], "_id", fallback_id) if elements else fallback_id
+
+    @property
+    def value(self) -> list[typing.Any]:
+        return [element.value for element in self.elements]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -1228,40 +1248,52 @@ class SubgroupListControl(InputControl):
         del label, disabled
         items = [copy.deepcopy(item) for item in value]
         elements = [self.item_builder(i, item) for i, item in enumerate(items)]
-        array = mo.ui.array(elements)
         if on_change is not None and mo.running_in_notebook():
-            self._attach_item_change_handlers(array, on_change)
+            self._attach_item_change_handlers(elements, on_change)
+
+            def value_getter() -> list[typing.Any]:
+                return [element.value for element in elements]
+
             add_btn = mo.ui.button(
                 label="+ Add",
                 on_click=lambda _: on_change(
-                    [*list(array.value), copy.deepcopy(self.item_template_default)]
+                    [*value_getter(), copy.deepcopy(self.item_template_default)]
                 ),
             )
             remove_btn = mo.ui.button(
                 label="- Remove",
                 on_click=lambda _: (
-                    on_change(list(array.value)[:-1]) if array.value else None
+                    on_change(value_getter()[:-1]) if value_getter() else None
                 ),
             )
-            return _ListUI(array, add_btn, remove_btn)
-        return array
+            return _ListUI(
+                _ElementList(elements),
+                add_btn,
+                remove_btn,
+                display=mo.vstack(elements),
+                value_getter=value_getter,
+            )
+        return mo.ui.array(elements)
 
     def _attach_item_change_handlers(
         self,
-        array: typing.Any,
+        item_elements: list[typing.Any],
         on_change: typing.Callable[[typing.Any], None],
     ) -> None:
-        for idx, item_element in enumerate(array.elements):
+        def value_getter() -> list[typing.Any]:
+            return [element.value for element in item_elements]
+
+        for idx, item_element in enumerate(item_elements):
             for leaf in self.leaves:
                 element = _element_at_path(item_element, leaf.value_path)
                 if element is not None:
                     self._attach_leaf_change_handler(
-                        array, idx, leaf.value_path, element, on_change
+                        value_getter, idx, leaf.value_path, element, on_change
                     )
 
     def _attach_leaf_change_handler(
         self,
-        array: typing.Any,
+        value_getter: typing.Callable[[], list[typing.Any]],
         idx: int,
         path: tuple[str, ...],
         element: typing.Any,
@@ -1272,7 +1304,7 @@ class SubgroupListControl(InputControl):
         def handle_change(new_value: typing.Any) -> None:
             if callable(previous_on_change):
                 previous_on_change(new_value)
-            items = [copy.deepcopy(item) for item in array.value]
+            items = [copy.deepcopy(item) for item in value_getter()]
             if idx >= len(items):
                 return
             _set_path(items[idx], path, new_value)

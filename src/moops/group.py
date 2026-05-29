@@ -107,6 +107,10 @@ class Group:
         self._help_heading: str | None = None
         self._usage_placeholder: str | None = None
         self._usage_after_option: str | None = None
+        self._variant_selector_option: str | None = None
+        self._variant_selector_parent_prefix: str = ""
+        self._variant_key: str | None = None
+        self._variant_group_prefix: str | None = None
         self._subgroup_registry = interface.SubgroupRegistry()
         self._value_resolver = self._make_value_resolver()
 
@@ -184,6 +188,10 @@ class Group:
         child._help_heading = None
         child._usage_placeholder = None
         child._usage_after_option = None
+        child._variant_selector_option = None
+        child._variant_selector_parent_prefix = ""
+        child._variant_key = None
+        child._variant_group_prefix = None
         child._overrides = {**self._overrides.get(prefix, {}), **(overrides or {})}
         child.option = f"{self.option}-{prefix}" if self.option else f"--{prefix}"
         child._presets = presets
@@ -228,6 +236,10 @@ class Group:
             group._help_heading = heading
             group._usage_placeholder = usage_placeholder
             group._usage_after_option = selector_option
+            group._variant_selector_option = selector_option
+            group._variant_selector_parent_prefix = self.option
+            group._variant_key = key_text
+            group._variant_group_prefix = prefix
             result[key] = group
         return result
 
@@ -272,6 +284,10 @@ class Group:
             usage_placeholder=self._usage_placeholder,
             usage_after_option=self._usage_after_option,
             disabled=self._disabled,
+            variant_selector_option=self._variant_selector_option,
+            variant_selector_parent_prefix=self._variant_selector_parent_prefix,
+            variant_key=self._variant_key,
+            variant_group_prefix=self._variant_group_prefix,
         )
         if self._parent_group is not None:
             self._parent_group._subgroup_registry.register(iface)

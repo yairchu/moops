@@ -77,6 +77,10 @@ class Interface:
     usage_placeholder: str | None = None
     usage_after_option: str | None = None
     disabled: bool = False
+    variant_selector_option: str | None = None
+    variant_selector_parent_prefix: str = ""
+    variant_key: str | None = None
+    variant_group_prefix: str | None = None
 
     def __post_init__(self) -> None:
         seen_ids: set[int] = set()
