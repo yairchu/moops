@@ -1382,7 +1382,19 @@ class SubgroupListControl(InputControl):
 
     def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
         del effective_default
-        return []
+        if not self.leaves:
+            return []
+        tokens: list[str] = []
+        first_leaf, *remaining_leaves = self.leaves
+        while True:
+            first_tokens = first_leaf.bare_control().prompt_interactive()
+            if not first_tokens:
+                break
+            tokens.append(self.option)
+            tokens.extend(first_tokens)
+            for leaf in remaining_leaves:
+                tokens.extend(leaf.bare_control().prompt_interactive())
+        return tokens
 
 
 @dataclasses.dataclass
