@@ -1034,6 +1034,46 @@ def test_custom_control_notebook_element_reuses_component_id(
     assert typing.cast(typing.Any, ctrl).value == [2, 8]
 
 
+def test_custom_control_build_uses_fallback_snapshot_without_reading_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Direct notebook custom controls must not read fallback.value in the cell
+    that creates the fallback; marimo guards that access."""
+    g = Group(cli_args=["script.py", "--window", "3,7"])
+    fallback = g.range_slider(
+        start=0,
+        stop=10,
+        value=[1, 9],
+        option="--window",
+        help_text="Window",
+    )
+    input_control = g._input_map.get(fallback)  # type: ignore[reportPrivateUsage]
+    assert input_control is not None
+
+    class GuardedFallback:
+        _id = fallback._id  # type: ignore[reportPrivateUsage]
+        _moops_input = input_control
+        _value = fallback._value  # type: ignore[reportPrivateUsage]
+
+        @property
+        def value(self) -> typing.NoReturn:
+            raise RuntimeError("fallback.value should not be read")
+
+    empty_params: dict[str, str] = {}
+    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
+    monkeypatch.setattr(group_module.mo, "query_params", lambda: empty_params)
+    built_values: list[typing.Any] = []
+
+    def build(window: typing.Any) -> mo.ui.range_slider:
+        built_values.append(window)
+        return mo.ui.range_slider(start=0, stop=10, value=list(window))
+
+    ctrl = g.custom(GuardedFallback(), build)
+
+    assert built_values == [[3, 7]]
+    assert ctrl.value == [3, 7]
+
+
 def test_custom_control_recreated_through_controls_from(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1232,6 +1272,28 @@ def test_list_non_merged_anchor_parses_correctly() -> None:
     iface = g.interface(ctrl)
     assert iface.missing_options() == []
     assert ctrl.value == [2.0, 5.0]
+
+
+def test_list_non_merged_allows_following_sibling_options() -> None:
+    """A non-merged list item should end before the next sibling option.
+
+    The parser must not consume every later CLI token as part of the last list
+    item; otherwise ordinary options after the list are rejected as item args.
+    """
+    g = Group(cli_args=["script.py", "--add", "--factor", "2", "--name", "Bob"])
+    factors = g.list(
+        option="--add",
+        item=lambda grp: grp.number(value=1.0, option="--factor", help_text="Factor"),
+        help_text="Factors",
+        value=[],
+    )
+    name = g.text(option="--name", help_text="Name")
+
+    iface = g.interface(factors, name)
+
+    assert iface.missing_options() == []
+    assert factors.value == [2.0]
+    assert name.value == "Bob"
 
 
 def test_list_non_merged_item_option_without_anchor_is_rejected(
