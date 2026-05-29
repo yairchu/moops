@@ -14,6 +14,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   --factor 5`) with a matching add/remove UI in notebooks. Supports both merged
   mode (anchor option == item option) and non-merged mode (bare anchor option
   separates items).
+- `Group.controls_from()` now recreates custom controls (`Group.custom()`) when
+  mirroring a child notebook, rebuilding the notebook component in the parent
+  instead of falling back to the bare fallback control.
+
+### Changed
+
+- **Breaking:** `Group.custom()` now takes `custom(fallback, build, *,
+  value=None)` where `build(value)` is a factory that constructs the notebook
+  component from the fallback's resolved value, replacing the previous
+  `custom(control, fallback, *, value=...)` that took a pre-built control. The
+  factory is what lets `controls_from` recreate the component. `value` now
+  receives `(component, fallback)` so it can read the fallback supplied in the
+  current context (e.g. after mirroring).
 
 ### Fixed
 

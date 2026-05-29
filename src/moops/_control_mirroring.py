@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 import typing
 
 import marimo as mo
@@ -56,7 +55,7 @@ def _create_from_input_control(
 ) -> typing.Any:
     """Create a marimo element from an existing InputControl."""
     opt = group._make_opt(label=None, option=display_option)
-    cloned = dataclasses.replace(input_control, option=opt.option)
+    cloned = input_control.with_option(opt.option)
     return group._register_control(opt, cloned, cloned.help_text, None)
 
 

@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.6"
+__generated_with = "0.23.8"
 app = marimo.App(width="full")
 
 
@@ -58,31 +58,33 @@ def _(args, default_x_window):
 
 @app.cell
 def _(args, fallback_slider, mo, plt, x, y):
-    def _x_range_from_selection(selection_plot):
-        selection = selection_plot.value
-        return (
-            (selection.x_min, selection.x_max) if selection else fallback_slider.value
+    # `build` is a factory so controls_from can recreate the selection plot when
+    # this notebook is mirrored into a parent. It depends only on x/y (static)
+    # and the fallback's resolved value, so it replays in any context.
+    def _build_selection(x_range):
+        _fig, _ax = plt.subplots(figsize=(10, 5))
+        plt.plot(x, y)
+        plt.axvspan(
+            *x_range,
+            color="tab:orange",
+            alpha=0.18,
+            label="preset range",
         )
+        for _x in x_range:
+            plt.axvline(_x, color="tab:orange", alpha=0.75, linewidth=1)
+        plt.grid()
+        plt.xlabel("time (seconds)")
+        plt.ylabel("signal")
+        plt.title("Drag on the plot to choose an x range")
+        plt.legend()
+        return mo.ui.matplotlib(_ax, debounce=True)
 
-    _fig, _ax = plt.subplots(figsize=(10, 5))
-    plt.plot(x, y)
-    plt.axvspan(
-        *fallback_slider.value,
-        color="tab:orange",
-        alpha=0.18,
-        label="preset range",
-    )
-    for _x in fallback_slider.value:
-        plt.axvline(_x, color="tab:orange", alpha=0.75, linewidth=1)
-    plt.grid()
-    plt.xlabel("time (seconds)")
-    plt.ylabel("signal")
-    plt.title("Drag on the plot to choose an x range")
-    plt.legend()
+    def _x_range_from_selection(selection_plot, fallback):
+        selection = selection_plot.value
+        return (selection.x_min, selection.x_max) if selection else fallback.value
 
-    _plot_selection = mo.ui.matplotlib(_ax, debounce=True)
     x_window = args.custom(
-        _plot_selection, fallback_slider, value=_x_range_from_selection
+        fallback_slider, _build_selection, value=_x_range_from_selection
     )
     x_window
     return (x_window,)

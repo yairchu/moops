@@ -85,11 +85,10 @@ def _(board_cli, set_board):
 def _(args, board_cli, get_board, mo):
     # A custom control is necessary to enable the "Step" mechanism.
 
-    _board_display = mo.ui.text_area(
-        value=get_board(),
-        label="Current board",
+    board_input = args.custom(
+        board_cli,
+        lambda board: mo.ui.text_area(value=get_board(), label="Current board"),
     )
-    board_input = args.custom(_board_display, fallback=board_cli)
     board_input
     return (board_input,)
 

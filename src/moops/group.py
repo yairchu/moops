@@ -486,31 +486,44 @@ class Group:
 
     def custom(
         self,
-        control: typing.Any,
         fallback: typing.Any,
+        build: typing.Callable[[typing.Any], typing.Any],
         *,
-        value: typing.Callable[[typing.Any], typing.Any] | None = None,
-    ) -> interface.CustomControl:
-        """Use a custom notebook control with a moops control as the CLI fallback.
+        value: typing.Callable[[typing.Any, typing.Any], typing.Any] | None = None,
+    ) -> typing.Any:
+        """Pair a notebook-only component with a moops control as CLI fallback.
 
         `fallback` must be a control created by this group, such as
-        `group.range_slider(...)`. In notebooks, `control` is rendered and its
-        value is used. Outside notebooks, `fallback` is used so CLI parsing,
-        help text, and interactive prompts keep their normal behavior.
+        `group.range_slider(...)`. `build(value)` constructs the notebook
+        component from the fallback's resolved value; in notebooks the component
+        is rendered and `value(component, fallback)` supplies its value. Outside
+        notebooks, `build` is not called and the fallback is used so CLI
+        parsing, help text, and interactive prompts keep their normal behavior.
 
-        Pass `value=` when the notebook control's `.value` does not match the
-        fallback control's value shape. It is only applied to the notebook
-        control; outside notebooks, the fallback's value is used directly.
+        `build` is a factory (not a pre-built element) so that
+        `Group.controls_from` can recreate the component when mirroring this
+        control into a parent notebook. For that to work, `build` must depend
+        only on data available during an interface query (avoid gating its
+        inputs behind `mo.stop(args.is_interface_query)`). It receives the
+        fallback's *value*, not the element: controls_from creates the fallback
+        and calls build in a single cell, and marimo forbids reading a control's
+        value in the cell that created it.
+
+        Pass `value=` when the component's `.value` does not match the fallback
+        control's value shape; it receives `(component, fallback)` so it can
+        fall back to the fallback's live value (e.g. when nothing is selected).
         """
 
-        input_control = self._input_map.get(fallback)
-        if input_control is None:
+        inner = self._input_map.get(fallback)
+        if inner is None:
             raise ValueError("fallback must be a control created by this Group")
-        wrapped = interface.CustomControl(
-            active=control if mo.running_in_notebook() else fallback,
-            value=value if mo.running_in_notebook() else None,
+        custom_control = _options.CustomControl.wrap(inner, build, value)
+        element = (
+            interface.CustomElement(build(fallback.value), fallback, value)
+            if mo.running_in_notebook()
+            else fallback
         )
-        return self._input_map.register(wrapped, input_control)
+        return self._input_map.register(element, custom_control)
 
     @staticmethod
     def run_button(

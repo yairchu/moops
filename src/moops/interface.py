@@ -464,39 +464,108 @@ class _PresetsUI:
         )
 
 
-class CustomControl(UIElement[typing.Any, typing.Any]):
-    """Wrap a notebook-only control with a CLI-compatible fallback control."""
+class _ValueView:
+    """Exposes a UIElement's value without tripping marimo's same-cell guard.
 
-    def __init__(
-        self,
-        *,
-        active: typing.Any,
-        value: typing.Callable[[typing.Any], typing.Any] | None = None,
-    ) -> None:
-        if not isinstance(active, UIElement):
-            raise TypeError("custom controls must wrap a marimo UIElement")
-        self._active: UIElement[typing.Any, typing.Any] = active
-        self._value = value or _default_custom_value
-        # Deliberately skip super().__init__(): we reuse the wrapped element's
-        # identity so marimo's reactive DAG treats this as the same element.
-        # Calling super().__init__() would register a new element and ID.
-        self._id = active._id
-        self._lens = active._lens
+    `.value` reads the element's converted `_value` attribute directly, which is
+    safe to read in the cell that created the element (unlike the `.value`
+    property). Other attribute access delegates to the element.
+    """
+
+    def __init__(self, element: typing.Any) -> None:
+        self._element = element
 
     @property
     def value(self) -> typing.Any:
-        return self._value(self._active)
+        return self._element._value
+
+    def __getattr__(self, name: str) -> typing.Any:
+        return getattr(self._element, name)
+
+
+class CustomElement(UIElement[typing.Any, typing.Any]):
+    """A notebook component whose value is derived from a fallback control.
+
+    ``component`` is the rendered notebook-only element (e.g. a plot selector);
+    ``fallback`` is the moops control that supplies CLI behavior and defaults;
+    ``value_fn(component, fallback)`` maps to the fallback-shaped value.
+
+    The element reuses ``component``'s identity (so marimo's reactive DAG treats
+    it as the same element) and implements marimo's child-element "view"
+    protocol by delegating to ``component``. This lets it survive the deepcopy
+    that ``mo.ui.dictionary`` performs, so ``controls_from`` can mirror it into a
+    parent notebook and have the component recreated there.
+    """
+
+    def __init__(
+        self,
+        component: typing.Any,
+        fallback: typing.Any,
+        value_fn: typing.Callable[[typing.Any, typing.Any], typing.Any] | None = None,
+    ) -> None:
+        if not isinstance(component, UIElement):
+            raise TypeError("custom controls must build a marimo UIElement")
+        self._component: UIElement[typing.Any, typing.Any] = component
+        self._fallback = fallback
+        self._value_fn = value_fn or _default_custom_value
+        # Deliberately skip super().__init__(): we reuse the wrapped component's
+        # identity so marimo's reactive DAG treats this as the same element.
+        # Calling super().__init__() would register a new element and ID.
+        self._id = component._id
+        self._lens = component._lens
+
+    @property
+    def _value(self) -> typing.Any:
+        # Computed live: in a notebook the frontend routes updates to the
+        # registered component (which shares our id), not to this wrapper, so we
+        # must read through to it. mo.ui.dictionary reads this attribute too.
+        #
+        # value_fn reads `.value` on the component and fallback, but
+        # mo.ui.dictionary reads this `_value` while constructing in the same
+        # cell that created them -- and marimo forbids the `.value` *property*
+        # there. So hand value_fn views whose `.value` reads the unguarded
+        # `_value` attribute instead; it stays live because the frontend updates
+        # that attribute on the underlying element.
+        return self._value_fn(_ValueView(self._component), _ValueView(self._fallback))
+
+    @property
+    def value(self) -> typing.Any:
+        return self._value
 
     @value.setter
     def value(self, value: typing.Any) -> None:
         del value
         raise RuntimeError("Setting the value of a UIElement is not allowed.")
 
+    def _update(self, value: typing.Any) -> None:
+        self._component._update(value)
+
+    def _on_update_completion(self) -> bool:
+        return self._component._on_update_completion()
+
+    def _register_as_view(self, parent: typing.Any, key: str) -> None:
+        super()._register_as_view(parent, key)
+        self._component._register_as_view(parent, key)
+
+    def _clone(self) -> "CustomElement":
+        clone = CustomElement(self._component._clone(), self._fallback, self._value_fn)
+        # Preserve the input-channel link the way marimo's deepcopy-based clone
+        # would (it copies __dict__), so input_map.get() still resolves the
+        # mirrored clone and keeps its InputControl alive.
+        moops_input = self.__dict__.get("_moops_input")
+        if moops_input is not None:
+            clone._moops_input = moops_input
+        return clone
+
+    def __deepcopy__(self, memo: dict[int, typing.Any]) -> "CustomElement":
+        del memo
+        return self._clone()
+
     def _mime_(self) -> tuple[str, str]:  # type: ignore[override]
-        return self._active._mime_()
+        return self._component._mime_()
 
     def __getattr__(self, name: str) -> typing.Any:
-        return getattr(self._active, name)
+        return getattr(self._component, name)
 
 
 def _ctrl_value(ctrl: typing.Any) -> typing.Any:
@@ -575,5 +644,6 @@ def _ui_dictionary_elements(ctrl: typing.Any) -> dict[str, typing.Any] | None:
     )
 
 
-def _default_custom_value(ctrl: typing.Any) -> typing.Any:
-    return ctrl.value
+def _default_custom_value(component: typing.Any, fallback: typing.Any) -> typing.Any:
+    del fallback
+    return component.value

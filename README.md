@@ -121,8 +121,13 @@ does not wrap directly, while the CLI should use a supported fallback control.
 The fallback supplies the CLI parser, help text, defaults, and query-parameter
 format.
 
+`build(value)` is a factory that constructs the notebook component from the
+fallback's resolved value. Passing a factory (rather than a pre-built control)
+lets `controls_from` recreate the component when the notebook is mirrored into a
+parent. `value(component, fallback)` maps the component's value to the
+fallback's shape.
+
 ```python
-plot_selection = mo.ui.matplotlib(ax)
 fallback_slider = args.range_slider(
     start=0,
     stop=100,
@@ -131,11 +136,11 @@ fallback_slider = args.range_slider(
     help_text="X axis range",
 )
 x_range = args.custom(
-    plot_selection,
     fallback_slider,
-    value=lambda plot:
+    lambda x_range: mo.ui.matplotlib(build_selection_plot(x_range)),
+    value=lambda plot, fallback:
         [plot.value.x_min, plot.value.x_max]
-        if plot.value else fallback_slider.value,
+        if plot.value else fallback.value,
 )
 ```
 

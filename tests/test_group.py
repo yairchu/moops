@@ -14,6 +14,7 @@ from marimo._plugins.ui._core.ui_element import UIElement
 import moops
 import moops.group as group_module
 from moops import Group, _input_map, _options, _parse
+from moops.interface import CustomElement
 
 
 def test_help_exits_zero() -> None:
@@ -930,7 +931,9 @@ def test_nested_controls_from_current_args_reflects_live_widget_changes() -> Non
     }
 
 
-def test_custom_control_is_bound_to_wrapped_ui_element() -> None:
+def test_custom_control_notebook_element_reuses_component_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     g = Group(cli_args=["script.py"])
     fallback = g.range_slider(
         start=0,
@@ -939,11 +942,58 @@ def test_custom_control_is_bound_to_wrapped_ui_element() -> None:
         option="--window",
         help_text="Window",
     )
+    empty_params: dict[str, str] = {}
+    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
+    monkeypatch.setattr(group_module.mo, "query_params", lambda: empty_params)
+    component = mo.ui.range_slider(start=0, stop=10, value=[2, 8])
 
-    ctrl = g.custom(fallback, fallback)
+    def window_value(c: typing.Any, _fb: typing.Any) -> list[int]:
+        return list(c.value)
+
+    ctrl = g.custom(fallback, lambda _value: component, value=window_value)
 
     assert isinstance(ctrl, UIElement)
-    assert typing.cast(typing.Any, ctrl)._id == typing.cast(typing.Any, fallback)._id
+    assert typing.cast(typing.Any, ctrl)._id == typing.cast(typing.Any, component)._id
+    assert typing.cast(typing.Any, ctrl).value == [2, 8]
+
+
+def test_custom_control_recreated_through_controls_from(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # controls_from must rebuild the notebook component (not just the fallback)
+    # when mirroring a child notebook that uses a custom control, and the
+    # component's transformed value must flow through the mirror dictionary.
+    child = Group(cli_args=["child.py"])
+    fallback = child.range_slider(
+        start=0, stop=100, value=[10, 20], option="--window", help_text="Window"
+    )
+    parent = Group(cli_args=["parent.py", "--step-window", "30,40"])
+
+    empty_params: dict[str, str] = {}
+    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
+    monkeypatch.setattr(group_module.mo, "query_params", lambda: empty_params)
+
+    def window_value(component: typing.Any, fb: typing.Any) -> dict[str, list[int]]:
+        return {"sel": list(component.value), "fb": list(fb.value)}
+
+    window = child.custom(
+        fallback,
+        lambda x_range: mo.ui.range_slider(start=0, stop=100, value=list(x_range)),
+        value=window_value,
+    )
+    child_iface = child.interface(window)
+
+    step = parent.controls_from(child_iface, prefix="step")
+    parent.interface(step)
+
+    mirrored = typing.cast(typing.Any, step).elements["window"]
+    assert isinstance(mirrored, CustomElement)
+    # value_fn reads the parent's fallback (resolved from --step-window 30,40),
+    # not the child's, proving the component was recreated in the parent.
+    assert typing.cast(typing.Any, step).value["window"] == {
+        "sel": [30, 40],
+        "fb": [30, 40],
+    }
 
 
 def test_file_browser_multiple_accepts_repeated_cli_option(
