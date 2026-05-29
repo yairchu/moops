@@ -134,7 +134,9 @@ class Interface:
 
     def help(self) -> str:
         usage_parts = list(self._format_usage_parts(_usage_placeholders(self)))
-        usage_parts.extend(("[--interactive]", "[-h/--help]"))
+        if any(self._active_input_controls()):
+            usage_parts.append("[--interactive]")
+        usage_parts.append("[-h/--help]")
         name = self.command.rsplit("/", 1)[-1]
         prefix = f"Usage: {name} "
         segments = [_wrap_usage(prefix, usage_parts)]

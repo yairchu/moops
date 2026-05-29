@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- CLI help no longer advertises `[--interactive]` in the usage line when the
+  notebook has no controls, since there is nothing to prompt for in that case.
+
 ### Added
 
 - `Group.list()` creates a control for repeated CLI options (e.g. `--factor 2
