@@ -14,13 +14,14 @@ def controls_from(
     *,
     prefix: str,
     exclude: typing.Iterable[str] = (),
+    _wrap_display: bool = True,
 ) -> typing.Any:
     """Create a subgroup of controls mirroring another notebook's interface."""
     child = group.subgroup(prefix)
     excluded = set(exclude)
     controls: dict[str, typing.Any] = {
         name: (
-            controls_from(child, ctrl_or_sub, prefix=name)
+            controls_from(child, ctrl_or_sub, prefix=name, _wrap_display=False)
             if isinstance(ctrl_or_sub, interface.Interface)
             else _create_control(child, iface, ctrl_or_sub)
         )
@@ -38,13 +39,15 @@ def controls_from(
     mirrored_iface = child.interface(*result.elements.values())
     _copy_variant_metadata(iface, mirrored_iface, group.option)
     result._moops_interface = mirrored_iface  # type: ignore[attr-defined]
-    if _has_variant_branches(mirrored_iface):
-        return VariantAwareDictionary(result)
-    return result
+    return VariantAwareDictionary(result) if _wrap_display else result
 
 
 class VariantAwareDictionary:
-    """Display proxy that hides inactive variant branches in notebooks."""
+    """Display proxy for mirrored controls.
+
+    It keeps the dictionary value/element API, but displays controls as a plain
+    vertical stack and hides inactive variant branches.
+    """
 
     def __init__(self, dictionary: mo.ui.dictionary) -> None:
         self._dictionary = dictionary
@@ -83,7 +86,12 @@ class VariantAwareDictionary:
         return result
 
     def _mime_(self) -> typing.Any:
-        visible = mo.vstack(list(self._moops_visible_elements().values()))
+        visible = mo.vstack(
+            [
+                _display_element(element)
+                for element in self._moops_visible_elements().values()
+            ]
+        )
         return typing.cast(typing.Any, visible)._mime_()
 
     def __deepcopy__(self, memo: dict[int, typing.Any]) -> VariantAwareDictionary:
@@ -91,6 +99,18 @@ class VariantAwareDictionary:
 
     def __getattr__(self, name: str) -> typing.Any:
         return getattr(self._dictionary, name)
+
+
+def _display_element(element: typing.Any) -> typing.Any:
+    visible_elements = getattr(element, "_moops_visible_elements", None)
+    if callable(visible_elements):
+        visible = typing.cast(dict[str, typing.Any], visible_elements())
+        return mo.vstack([_display_element(child) for child in visible.values()])
+    elements = getattr(element, "elements", None)
+    if isinstance(elements, dict) and _attached_interface(element) is not None:
+        typed_elements = typing.cast(dict[str, typing.Any], elements)
+        return mo.vstack([_display_element(child) for child in typed_elements.values()])
+    return element
 
 
 def _active_variant_element(
@@ -136,14 +156,6 @@ def _selected_value_for_option(
                 return ctrl._selected_key
             return ctrl.value
     return None
-
-
-def _has_variant_branches(iface: interface.Interface) -> bool:
-    return any(
-        (sub_iface := _attached_interface(ctrl)) is not None
-        and sub_iface.variant_group_prefix is not None
-        for ctrl in iface.controls
-    )
 
 
 def _attached_interface(ctrl: typing.Any) -> interface.Interface | None:

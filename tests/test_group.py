@@ -707,6 +707,21 @@ def test_controls_from_creates_prefixed_dictionary_controls() -> None:
     }
 
 
+def test_controls_from_displays_as_stacked_controls() -> None:
+    source = Group(cli_args=["child.py"])
+    name = source.text(option="--name", value="Alice", help_text="Name")
+    child_iface = source.interface(name)
+
+    parent = Group(cli_args=["parent.py"])
+    step = parent.controls_from(child_iface, prefix="step")
+
+    mime_type, html = typing.cast(typing.Any, step)._mime_()
+
+    assert mime_type == "text/html"
+    assert "display: flex" in html
+    assert "marimo-dict" not in html
+
+
 def test_variant_interfaces_expose_branch_metadata() -> None:
     g = Group(cli_args=["script.py"])
     mode = g.dropdown(
