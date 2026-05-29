@@ -1658,3 +1658,30 @@ def test_interactive_list_non_merged_anchor_prompts_for_items(
     )
     g.interface(ctrl)
     assert ctrl.value == [2.0, 5.0]
+
+
+def test_interactive_list_controls_from_prompts_for_items(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """In --interactive mode, subgroup list controls should prompt for items."""
+    child = Group(cli_args=["child.py"])
+    name = child.text(value="", option="--name", help_text="Name")
+    age = child.number(value=0, option="--age", help_text="Age")
+    child_iface = child.interface(name, age)
+    responses = iter(["Alice", "30", ""])
+
+    def fake_input(_prompt: str) -> str:
+        return next(responses)
+
+    monkeypatch.setattr("builtins.input", fake_input)
+    g = Group(cli_args=["script.py", "--interactive"])
+    ctrl = g.list(
+        option="--person",
+        item=lambda grp: grp.controls_from(child_iface, prefix="person"),
+        help_text="People",
+        value=[],
+    )
+
+    g.interface(ctrl)
+
+    assert ctrl.value == [{"name": "Alice", "age": 30}]
