@@ -1284,6 +1284,60 @@ def test_list_controls_from_current_args_round_trips_default_item() -> None:
     assert iface._current_args() == "--trip"  # type: ignore[attr-defined]
 
 
+def test_list_controls_from_seeded_items_are_editable() -> None:
+    variant_iface = moops.interface_of(variant_trip)
+    g = Group(cli_args=["script.py"])
+    ctrl = g.list(
+        option="--trip",
+        item=lambda grp: grp.controls_from(variant_iface, prefix="trip"),
+        help_text="Trips",
+        value=[
+            {
+                "mode": "train",
+                "travel-car": {"distance": 120, "gas_price": 3.75},
+                "travel-train": {"tickets": 4},
+            }
+        ],
+    )
+
+    item = ctrl.elements[0]
+
+    assert item.elements["mode"]._component_args["disabled"] is False  # type: ignore[attr-defined]
+    assert (
+        item.elements["travel-train"]
+        .elements["tickets"]
+        ._component_args[  # type: ignore[attr-defined]
+            "disabled"
+        ]
+        is False
+    )
+
+
+def test_list_controls_from_item_edits_update_outer_list_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    variant_iface = moops.interface_of(variant_trip)
+    changes: list[list[typing.Any]] = []
+    g = Group(cli_args=["script.py"])
+    monkeypatch.setattr(_options.mo, "running_in_notebook", lambda: True)
+    fake_query_params: dict[str, typing.Any] = {}
+    monkeypatch.setattr(_options.mo, "query_params", lambda: fake_query_params)
+    ctrl = g.list(
+        option="--trip",
+        item=lambda grp: grp.controls_from(variant_iface, prefix="trip"),
+        help_text="Trips",
+        value=[variant_iface.default],
+        on_change=changes.append,
+    )
+
+    item = ctrl._array.elements[0]  # type: ignore[attr-defined]
+    item.elements["mode"]._on_change("train")  # type: ignore[attr-defined]
+    item.elements["travel-train"].elements["tickets"]._on_change(4)  # type: ignore[attr-defined]
+
+    assert changes[-2][0]["mode"] == "train"
+    assert changes[-1][0]["travel-train"]["tickets"] == 4
+
+
 def test_list_controls_from_rejects_item_option_without_anchor(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
