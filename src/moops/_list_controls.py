@@ -3,21 +3,21 @@ from __future__ import annotations
 import shlex
 import typing
 
-from . import _interface_utils, _options, interface
+from . import _interface_utils, _list_options, interface
 
 
 def subgroup_leaves(
     template: interface.Interface,
     path: tuple[str, ...] = (),
     top_template: interface.Interface | None = None,
-) -> typing.Iterator[_options.SubgroupListLeaf]:
+) -> typing.Iterator[_list_options.SubgroupListLeaf]:
     top = template if top_template is None else top_template
     for name, ctrl_or_sub in template.iter_controls():
         child_path = (*path, name)
         if isinstance(ctrl_or_sub, interface.Interface):
             yield from subgroup_leaves(ctrl_or_sub, child_path, top)
         else:
-            yield _options.SubgroupListLeaf(
+            yield _list_options.SubgroupListLeaf(
                 value_path=child_path,
                 control=ctrl_or_sub,
                 bare_option=_interface_utils.unprefixed_option(top, ctrl_or_sub.option),
@@ -42,7 +42,7 @@ def value_at_path(
 
 
 def seed_args_for_subgroup_item(
-    leaves: tuple[_options.SubgroupListLeaf, ...],
+    leaves: tuple[_list_options.SubgroupListLeaf, ...],
     *,
     list_option: str,
     item_prefix: str,

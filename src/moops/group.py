@@ -13,6 +13,7 @@ from . import (
     _input_map,
     _interface_utils,
     _list_controls,
+    _list_options,
     _markdown,
     _naming,
     _options,
@@ -763,7 +764,7 @@ class Group:
                 child._value_resolver = child._make_value_resolver()
                 return item(child)
 
-            list_input_ctrl = _options.SubgroupListControl(
+            list_input_ctrl = _list_options.SubgroupListControl(
                 option=opt.option,
                 help_text=help_text,
                 default=list(value) if value is not None else [],
@@ -779,7 +780,7 @@ class Group:
         if not item_input_ctrl.options():
             raise ValueError("args.list() item factory must return a value control")
 
-        list_input_ctrl = _options.ListControl(
+        list_input_ctrl = _list_options.ListControl(
             option=opt.option,
             help_text=help_text,
             default=list(value) if value is not None else [],
