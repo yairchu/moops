@@ -9,7 +9,7 @@ import marimo as mo
 import pytest
 
 import moops
-from examples import name_casing, notebook
+from examples.composition import name_casing, notebook
 
 
 def test_is_interface_query_set_for_help_and_interface_of() -> None:
@@ -175,7 +175,7 @@ def test_embedded_summary_links_to_current_standalone_query_params() -> None:
     assert isinstance(interface, moops.Interface)
     html = typing.cast(typing.Any, interface)._subgroup_summary().text
     assert (
-        'href="/?file=examples%2Fname_casing.py&amp;style=&amp;text=hello+world"'
-        in html
+        'href="/?file=examples%2Fcomposition%2Fname_casing.py'
+        '&amp;style=&amp;text=hello+world"' in html
     )
     assert 'target="_blank"' in html

@@ -37,7 +37,7 @@ def test_example_notebooks_run_as_scripts(
 
 def test_variant_embed_help_lists_all_notebook_branches() -> None:
     result = subprocess.run(
-        [sys.executable, "examples/variant_embed.py", "-h"],
+        [sys.executable, "examples/composition/variant_embed.py", "-h"],
         cwd=ROOT,
         text=True,
         capture_output=True,
@@ -54,7 +54,7 @@ def test_variant_embed_invalid_args_do_not_emit_child_output() -> None:
     result = subprocess.run(
         [
             sys.executable,
-            "examples/variant_embed.py",
+            "examples/composition/variant_embed.py",
             "--notebook-word-count-test",
             "hi",
         ],
@@ -74,7 +74,7 @@ def test_variant_embed_inactive_branch_args_do_not_emit_child_output() -> None:
     result = subprocess.run(
         [
             sys.executable,
-            "examples/variant_embed.py",
+            "examples/composition/variant_embed.py",
             "--notebook-word-count-text",
             "hi",
         ],

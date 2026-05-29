@@ -1,7 +1,7 @@
 # moops
 
 [![PyPI](https://img.shields.io/pypi/v/moops.svg)](https://pypi.org/project/moops/)
-[![Open in molab](https://marimo.io/molab-shield.svg)](https://molab.marimo.io/github/yairchu/moops/blob/main/examples/notebook.py)
+[![Open in molab](https://marimo.io/molab-shield.svg)](https://molab.marimo.io/github/yairchu/moops/blob/main/examples/composition/notebook.py)
 
 Easily write Marimo notebooks that work as CLI scripts (and more!) with minimal boilerplate.
 
@@ -41,7 +41,7 @@ Then call the notebook module directly:
 
 ```python
 import moops
-from examples import name_casing
+from examples.composition import name_casing
 
 result = moops.run(
     name_casing,
@@ -149,7 +149,7 @@ x_range = args.custom(
 `moops.interface_of` returns the notebook's `Interface`, from which `.strategy()` generates a [Hypothesis](https://hypothesis.readthedocs.io/) strategy that produces valid `moops.run` kwargs by introspecting the notebook's interface — dropdowns yield their allowed keys, switches yield booleans, and text fields yield arbitrary strings.
 
 ```python
-from examples import name_casing
+from examples.composition import name_casing
 
 _name_casing_interface = moops.interface_of(name_casing)
 _name_casing_defaults = _name_casing_interface.default
@@ -163,11 +163,19 @@ def test_name_casing_preserves_alphanumeric_count(kwargs):
 
 ## Running the examples
 
+The `examples/` directory is grouped by topic:
+
+* `basics/` — small notebooks covering options, flags, and file inputs
+* `custom_controls/` — `args.custom()` and mirroring it via `controls_from`
+* `composition/` — embedding and varying notebooks (`embed`, `variant_embed`)
+* `game_of_life/` — a worked multi-notebook example
+* `passthrough/` — passing values between notebooks
+
 From the project root:
 
 ```sh
-uv run examples/notebook.py
-uv run --with matplotlib --with numpy examples/custom_control.py --x-range 30,70
+uv run examples/composition/notebook.py
+uv run --with matplotlib --with numpy examples/custom_controls/custom_control.py --x-range 30,70
 ```
 
 Or `uv run marimo edit` to run as notebooks.

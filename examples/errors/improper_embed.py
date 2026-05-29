@@ -41,7 +41,7 @@ def _():
 
     import moops
 
-    sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+    sys.path.append(str(pathlib.Path(__file__).resolve().parents[1] / "composition"))
     import name_casing
 
     return moops, name_casing
