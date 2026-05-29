@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import inspect
 import pathlib
-import shlex
 import typing
 import warnings
 
@@ -12,6 +11,7 @@ from . import (
     _choice_options,
     _control_mirroring,
     _input_map,
+    _list_controls,
     _markdown,
     _naming,
     _options,
@@ -27,54 +27,6 @@ from ._ui_workarounds import FileBrowserWithInitialSelection
 from .presets import Presets
 
 Numeric = int | float
-
-
-def _list_subgroup_leaves(
-    template: interface.Interface,
-    path: tuple[str, ...] = (),
-    top_template: interface.Interface | None = None,
-) -> typing.Iterator[_options.SubgroupListLeaf]:
-    top = template if top_template is None else top_template
-    for name, ctrl_or_sub in template.iter_controls():
-        child_path = (*path, name)
-        if isinstance(ctrl_or_sub, interface.Interface):
-            yield from _list_subgroup_leaves(ctrl_or_sub, child_path, top)
-        else:
-            yield _options.SubgroupListLeaf(
-                value_path=child_path,
-                control=ctrl_or_sub,
-                bare_option=_unprefixed_option(top, ctrl_or_sub.option),
-            )
-
-
-def _unprefixed_option(iface: interface.Interface, option: str) -> str:
-    if iface.option_prefix and option.startswith(f"{iface.option_prefix}-"):
-        return f"--{option[len(iface.option_prefix) :].lstrip('-')}"
-    return option
-
-
-def _relative_stem(parent_prefix: str, option: str) -> str:
-    if parent_prefix and option.startswith(f"{parent_prefix}-"):
-        return option[len(parent_prefix) :].lstrip("-")
-    return option.lstrip("-")
-
-
-def _attached_interface(ctrl: typing.Any) -> interface.Interface | None:
-    if isinstance(ctrl, interface.Interface):
-        return ctrl
-    iface = getattr(ctrl, "_moops_interface", None)
-    return iface if isinstance(iface, interface.Interface) else None
-
-
-def _value_at_path(
-    source: dict[str, typing.Any], path: tuple[str, ...], default: typing.Any
-) -> typing.Any:
-    current: typing.Any = source
-    for part in path:
-        if not isinstance(current, dict) or part not in current:
-            return default
-        current = typing.cast(dict[str, typing.Any], current)[part]
-    return current
 
 
 class Group:
@@ -768,13 +720,13 @@ class Group:
         probe = type(self)(["_probe"])
         probe.option = self.option
         probe_ctrl = item(probe)
-        item_template = _attached_interface(probe_ctrl)
+        item_template = _list_controls.attached_interface(probe_ctrl)
         if item_template is not None:
             if item_template.option_prefix != opt.option:
                 raise ValueError(
                     "args.list() controls_from item prefix must match the list option"
                 )
-            leaves = tuple(_list_subgroup_leaves(item_template))
+            leaves = tuple(_list_controls.subgroup_leaves(item_template))
             if not leaves:
                 raise ValueError("args.list() item factory must return a value control")
             leaf_args = {
@@ -786,24 +738,17 @@ class Group:
                 raise ValueError(
                     f"args.list() option {opt.option!r} conflicts with an item option"
                 )
-            stem = _relative_stem(self.option, opt.option)
+            stem = _list_controls.relative_stem(self.option, opt.option)
 
             def item_builder(i: int, item_dict: dict[str, typing.Any]) -> typing.Any:
                 child = self.subgroup(f"{stem}-{i}")
                 item_prefix = f"{child.option}-{stem}"
-                seed_args = [
-                    token
-                    for leaf in leaves
-                    for rel_option in [
-                        leaf.control.option[len(opt.option) :].lstrip("-")
-                    ]
-                    for formatted in leaf.control.with_option(
-                        f"{item_prefix}-{rel_option}"
-                    ).format_value(
-                        _value_at_path(item_dict, leaf.value_path, leaf.control.default)
-                    )
-                    for token in shlex.split(formatted)
-                ]
+                seed_args = _list_controls.seed_args_for_subgroup_item(
+                    leaves,
+                    list_option=opt.option,
+                    item_prefix=item_prefix,
+                    item_dict=item_dict,
+                )
                 child._state = _parse.ParseState(
                     args=_parse.ParsedArgs.from_options(seed_args)
                 )
