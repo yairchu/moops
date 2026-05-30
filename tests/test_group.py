@@ -1553,6 +1553,35 @@ def test_list_controls_from_variant_parses_nested_items() -> None:
     ]
 
 
+def test_list_controls_from_variant_rejects_inactive_branch_options(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A mirrored variant list item should reject options from inactive branches."""
+    variant_iface = moops.interface_of(variant_trip)
+    g = Group(
+        cli_args=[
+            "script.py",
+            "--trip",
+            "--mode",
+            "train",
+            "--travel-car-distance",
+            "999",
+        ]
+    )
+    ctrl = g.list(
+        option="--trip",
+        item=lambda grp: grp.controls_from(variant_iface, prefix="trip"),
+        help_text="Trips",
+        value=[],
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        g.interface(ctrl)
+
+    assert exc_info.value.code != 0
+    assert "Unexpected argument: --travel-car-distance" in capsys.readouterr().out
+
+
 def test_list_controls_from_current_args_round_trips_default_item() -> None:
     variant_iface = moops.interface_of(variant_trip)
     g = Group(cli_args=["script.py"])
