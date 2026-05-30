@@ -1613,6 +1613,54 @@ def test_list_standalone_query_value_round_trips(
     assert target_ctrl.value == [2.0, 5.0]
 
 
+def test_list_empty_value_overrides_non_empty_default_in_query() -> None:
+    """An explicitly empty list is user state, not absence of a query override."""
+    g = Group(cli_args=["script.py"])
+    ctrl = g.list(
+        option="--factor",
+        item=lambda grp: grp.number(value=1.0, option="--factor", help_text="Factor"),
+        help_text="Factors",
+        value=[1.0],
+    )
+    ctrl._value = []  # type: ignore[attr-defined]
+
+    assert g.interface(ctrl)._standalone_query_values() == {  # type: ignore[attr-defined]
+        "factor": "[]"
+    }
+
+
+def test_list_merged_dropdown_item_accepts_no_flag() -> None:
+    """Merged lists must parse the item control's auxiliary flags too.
+
+    A dropdown item with a non-None default formats a None item as --no-style;
+    the same argument should be accepted when pasted back into the CLI.
+    """
+    source = Group(cli_args=["script.py"])
+    source_ctrl = source.list(
+        option="--style",
+        item=lambda grp: grp.dropdown(
+            ["a", "b"], value="a", option="--style", help_text="Style"
+        ),
+        help_text="Styles",
+        value=[None],
+    )
+    args = source.interface(source_ctrl)._current_args()  # type: ignore[attr-defined]
+
+    target = Group(cli_args=["script.py", *args.split()])
+    target_ctrl = target.list(
+        option="--style",
+        item=lambda grp: grp.dropdown(
+            ["a", "b"], value="a", option="--style", help_text="Style"
+        ),
+        help_text="Styles",
+        value=[],
+    )
+
+    target.interface(target_ctrl)
+
+    assert target_ctrl.value == [None]
+
+
 def test_interactive_list_prompts_for_items(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
