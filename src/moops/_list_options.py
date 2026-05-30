@@ -300,7 +300,7 @@ class SubgroupListControl(InputControl):
         return [
             f"  {self.option}: Add an item (repeat to add more)",
             *[
-                line + " (per item)"
+                f"{line} (per item)"
                 for leaf in self.leaves
                 for line in leaf.bare_control().format_help_lines()
             ],
@@ -522,7 +522,7 @@ class ListControl(InputControl):
     def format_usage_parts(self) -> list[str]:
         if self._is_merged:
             parts = self.item_control.format_usage_parts()
-            return [p[:-1] + " ...]" if p.endswith("]") else p for p in parts]
+            return [f"{p[:-1]} ...]" if p.endswith("]") else p for p in parts]
         item_usage = " ".join(self.item_control.format_usage_parts())
         return [f"[{self.option} {item_usage} ...]"]
 
@@ -531,10 +531,13 @@ class ListControl(InputControl):
             lines = self.item_control.format_help_lines()
             if not lines:
                 return lines
-            return [lines[0] + f" (repeat {self.option} to add more)", *lines[1:]]
+            return [f"{lines[0]} (repeat {self.option} to add more)", *lines[1:]]
         return [
             f"  {self.option}: Add an item (repeat to add more)",
-            *[line + " (per item)" for line in self.item_control.format_help_lines()],
+            *[
+                f"{line} (per item)"
+                for line in self.item_control.format_help_lines()
+            ],
         ]
 
     def format_value(self, value: typing.Any) -> list[str]:

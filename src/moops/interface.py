@@ -19,7 +19,7 @@ def _wrap_usage(prefix: str, parts: list[str], width: int = 88) -> str:
     current = prefix
     first_on_line = True
     for part in parts:
-        attempt = current + part if first_on_line else current + " " + part
+        attempt = current + part if first_on_line else f"{current} {part}"
         if first_on_line or len(attempt) <= width:
             current = attempt
             first_on_line = False
@@ -43,7 +43,7 @@ def _wrap_help_line(line: str, width: int = 88) -> list[str]:
     current = indent
     first_on_line = True
     for word in line[sep_idx + len(sep) :].split():
-        attempt = current + word if first_on_line else current + " " + word
+        attempt = current + word if first_on_line else f"{current} {word}"
         if first_on_line or len(attempt) <= width:
             current = attempt
             first_on_line = False
