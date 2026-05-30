@@ -10,17 +10,34 @@ def subgroup_leaves(
     template: interface.Interface,
     path: tuple[str, ...] = (),
     top_template: interface.Interface | None = None,
+    variant_selector_bare_option: str | None = None,
+    variant_key: str | None = None,
 ) -> typing.Iterator[_list_options.SubgroupListLeaf]:
     top = template if top_template is None else top_template
     for name, ctrl_or_sub in template.iter_controls():
         child_path = (*path, name)
         if isinstance(ctrl_or_sub, interface.Interface):
-            yield from subgroup_leaves(ctrl_or_sub, child_path, top)
+            child_variant_selector = variant_selector_bare_option
+            child_variant_key = variant_key
+            if ctrl_or_sub.variant_selector_option is not None:
+                child_variant_selector = _interface_utils.unprefixed_option(
+                    top, ctrl_or_sub.variant_selector_option
+                )
+                child_variant_key = ctrl_or_sub.variant_key
+            yield from subgroup_leaves(
+                ctrl_or_sub,
+                child_path,
+                top,
+                child_variant_selector,
+                child_variant_key,
+            )
         else:
             yield _list_options.SubgroupListLeaf(
                 value_path=child_path,
                 control=ctrl_or_sub,
                 bare_option=_interface_utils.unprefixed_option(top, ctrl_or_sub.option),
+                variant_selector_bare_option=variant_selector_bare_option,
+                variant_key=variant_key,
             )
 
 

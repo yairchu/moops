@@ -9,7 +9,7 @@ import typing
 import marimo as mo
 from hypothesis import strategies as st
 
-from . import _options, _parse
+from . import _options, _parse, _variant
 
 InputControl = _options.InputControl
 ParseError = _options.ParseError
@@ -68,6 +68,8 @@ class SubgroupListLeaf:
     value_path: tuple[str, ...]
     control: InputControl
     bare_option: str
+    variant_selector_bare_option: str | None = None
+    variant_key: str | None = None
 
     def bare_control(self) -> InputControl:
         return self.control.with_option(self.bare_option)
@@ -215,6 +217,14 @@ def _validate_item_args(
     return None
 
 
+def _leaf_was_provided(args: _parse.ParsedArgs, leaf: SubgroupListLeaf) -> str | None:
+    bare_control = leaf.bare_control()
+    for option in bare_control.options() | bare_control.flags():
+        if args.has(option):
+            return option
+    return None
+
+
 @dataclasses.dataclass
 class SubgroupListControl(InputControl):
     """A list whose items are mirrored subgroup interfaces."""
@@ -266,6 +276,8 @@ class SubgroupListControl(InputControl):
                     else bare_control.default
                 )
                 _set_path(item_value, leaf.value_path, value)
+            if err := self._validate_active_variant_leaf_args(item_args, item_value):
+                return err
             result.append(item_value)
         return ParseResult(result)
 
@@ -288,6 +300,38 @@ class SubgroupListControl(InputControl):
             },
         )
 
+    def _validate_active_variant_leaf_args(
+        self, args: _parse.ParsedArgs, item_value: dict[str, typing.Any]
+    ) -> ParseError | None:
+        selector_paths = self._variant_selector_paths()
+        for leaf in self.leaves:
+            if self._is_active_variant_leaf(leaf, item_value, selector_paths):
+                continue
+            if provided := _leaf_was_provided(args, leaf):
+                return ParseError(f"Unexpected argument: {provided}")
+        return None
+
+    def _variant_selector_paths(self) -> dict[str, tuple[str, ...]]:
+        return {
+            option: leaf.value_path
+            for leaf in self.leaves
+            for option in leaf.bare_control().options() | leaf.bare_control().flags()
+        }
+
+    def _is_active_variant_leaf(
+        self,
+        leaf: SubgroupListLeaf,
+        item_value: dict[str, typing.Any],
+        selector_paths: dict[str, tuple[str, ...]],
+    ) -> bool:
+        if leaf.variant_selector_bare_option is None or leaf.variant_key is None:
+            return True
+        selector_path = selector_paths.get(leaf.variant_selector_bare_option)
+        if selector_path is None:
+            return True
+        selected = get_path(item_value, selector_path, _UNSET)
+        return selected is _UNSET or leaf.variant_key == _variant.key_text(selected)
+
     def format_usage_parts(self) -> list[str]:
         inner = " ".join(
             part
@@ -308,9 +352,12 @@ class SubgroupListControl(InputControl):
 
     def format_value(self, value: typing.Any) -> list[str]:
         result: list[str] = []
+        selector_paths = self._variant_selector_paths()
         for item in value:
             result.append(self.option)
             for leaf in self.leaves:
+                if not self._is_active_variant_leaf(leaf, item, selector_paths):
+                    continue
                 bare_control = leaf.bare_control()
                 result.extend(
                     bare_control.format_value(
