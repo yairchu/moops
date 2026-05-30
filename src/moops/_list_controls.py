@@ -28,17 +28,6 @@ def relative_stem(parent_prefix: str, option: str) -> str:
     return _interface_utils.strip_option_prefix(option, parent_prefix).lstrip("-")
 
 
-def value_at_path(
-    source: dict[str, typing.Any], path: tuple[str, ...], default: typing.Any
-) -> typing.Any:
-    current: typing.Any = source
-    for part in path:
-        if not isinstance(current, dict) or part not in current:
-            return default
-        current = typing.cast(dict[str, typing.Any], current)[part]
-    return current
-
-
 def seed_args_for_subgroup_item(
     leaves: tuple[_list_options.SubgroupListLeaf, ...],
     *,
@@ -52,6 +41,8 @@ def seed_args_for_subgroup_item(
         for rel_option in [leaf.control.option[len(list_option) :].lstrip("-")]
         for formatted in leaf.control.with_option(
             f"{item_prefix}-{rel_option}"
-        ).format_value(value_at_path(item_dict, leaf.value_path, leaf.control.default))
+        ).format_value(
+            _list_options.get_path(item_dict, leaf.value_path, leaf.control.default)
+        )
         for token in shlex.split(formatted)
     ]

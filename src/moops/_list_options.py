@@ -166,9 +166,10 @@ def _set_path(
     current[path[-1]] = value
 
 
-def _get_path(
+def get_path(
     source: typing.Any, path: tuple[str, ...], default: typing.Any
 ) -> typing.Any:
+    """Read the value at ``path`` in nested dicts, returning ``default`` if absent."""
     current: typing.Any = source
     for part in path:
         if not isinstance(current, dict) or part not in current:
@@ -313,7 +314,7 @@ class SubgroupListControl(InputControl):
                 bare_control = leaf.bare_control()
                 result.extend(
                     bare_control.format_value(
-                        _get_path(item, leaf.value_path, bare_control.default)
+                        get_path(item, leaf.value_path, bare_control.default)
                     )
                 )
         return result
