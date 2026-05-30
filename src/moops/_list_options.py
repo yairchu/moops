@@ -534,10 +534,7 @@ class ListControl(InputControl):
             return [f"{lines[0]} (repeat {self.option} to add more)", *lines[1:]]
         return [
             f"  {self.option}: Add an item (repeat to add more)",
-            *[
-                f"{line} (per item)"
-                for line in self.item_control.format_help_lines()
-            ],
+            *[f"{line} (per item)" for line in self.item_control.format_help_lines()],
         ]
 
     def format_value(self, value: typing.Any) -> list[str]:
