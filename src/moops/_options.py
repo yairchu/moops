@@ -505,6 +505,29 @@ class NumberControl(ValueControl):
     stop: Numeric | None = None
     widget: typing.Literal["number", "slider"] = "number"
 
+    @property
+    def _is_none_capable(self) -> bool:
+        """Whether the widget can actually hold None.
+
+        Only an unbounded number input keeps a None value; bounded numbers and
+        sliders coerce None to their start, so None is never a real state there.
+        """
+        return self.widget == "number" and self.start is None and self.stop is None
+
+    @property
+    def has_no_flag(self) -> bool:
+        # A non-None default needs a distinct token for None, since absence of
+        # the option already means "use the default".
+        return self._is_none_capable and self.default is not None
+
+    @property
+    def _no_flag(self) -> str | None:
+        return f"--no-{self.option.lstrip('-')}" if self.has_no_flag else None
+
+    def flags(self) -> set[str]:
+        no_flag = self._no_flag
+        return {no_flag} if no_flag else set()
+
     def create_marimo_element(
         self,
         value: typing.Any,
@@ -528,23 +551,46 @@ class NumberControl(ValueControl):
         return mo.ui.number(**ui_kwargs)
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
+        no_flag = self._no_flag
+        if no_flag and args.has(no_flag):
+            if args.has(self.option):
+                return ParseError(f"Cannot use both {self.option} and {no_flag}")
+            return ParseResult(None)
         value = args.value_for(self.option)
         return None if value is None else _parse_number(self.option, value)
 
+    def parse_query_value(self, value: str) -> ParseResult | ParseError:
+        if not value and self._is_none_capable:
+            return ParseResult(None)
+        return super().parse_query_value(value)
+
     def strategy(self) -> st.SearchStrategy:
-        return st.one_of(
-            st.none(),
-            st.integers() | st.floats(allow_nan=False, allow_infinity=False),
-        )
+        numbers = st.integers() | st.floats(allow_nan=False, allow_infinity=False)
+        return st.one_of(st.none(), numbers) if self._is_none_capable else numbers
+
+    def format_usage_parts(self) -> list[str]:
+        if self._no_flag:
+            return [f"[{self.option} {self.metavar} | {self._no_flag}]"]
+        return [f"[{self.option} {self.metavar}]"]
 
     def format_help_lines(self) -> list[str]:
-        return [self._help_line(show_default=self.default is not None)]
+        lines = [self._help_line(show_default=self.default is not None)]
+        if self._no_flag:
+            lines.append(f"  {self._no_flag}: Set {self.option} to none")
+        return lines
 
     def format_value(self, value: typing.Any) -> list[str]:
-        return [] if value == self.default else [f"{self.option} {value}"]
+        if value == self.default:
+            return []
+        if value is None:
+            assert self._no_flag
+            return [self._no_flag]
+        return [f"{self.option} {value}"]
 
     def format_query_value(self, value: typing.Any) -> str | None:
-        return None if value == self.default else str(value)
+        if value == self.default:
+            return None
+        return "" if value is None else str(value)
 
     def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
         d = self.default if effective_default is _UNSET else effective_default

@@ -36,6 +36,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - CLI help no longer advertises `[--interactive]` in the usage line when the
   notebook has no controls, since there is nothing to prompt for in that case.
+- An unbounded `number()` (no `start`/`stop`) can be cleared to `None` in a
+  notebook; with a non-`None` default that state now round-trips through the
+  CLI and query params via a `--no-<option>` flag (mirroring `dropdown`'s none
+  handling) instead of serializing to an invalid `--option None`. Bounded
+  numbers and sliders coerce `None` to their start, so they are unaffected.
 
 ## [0.7.2] - 2026-05-28 - CLI help formatting
 
