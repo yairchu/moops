@@ -1299,27 +1299,74 @@ def test_list_non_merged_allows_following_sibling_options() -> None:
     assert name.value == "Bob"
 
 
-@settings(max_examples=50)
-@given(
-    st.lists(
-        st.lists(st.sampled_from(["a", "b", "c"]), unique=True),
-        max_size=5,
-    )
-)
-def test_list_non_merged_multiselect_round_trips(
-    values: list[list[str]],
-) -> None:
-    """List values should round-trip even when a default-valued item is empty."""
+def _number_item(grp: Group) -> typing.Any:
+    return grp.number(value=1.0, option="--tag", help_text="Tag")
 
-    def build_list(group: Group, value: list[list[str]]) -> typing.Any:
+
+def _text_item(grp: Group) -> typing.Any:
+    return grp.text(value="x", option="--tag", help_text="Tag")
+
+
+def _dropdown_item(grp: Group) -> typing.Any:
+    return grp.dropdown(["a", "b", "c"], value="a", option="--tag", help_text="Tag")
+
+
+def _multiselect_item(grp: Group) -> typing.Any:
+    return grp.multiselect(["a", "b", "c"], value=[], option="--tag", help_text="Tag")
+
+
+# (label, build_item, values) per supported non-merged list item control.
+# The label is only for readable falsifying-example output.
+_ItemRoundTripCase = tuple[str, typing.Callable[[Group], typing.Any], list[typing.Any]]
+
+_ROUND_TRIP_ITEM_CASES = typing.cast(
+    "st.SearchStrategy[_ItemRoundTripCase]",
+    st.one_of(
+        st.tuples(
+            st.just("number"),
+            st.just(_number_item),
+            st.lists(st.integers(min_value=0, max_value=100).map(float), max_size=4),
+        ),
+        st.tuples(
+            st.just("text"),
+            st.just(_text_item),
+            st.lists(st.text(alphabet="abcABC", min_size=1, max_size=4), max_size=4),
+        ),
+        st.tuples(
+            st.just("dropdown"),
+            st.just(_dropdown_item),
+            st.lists(st.sampled_from(["a", "b", "c", None]), max_size=4),
+        ),
+        st.tuples(
+            st.just("multiselect"),
+            st.just(_multiselect_item),
+            st.lists(
+                st.lists(st.sampled_from(["a", "b", "c"]), unique=True), max_size=4
+            ),
+        ),
+    ),
+)
+
+
+@settings(max_examples=80)
+@given(case=_ROUND_TRIP_ITEM_CASES)
+def test_list_non_merged_item_round_trips(
+    case: _ItemRoundTripCase,
+) -> None:
+    """A non-merged list should round-trip any item control through CLI args.
+
+    Generalizes over the item control type so the round-trip contract is not
+    tied to one control. It covers items that serialize to no per-item token
+    (an empty multiselect, whose anchor alone represents the item) and to a
+    per-item flag (a dropdown ``None`` rendered as ``--no-tag``): both must
+    reparse cleanly rather than being rejected as unexpected arguments.
+    """
+    _, build_item, values = case
+
+    def build_list(group: Group, value: list[typing.Any]) -> typing.Any:
         return group.list(
             option="--item",
-            item=lambda grp: grp.multiselect(
-                ["a", "b", "c"],
-                value=[],
-                option="--tag",
-                help_text="Tags",
-            ),
+            item=build_item,
             help_text="Items",
             value=value,
         )
