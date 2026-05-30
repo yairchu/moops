@@ -587,8 +587,8 @@ class RangeControl(ValueControl):
             metavar=metavar,
             help_text=help_text,
             default=_range_default(start=start, stop=stop, value=value, steps=steps),
-            start=_range_start(start=start, steps=steps),
-            stop=_range_stop(stop=stop, steps=steps),
+            start=_range_bound(start, steps, min),
+            stop=_range_bound(stop, steps, max),
             allowed_values=list(steps) if steps is not None else None,
             step=step,
             extra_kwargs=extra_kwargs or {},
@@ -1109,18 +1109,13 @@ def _range_default(
     return [start, stop] if start is not None and stop is not None else None
 
 
-def _range_start(
-    start: Numeric | None,
+def _range_bound(
+    bound: Numeric | None,
     steps: typing.Sequence[Numeric] | None,
+    pick: typing.Callable[[typing.Sequence[Numeric]], Numeric],
 ) -> Numeric | None:
-    return min(steps) if steps else start
-
-
-def _range_stop(
-    stop: Numeric | None,
-    steps: typing.Sequence[Numeric] | None,
-) -> Numeric | None:
-    return max(steps) if steps else stop
+    """Pick the range bound from explicit steps (via ``min``/``max``) or fall back."""
+    return pick(steps) if steps else bound
 
 
 def _format_range(value: typing.Iterable[typing.Any]) -> str:
