@@ -39,7 +39,37 @@ def controls_from(
     mirrored_iface = child.interface(*result.elements.values())
     _copy_variant_metadata(iface, mirrored_iface, group.option)
     result._moops_interface = mirrored_iface  # type: ignore[attr-defined]
-    return VariantAwareDictionary(result) if _wrap_display else result
+    if _wrap_display:
+        # Outermost call: the whole mirrored tree (including nested branch
+        # metadata) is now built, so mark inactive variant branches disabled
+        # the way Group.variant does natively. Without this, validate() still
+        # recognizes an inactive branch's options instead of rejecting them.
+        _disable_inactive_variant_branches(mirrored_iface, mirrored_iface)
+        return VariantAwareDictionary(result)
+    return result
+
+
+def _disable_inactive_variant_branches(
+    root: interface.Interface, iface: interface.Interface
+) -> None:
+    """Disable mirrored variant branches that the selector did not choose.
+
+    Display already hides inactive branches; this aligns CLI validation with
+    the native ``Group.variant`` behavior, where an inactive branch's controls
+    stay registered (so values still pass) but its options are rejected.
+    """
+    for ctrl in iface.controls:
+        sub = _attached_interface(ctrl)
+        if sub is None:
+            continue
+        if (
+            sub.variant_group_prefix is not None
+            and sub.variant_selector_option is not None
+        ):
+            selected = _selected_value_for_option(root, sub.variant_selector_option)
+            if selected is not None and sub.variant_key != _variant.key_text(selected):
+                sub.disabled = True
+        _disable_inactive_variant_branches(root, sub)
 
 
 class VariantAwareDictionary:
