@@ -453,7 +453,12 @@ class ListControl(InputControl):
         return self.option == self.item_control.option
 
     def flags(self) -> set[str]:
-        return self.item_control.flags() if self._is_merged else {self.option}
+        if self._is_merged:
+            return self.item_control.flags()
+        # Non-merged: the anchor plus any per-item flags (e.g. a dropdown's
+        # --no-tag) must all be recognized by the top-level parser, matching
+        # what format_help_lines/format_usage_parts advertise.
+        return {self.option} | self.item_control.flags()
 
     def options(self) -> set[str]:
         return {self.option} if self._is_merged else self.item_control.options()
@@ -564,10 +569,16 @@ class ListControl(InputControl):
     def format_value(self, value: typing.Any) -> list[str]:
         result: list[str] = []
         for v in value:
-            if not self._is_merged:
-                result.append(self.option)
             formatted = self.item_control.format_value(v)
-            result.extend(formatted or self._format_default_item_value(v))
+            if not self._is_merged:
+                # The anchor already represents the item, so an item that
+                # formats to no per-item token (e.g. an empty multiselect)
+                # needs no filler — the merged-mode fallback would emit a
+                # token the parser then rejects.
+                result.append(self.option)
+                result.extend(formatted)
+            else:
+                result.extend(formatted or self._format_default_item_value(v))
         return result
 
     def format_query_value(self, value: typing.Any) -> str | None:
