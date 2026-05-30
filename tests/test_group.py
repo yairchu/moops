@@ -304,6 +304,46 @@ def test_number_accepts_negative_value() -> None:
     assert ctrl.value == -3
 
 
+def test_unbounded_number_none_value_round_trips() -> None:
+    """An unbounded number can be cleared to None (marimo's number widget yields
+    None when emptied), so that state must round-trip through the CLI instead of
+    serializing to a bare ``--count None`` the parser then rejects. Bounded
+    numbers and sliders coerce None to start, so this is specific to unbounded
+    numbers."""
+    source = Group(cli_args=["script.py"])
+    count = source.number(value=5.0, option="--count", help_text="Count")
+    count._value = None  # type: ignore[attr-defined]  # a cleared number input
+
+    args = source.interface(count)._current_args()  # type: ignore[reportPrivateUsage]
+
+    target = Group(
+        cli_args=["script.py", *shlex.split(args)] if args else ["script.py"]
+    )
+    target_count = target.number(value=5.0, option="--count", help_text="Count")
+    target.interface(target_count)
+
+    assert target_count.value is None
+
+
+def test_unbounded_number_none_value_standalone_query_round_trips(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A cleared (None) unbounded number must also round-trip through standalone
+    query params rather than serializing to the literal string ``'None'``."""
+    source = Group(cli_args=["script.py"])
+    count = source.number(value=5.0, option="--count", help_text="Count")
+    count._value = None  # type: ignore[attr-defined]
+    query_values = source.interface(count)._standalone_query_values()  # type: ignore[reportPrivateUsage]
+
+    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
+    monkeypatch.setattr(group_module.mo, "query_params", lambda: query_values)
+
+    target = Group(cli_args=["script.py"])
+    target_count = target.number(value=5.0, option="--count", help_text="Count")
+
+    assert target_count.value is None
+
+
 def test_group_ui_method_signatures_match_marimo() -> None:
     group_names = {
         name for name, _ in inspect.getmembers(Group, predicate=inspect.isfunction)
