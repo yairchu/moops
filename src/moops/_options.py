@@ -213,6 +213,12 @@ class ValueControl(InputControl):
     def format_usage_parts(self) -> list[str]:
         return [f"[{self.option} {self.metavar}]"]
 
+    def _help_line(self, *, show_default: bool) -> str:
+        line = f"  {self.option} {self.metavar}: {self.help_text}"
+        if show_default:
+            line += f" (default: {self.default})"
+        return line
+
 
 @dataclasses.dataclass
 class TextControl(ValueControl):
@@ -242,10 +248,7 @@ class TextControl(ValueControl):
         return st.text()
 
     def format_help_lines(self) -> list[str]:
-        line = f"  {self.option} {self.metavar}: {self.help_text}"
-        if self.default:
-            line += f" (default: {self.default})"
-        return [line]
+        return [self._help_line(show_default=bool(self.default))]
 
     def format_value(self, value: typing.Any) -> list[str]:
         return [] if value == self.default else [f"{self.option} {shlex.quote(value)}"]
@@ -476,10 +479,10 @@ class TextAreaControl(ValueControl):
         return [f"[{self.option} {self.metavar} | {self._stdin_flag}]"]
 
     def format_help_lines(self) -> list[str]:
-        line = f"  {self.option} {self.metavar}: {self.help_text}"
-        if self.default:
-            line += f" (default: {self.default})"
-        return [line, f"  {self._stdin_flag}: Read {self.option} from stdin"]
+        return [
+            self._help_line(show_default=bool(self.default)),
+            f"  {self._stdin_flag}: Read {self.option} from stdin",
+        ]
 
     def format_value(self, value: typing.Any) -> list[str]:
         return [] if value == self.default else [f"{self.option} {shlex.quote(value)}"]
@@ -535,10 +538,7 @@ class NumberControl(ValueControl):
         )
 
     def format_help_lines(self) -> list[str]:
-        line = f"  {self.option} {self.metavar}: {self.help_text}"
-        if self.default is not None:
-            line += f" (default: {self.default})"
-        return [line]
+        return [self._help_line(show_default=self.default is not None)]
 
     def format_value(self, value: typing.Any) -> list[str]:
         return [] if value == self.default else [f"{self.option} {value}"]

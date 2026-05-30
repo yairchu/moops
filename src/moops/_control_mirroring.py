@@ -180,9 +180,9 @@ def _mirrored_selector_option(
 ) -> str | None:
     if selector_option is None:
         return None
-    relative = selector_option
-    if source_parent_prefix and selector_option.startswith(f"{source_parent_prefix}-"):
-        relative = f"--{selector_option[len(source_parent_prefix) :].lstrip('-')}"
+    relative = _interface_utils.strip_option_prefix(
+        selector_option, source_parent_prefix
+    )
     return (
         f"{mirrored_parent_prefix}-{relative.lstrip('-')}"
         if mirrored_parent_prefix

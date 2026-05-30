@@ -25,9 +25,7 @@ def subgroup_leaves(
 
 
 def relative_stem(parent_prefix: str, option: str) -> str:
-    if parent_prefix and option.startswith(f"{parent_prefix}-"):
-        return option[len(parent_prefix) :].lstrip("-")
-    return option.lstrip("-")
+    return _interface_utils.strip_option_prefix(option, parent_prefix).lstrip("-")
 
 
 def value_at_path(

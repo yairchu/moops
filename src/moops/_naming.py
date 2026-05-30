@@ -2,6 +2,11 @@ import dataclasses
 import html
 
 
+def option_to_label(option: str) -> str:
+    """Convert a CLI option like ``--max-count`` to a display label ``max count``."""
+    return option.lstrip("-").replace("-", " ")
+
+
 @dataclasses.dataclass
 class OptionLabel:
     """Maps between UI labels and CLI option names."""
@@ -24,7 +29,7 @@ class OptionLabel:
                 f"Option {option} must start with --{prefix}"
             )
             if label is None:
-                label = option.lstrip("-").replace("-", " ")
+                label = option_to_label(option)
         return OptionLabel(label=label, option=option)
 
     @property

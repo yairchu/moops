@@ -1,6 +1,6 @@
 import typing
 
-from . import _options
+from . import _naming, _options
 
 
 def selected_key(selector: typing.Any) -> typing.Any:
@@ -39,6 +39,6 @@ def help_heading(selector_option: str | None, key_text: str) -> str:
 
 def usage_placeholder(selector_option: str | None) -> str:
     if selector_option:
-        name = selector_option.lstrip("-").replace("-", " ").upper()
+        name = _naming.option_to_label(selector_option).upper()
         return f"[{name} OPTIONS]"
     return "[VARIANT OPTIONS]"
