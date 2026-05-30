@@ -3,12 +3,15 @@ import dataclasses
 import gc
 import inspect
 import pathlib
+import shlex
 import typing
 import urllib.parse
 import weakref
 
 import marimo as mo
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 from marimo._plugins.ui._core.ui_element import UIElement
 
 import moops
@@ -1296,6 +1299,46 @@ def test_list_non_merged_allows_following_sibling_options() -> None:
     assert name.value == "Bob"
 
 
+@settings(max_examples=50)
+@given(
+    st.lists(
+        st.lists(st.sampled_from(["a", "b", "c"]), unique=True),
+        max_size=5,
+    )
+)
+def test_list_non_merged_multiselect_round_trips(
+    values: list[list[str]],
+) -> None:
+    """List values should round-trip even when a default-valued item is empty."""
+
+    def build_list(group: Group, value: list[list[str]]) -> typing.Any:
+        return group.list(
+            option="--item",
+            item=lambda grp: grp.multiselect(
+                ["a", "b", "c"],
+                value=[],
+                option="--tag",
+                help_text="Tags",
+            ),
+            help_text="Items",
+            value=value,
+        )
+
+    source = Group(cli_args=["script.py"])
+    source_ctrl = build_list(source, values)
+    current_args = source.interface(source_ctrl)._current_args()  # type: ignore[reportPrivateUsage]
+    target = Group(
+        cli_args=(
+            ["script.py", *shlex.split(current_args)] if current_args else ["script.py"]
+        )
+    )
+    target_ctrl = build_list(target, [])
+
+    target.interface(target_ctrl)
+
+    assert target_ctrl.value == values
+
+
 def test_list_non_merged_item_option_without_anchor_is_rejected(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -1584,6 +1627,48 @@ def test_list_controls_from_rejects_item_option_after_sibling_option(
 
     assert exc_info.value.code != 0
     assert "Unexpected argument: --travel-train-tickets" in capsys.readouterr().out
+
+
+@settings(max_examples=2)
+@given(
+    selected=st.sampled_from(["car", "train"]),
+    distance=st.integers(min_value=1, max_value=500),
+    tickets=st.integers(min_value=1, max_value=20),
+)
+def test_controls_from_variant_rejects_inactive_branch_args(
+    selected: str,
+    distance: int,
+    tickets: int,
+) -> None:
+    """Mirrored variants should still reject args for inactive branches."""
+
+    inactive_option = (
+        "--trip-travel-train-tickets"
+        if selected == "car"
+        else "--trip-travel-car-distance"
+    )
+    active_args = (
+        ["--trip-travel-car-distance", str(distance)]
+        if selected == "car"
+        else ["--trip-travel-train-tickets", str(tickets)]
+    )
+    inactive_value = str(tickets if selected == "car" else distance)
+    g = Group(
+        cli_args=[
+            "script.py",
+            "--trip-mode",
+            selected,
+            *active_args,
+            inactive_option,
+            inactive_value,
+        ]
+    )
+    trip = g.controls_from(moops.interface_of(variant_trip), prefix="trip")
+    iface = typing.cast(typing.Any, trip)._moops_interface
+
+    assert f"Unexpected argument: {inactive_option}" in list(
+        iface.validate(g._state)  # type: ignore[reportPrivateUsage]
+    )
 
 
 def test_list_standalone_query_value_round_trips(
