@@ -453,7 +453,7 @@ class ListControl(InputControl):
         return self.option == self.item_control.option
 
     def flags(self) -> set[str]:
-        return set() if self._is_merged else {self.option}
+        return self.item_control.flags() if self._is_merged else {self.option}
 
     def options(self) -> set[str]:
         return {self.option} if self._is_merged else self.item_control.options()
@@ -463,20 +463,10 @@ class ListControl(InputControl):
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         if self._is_merged:
-            raw_values = args.values_for(self.option)
-            if not raw_values:
+            item_results = self._parse_merged_items(args.raw_args)
+            if item_results is None:
                 return None
-            result: list[typing.Any] = []
-            for raw in raw_values:
-                item_args = _parse.ParsedArgs(
-                    options={self.item_control.option: [raw]}, unexpected=[]
-                )
-                item_result = self.item_control.parse(item_args)
-                if isinstance(item_result, ParseError):
-                    return item_result
-                if isinstance(item_result, ParseResult):
-                    result.append(item_result.value)
-            return ParseResult(result)
+            return item_results
         if err := self._validate_non_merged_item_placement(args.raw_args):
             return err
         segments = _segment_by_anchor(
@@ -487,7 +477,7 @@ class ListControl(InputControl):
         )
         if not segments:
             return None
-        result = []
+        result: list[typing.Any] = []
         for segment in segments:
             item_args = _parse.ParsedArgs.from_options(segment)
             if err := self._validate_item_args(item_args):
@@ -519,6 +509,40 @@ class ListControl(InputControl):
             dict.fromkeys(self.item_control.options(), self.item_control),
         )
 
+    def _parse_merged_items(
+        self, raw_args: list[str]
+    ) -> ParseResult | ParseError | None:
+        result: list[typing.Any] = []
+        found = False
+        item_flags = self.item_control.flags()
+        i = 0
+        while i < len(raw_args):
+            token = raw_args[i]
+            option = _option_key(token)
+            if option == self.option:
+                segment = [token]
+                if "=" not in token and i + 1 < len(raw_args):
+                    next_token = raw_args[i + 1]
+                    if not _is_option_token(next_token):
+                        segment.append(next_token)
+                        i += 1
+                found = True
+            elif option in item_flags:
+                segment = [token]
+                found = True
+            else:
+                i += 1
+                continue
+            item_result = self.item_control.parse(
+                _parse.ParsedArgs.from_options(segment)
+            )
+            if isinstance(item_result, ParseError):
+                return item_result
+            if isinstance(item_result, ParseResult):
+                result.append(item_result.value)
+            i += 1
+        return ParseResult(result) if found else None
+
     def format_usage_parts(self) -> list[str]:
         if self._is_merged:
             parts = self.item_control.format_usage_parts()
@@ -548,7 +572,7 @@ class ListControl(InputControl):
 
     def format_query_value(self, value: typing.Any) -> str | None:
         items = list(value)
-        if not items:
+        if not items and not self.default:
             return None
         return json.dumps([self.item_control.format_query_value(v) for v in items])
 
