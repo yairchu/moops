@@ -3,7 +3,7 @@ import typing
 
 import marimo as mo
 
-from . import _options, interface, workarounds
+from . import _options, _variant, interface, workarounds
 
 
 class _Embed(typing.Protocol):
@@ -48,7 +48,7 @@ def variant_embed(
     """
 
     apps = _apps_from_selector(selector)
-    selected_key = getattr(selector, "_selected_key", selector.value)
+    selected_key = _variant.selected_key(selector)
     try:
         app = apps[selected_key]
     except KeyError as exc:

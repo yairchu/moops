@@ -113,7 +113,7 @@ class Interface:
     def validate(self, state: _parse.ParseState) -> typing.Iterator[str]:
         flags: set[str] = set()
         value_options: dict[str, _options.InputControl] = {}
-        for input_control in self._active_input_controls():
+        for input_control in self._input_controls(active_only=True):
             flags.update(input_control.flags())
             for option in input_control.options():
                 value_options[option] = input_control
@@ -138,7 +138,7 @@ class Interface:
 
     def help(self) -> str:
         usage_parts = list(self._format_usage_parts(_usage_placeholders(self)))
-        if any(self._active_input_controls()):
+        if any(self._input_controls(active_only=True)):
             usage_parts.append("[--interactive]")
         usage_parts.append("[-h/--help]")
         name = self.command.rsplit("/", 1)[-1]
@@ -201,28 +201,24 @@ class Interface:
             lambda d: {k: v for k, v in d.items() if v is not None}
         )
 
-    def _all_input_controls(self) -> typing.Iterator[_options.InputControl]:
-        for ctrl in self.controls:
-            if (iface := _attached_interface(ctrl)) is not None:
-                yield from iface._all_input_controls()
-            else:
-                input_control = self.input_map.get(ctrl)
-                if input_control is not None and not self._is_overridden(input_control):
-                    yield input_control
-
-    def _active_input_controls(self) -> typing.Iterator[_options.InputControl]:
-        if self.disabled:
+    def _input_controls(
+        self, *, active_only: bool
+    ) -> typing.Iterator[_options.InputControl]:
+        if active_only and self.disabled:
             return
         for ctrl in self.controls:
             if (iface := _attached_interface(ctrl)) is not None:
-                yield from iface._active_input_controls()
+                yield from iface._input_controls(active_only=active_only)
             else:
                 input_control = self.input_map.get(ctrl)
                 if input_control is not None and not self._is_overridden(input_control):
                     yield input_control
 
     def input_options(self) -> list[str]:
-        return [input_control.option for input_control in self._all_input_controls()]
+        return [
+            input_control.option
+            for input_control in self._input_controls(active_only=False)
+        ]
 
     def _key(self, input_control: _options.InputControl) -> str:
         option = input_control.option[len(self.option_prefix) :].lstrip("-")
@@ -268,7 +264,7 @@ class Interface:
         values = self.cur_values()
         return " ".join(
             arg
-            for input_control in self._active_input_controls()
+            for input_control in self._input_controls(active_only=True)
             if input_control.option in values
             for arg in input_control.format_value(values[input_control.option])
         )
@@ -324,13 +320,7 @@ class Interface:
             elif (sub_iface := _attached_interface(ctrl)) is not None:
                 values.update(self._controls_from_query_values(sub_iface))
             else:
-                input_control = self.input_map.get(ctrl)
-                if input_control is None:
-                    continue
-                value = input_control.format_query_value(_ctrl_value(ctrl))
-                if value is not None:
-                    key = _query_params.escape_url_key(self._key(input_control))
-                    values[key] = value
+                self._add_query_value(values, ctrl, self.input_map)
         return values
 
     def _controls_from_query_values(self, sub_iface: "Interface") -> dict[str, str]:
@@ -344,14 +334,21 @@ class Interface:
             if (nested := _attached_interface(ctrl)) is not None:
                 values.update(self._controls_from_query_values(nested))
             else:
-                input_control = sub_iface.input_map.get(ctrl)
-                if input_control is None:
-                    continue
-                value = input_control.format_query_value(_ctrl_value(ctrl))
-                if value is not None:
-                    key = _query_params.escape_url_key(self._key(input_control))
-                    values[key] = value
+                self._add_query_value(values, ctrl, sub_iface.input_map)
         return values
+
+    def _add_query_value(
+        self,
+        values: dict[str, str],
+        ctrl: typing.Any,
+        input_map: _input_map.InputMap,
+    ) -> None:
+        input_control = input_map.get(ctrl)
+        if input_control is None:
+            return
+        value = input_control.format_query_value(_ctrl_value(ctrl))
+        if value is not None:
+            values[_query_params.escape_url_key(self._key(input_control))] = value
 
     def _root_panel(self) -> mo.Html:
         args = self._current_args()

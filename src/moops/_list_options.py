@@ -187,6 +187,33 @@ def _element_at_path(root: typing.Any, path: tuple[str, ...]) -> typing.Any | No
     return current
 
 
+def _validate_item_args(
+    args: _parse.ParsedArgs,
+    flags: set[str],
+    options: dict[str, InputControl],
+) -> ParseError | None:
+    """Validate parsed args for a single list item against its item controls."""
+    for unexpected in args.unexpected:
+        return ParseError(f"Unexpected argument: {unexpected}")
+    for option, values in args.options.items():
+        if option in flags:
+            for value in values:
+                if value is not None:
+                    return ParseError(
+                        f"{option} does not take a value, but was given: {value}"
+                    )
+        elif option in options:
+            control = options[option]
+            if len(values) > 1 and not control.allows_repeated_values():
+                return ParseError(f"{option} was provided multiple times")
+            for value in values:
+                if value is None:
+                    return ParseError(f"Option {option} requires a value")
+        else:
+            return ParseError(f"Unexpected argument: {option}")
+    return None
+
+
 @dataclasses.dataclass
 class SubgroupListControl(InputControl):
     """A list whose items are mirrored subgroup interfaces."""
@@ -250,31 +277,15 @@ class SubgroupListControl(InputControl):
         )
 
     def _validate_item_args(self, args: _parse.ParsedArgs) -> ParseError | None:
-        flags = self.flags() - {self.option}
-        options = {
-            option: leaf.bare_control()
-            for leaf in self.leaves
-            for option in leaf.bare_control().options()
-        }
-        for unexpected in args.unexpected:
-            return ParseError(f"Unexpected argument: {unexpected}")
-        for option, values in args.options.items():
-            if option in flags:
-                for value in values:
-                    if value is not None:
-                        return ParseError(
-                            f"{option} does not take a value, but was given: {value}"
-                        )
-            elif option in options:
-                control = options[option]
-                if len(values) > 1 and not control.allows_repeated_values():
-                    return ParseError(f"{option} was provided multiple times")
-                for value in values:
-                    if value is None:
-                        return ParseError(f"Option {option} requires a value")
-            else:
-                return ParseError(f"Unexpected argument: {option}")
-        return None
+        return _validate_item_args(
+            args,
+            self.flags() - {self.option},
+            {
+                option: leaf.bare_control()
+                for leaf in self.leaves
+                for option in leaf.bare_control().options()
+            },
+        )
 
     def format_usage_parts(self) -> list[str]:
         inner = " ".join(
@@ -501,26 +512,11 @@ class ListControl(InputControl):
         )
 
     def _validate_item_args(self, args: _parse.ParsedArgs) -> ParseError | None:
-        flags = self.item_control.flags()
-        options = self.item_control.options()
-        for unexpected in args.unexpected:
-            return ParseError(f"Unexpected argument: {unexpected}")
-        for option, values in args.options.items():
-            if option in flags:
-                for value in values:
-                    if value is not None:
-                        return ParseError(
-                            f"{option} does not take a value, but was given: {value}"
-                        )
-            elif option in options:
-                if len(values) > 1 and not self.item_control.allows_repeated_values():
-                    return ParseError(f"{option} was provided multiple times")
-                for value in values:
-                    if value is None:
-                        return ParseError(f"Option {option} requires a value")
-            else:
-                return ParseError(f"Unexpected argument: {option}")
-        return None
+        return _validate_item_args(
+            args,
+            self.item_control.flags(),
+            dict.fromkeys(self.item_control.options(), self.item_control),
+        )
 
     def format_usage_parts(self) -> list[str]:
         if self._is_merged:

@@ -4,7 +4,9 @@ from . import _options
 
 
 def selected_key(selector: typing.Any) -> typing.Any:
-    return getattr(selector, "_selected_key", selector.value)
+    if hasattr(selector, "_selected_key"):
+        return selector._selected_key
+    return selector.value
 
 
 def keys(selector: typing.Any) -> list[typing.Any]:

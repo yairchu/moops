@@ -5,7 +5,7 @@ import typing
 
 import marimo as mo
 
-from . import _interface_utils, _options, interface
+from . import _interface_utils, _options, _variant, interface
 
 
 def controls_from(
@@ -123,9 +123,7 @@ def _active_variant_element(
     selected = _selected_value_for_option(root_iface, selector_option)
     if selected is None:
         return None
-    selected_key = (
-        str(selected).lower() if isinstance(selected, bool) else str(selected)
-    )
+    selected_key = _variant.key_text(selected)
     for name, element in elements.items():
         sub_iface = _attached_interface(element)
         if (
@@ -152,9 +150,7 @@ def _selected_value_for_option(
             continue
         input_control = iface.input_map.get(ctrl)
         if input_control is not None and input_control.option == selector_option:
-            if hasattr(ctrl, "_selected_key"):
-                return ctrl._selected_key
-            return ctrl.value
+            return _variant.selected_key(ctrl)
     return None
 
 
@@ -200,7 +196,9 @@ def _create_control(
     input_control: _options.InputControl,
 ) -> typing.Any:
     return _create_from_input_control(
-        group, input_control, _unprefixed_option(iface, input_control.option)
+        group,
+        input_control,
+        _interface_utils.unprefixed_option(iface, input_control.option),
     )
 
 
@@ -213,10 +211,6 @@ def _create_from_input_control(
     opt = group._make_opt(label=None, option=display_option)
     cloned = input_control.with_option(opt.option)
     return group._register_control(opt, cloned, cloned.help_text, None)
-
-
-def _unprefixed_option(iface: interface.Interface, option: str) -> str:
-    return _interface_utils.unprefixed_option(iface, option)
 
 
 def _reattach_interface_to_clone(original: typing.Any, clone: typing.Any) -> None:
