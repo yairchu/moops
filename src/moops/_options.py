@@ -121,6 +121,52 @@ class InputControl(abc.ABC):
         """
 
 
+class _NoneFlag:
+    """Shared ``--no-<option>`` handling for controls whose value can be a
+    "none"/cleared sentinel: a dropdown's ``None``, an empty multiselect, or a
+    cleared unbounded number.
+
+    Each control supplies :attr:`_has_no_flag` (whether the flag applies) and
+    passes the sentinel value to :meth:`_parse_none_flag`; the flag name,
+    registration, and usage/help formatting are shared here.
+    """
+
+    option: str  # provided by the InputControl subclass
+
+    @property
+    def _has_no_flag(self) -> bool:
+        """Whether this control exposes a ``--no-<option>`` flag."""
+        raise NotImplementedError
+
+    @property
+    def _no_flag(self) -> str | None:
+        return f"--no-{self.option.lstrip('-')}" if self._has_no_flag else None
+
+    def flags(self) -> set[str]:
+        no_flag = self._no_flag
+        return {no_flag} if no_flag else set()
+
+    def _parse_none_flag(
+        self, args: _parse.ParsedArgs, none_value: typing.Any
+    ) -> ParseResult | ParseError | None:
+        """Return the sentinel result if ``--no-<option>`` is present (or an
+        error if combined with the value option), else None to keep parsing."""
+        no_flag = self._no_flag
+        if no_flag and args.has(no_flag):
+            if args.has(self.option):
+                return ParseError(f"Cannot use both {self.option} and {no_flag}")
+            return ParseResult(none_value)
+        return None
+
+    def _usage_with_no_flag(self, inner: str) -> str:
+        if self._no_flag:
+            return f"[{self.option} {inner} | {self._no_flag}]"
+        return f"[{self.option} {inner}]"
+
+    def _help_no_flag_line(self, description: str) -> list[str]:
+        return [f"  {self._no_flag}: {description}"] if self._no_flag else []
+
+
 @dataclasses.dataclass
 class FlagControl(InputControl):
     default: bool = False
@@ -499,7 +545,7 @@ class TextAreaControl(ValueControl):
 
 
 @dataclasses.dataclass
-class NumberControl(ValueControl):
+class NumberControl(_NoneFlag, ValueControl):
     default: Numeric | None
     start: Numeric | None = None
     stop: Numeric | None = None
@@ -515,18 +561,10 @@ class NumberControl(ValueControl):
         return self.widget == "number" and self.start is None and self.stop is None
 
     @property
-    def has_no_flag(self) -> bool:
+    def _has_no_flag(self) -> bool:
         # A non-None default needs a distinct token for None, since absence of
         # the option already means "use the default".
         return self._is_none_capable and self.default is not None
-
-    @property
-    def _no_flag(self) -> str | None:
-        return f"--no-{self.option.lstrip('-')}" if self.has_no_flag else None
-
-    def flags(self) -> set[str]:
-        no_flag = self._no_flag
-        return {no_flag} if no_flag else set()
 
     def create_marimo_element(
         self,
@@ -551,11 +589,8 @@ class NumberControl(ValueControl):
         return mo.ui.number(**ui_kwargs)
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
-        no_flag = self._no_flag
-        if no_flag and args.has(no_flag):
-            if args.has(self.option):
-                return ParseError(f"Cannot use both {self.option} and {no_flag}")
-            return ParseResult(None)
+        if (none_result := self._parse_none_flag(args, None)) is not None:
+            return none_result
         value = args.value_for(self.option)
         return None if value is None else _parse_number(self.option, value)
 
@@ -569,15 +604,13 @@ class NumberControl(ValueControl):
         return st.one_of(st.none(), numbers) if self._is_none_capable else numbers
 
     def format_usage_parts(self) -> list[str]:
-        if self._no_flag:
-            return [f"[{self.option} {self.metavar} | {self._no_flag}]"]
-        return [f"[{self.option} {self.metavar}]"]
+        return [self._usage_with_no_flag(self.metavar)]
 
     def format_help_lines(self) -> list[str]:
-        lines = [self._help_line(show_default=self.default is not None)]
-        if self._no_flag:
-            lines.append(f"  {self._no_flag}: Set {self.option} to none")
-        return lines
+        return [
+            self._help_line(show_default=self.default is not None),
+            *self._help_no_flag_line(f"Set {self.option} to none"),
+        ]
 
     def format_value(self, value: typing.Any) -> list[str]:
         if value == self.default:
@@ -757,7 +790,7 @@ class RangeControl(ValueControl):
 
 
 @dataclasses.dataclass
-class MultiSelectControl(ValueControl):
+class MultiSelectControl(_NoneFlag, ValueControl):
     default: list[typing.Any]
     select_opts: dict[str, typing.Any]
 
@@ -785,26 +818,15 @@ class MultiSelectControl(ValueControl):
         )
 
     @property
-    def has_no_flag(self) -> bool:
+    def _has_no_flag(self) -> bool:
         return bool(self.default)
-
-    @property
-    def _no_flag(self) -> str | None:
-        return f"--no-{self.option.lstrip('-')}" if self.has_no_flag else None
-
-    def flags(self) -> set[str]:
-        no_flag = self._no_flag
-        return {no_flag} if no_flag else set()
 
     def allows_repeated_values(self) -> bool:
         return True
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
-        no_flag = self._no_flag
-        if no_flag and args.has(no_flag):
-            if args.has(self.option):
-                return ParseError(f"Cannot use both {self.option} and {no_flag}")
-            return ParseResult([])
+        if (none_result := self._parse_none_flag(args, [])) is not None:
+            return none_result
         values = args.values_for(self.option)
         if not values:
             return None
@@ -844,9 +866,7 @@ class MultiSelectControl(ValueControl):
 
     def format_usage_parts(self) -> list[str]:
         values_text = "{" + "|".join(self.select_opts) + "}"
-        if self._no_flag:
-            return [f"[{self.option} {values_text} ... | {self._no_flag}]"]
-        return [f"[{self.option} {values_text} ...]"]
+        return [self._usage_with_no_flag(f"{values_text} ...")]
 
     def format_help_lines(self) -> list[str]:
         values_text = "{" + "|".join(self.select_opts) + "}"
@@ -861,10 +881,7 @@ class MultiSelectControl(ValueControl):
                 + ")"
             )
         line += f" (repeat {self.option} to select multiple)"
-        lines = [line]
-        if self._no_flag:
-            lines.append(f"  {self._no_flag}: Clear {self.option}")
-        return lines
+        return [line, *self._help_no_flag_line(f"Clear {self.option}")]
 
     def format_value(self, value: typing.Any) -> list[str]:
         values = list(value)
@@ -899,7 +916,7 @@ class MultiSelectControl(ValueControl):
 
 
 @dataclasses.dataclass
-class DropdownControl(InputControl):
+class DropdownControl(_NoneFlag, InputControl):
     dropdown_opts: dict[str, typing.Any]
     supports_none: bool
     default: str | None
@@ -926,23 +943,12 @@ class DropdownControl(InputControl):
         )
 
     @property
-    def has_no_flag(self) -> bool:
+    def _has_no_flag(self) -> bool:
         return self.supports_none and self.default is not None
 
-    @property
-    def _no_flag(self) -> str | None:
-        return f"--no-{self.option.lstrip('-')}" if self.has_no_flag else None
-
-    def flags(self) -> set[str]:
-        no_flag = self._no_flag
-        return {no_flag} if no_flag else set()
-
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
-        no_flag = self._no_flag
-        if no_flag and args.has(no_flag):
-            if args.has(self.option):
-                return ParseError(f"Cannot use both {self.option} and {no_flag}")
-            return ParseResult(None)
+        if (none_result := self._parse_none_flag(args, None)) is not None:
+            return none_result
         raw = args.value_for(self.option)
         if raw is None:
             return None
@@ -971,9 +977,7 @@ class DropdownControl(InputControl):
         )
 
     def format_usage_parts(self) -> list[str]:
-        if self._no_flag:
-            return [f"[{self.option} {self._values_text()} | {self._no_flag}]"]
-        return [f"[{self.option} {self._values_text()}]"]
+        return [self._usage_with_no_flag(self._values_text())]
 
     def _values_text(self) -> str:
         return "{" + "|".join(self.dropdown_opts) + "}"
@@ -982,10 +986,7 @@ class DropdownControl(InputControl):
         line = f"  {self.option} {self._values_text()}: {self.help_text}"
         if self.default is not None:
             line += f" (default: {self.default})"
-        lines = [line]
-        if self._no_flag:
-            lines.append(f"  {self._no_flag}: Set {self.option} to none")
-        return lines
+        return [line, *self._help_no_flag_line(f"Set {self.option} to none")]
 
     def format_value(self, value: typing.Any) -> list[str]:
         if value == self.default:
