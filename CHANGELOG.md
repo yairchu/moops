@@ -27,8 +27,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Custom controls are now recreated when mirroring a child notebook, rebuilding
   the notebook component in the parent instead of falling back to the bare
   fallback control.
-- Mirrored controls now hide inactive variant branches in notebook UI, while
-  keeping their controls present for CLI validation and value passing.
+- Mirrored controls now hide inactive variant branches in notebook UI while
+  keeping every branch registered so values still pass through and CLI help
+  lists all branches. As with native `group.variant`, options belonging to an
+  inactive branch are rejected on the CLI.
 
 ### Fixed
 
