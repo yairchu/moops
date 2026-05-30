@@ -9,7 +9,7 @@ import marimo as mo
 from hypothesis import strategies as st
 from marimo._plugins.ui._core.ui_element import UIElement
 
-from . import _input_map, _interface_utils, _options, _parse, _query_params
+from . import _input_map, _interface_utils, _options, _parse, _query_params, _variant
 from .presets import Presets
 
 
@@ -202,17 +202,28 @@ class Interface:
         )
 
     def _input_controls(
-        self, *, active_only: bool
+        self, *, active_only: bool, root: "Interface | None" = None
     ) -> typing.Iterator[_options.InputControl]:
-        if active_only and self.disabled:
+        root = self if root is None else root
+        if active_only and self._is_inactive(root):
             return
         for ctrl in self.controls:
             if (iface := _attached_interface(ctrl)) is not None:
-                yield from iface._input_controls(active_only=active_only)
+                yield from iface._input_controls(active_only=active_only, root=root)
             else:
                 input_control = self.input_map.get(ctrl)
                 if input_control is not None and not self._is_overridden(input_control):
                     yield input_control
+
+    def _is_inactive(self, root: "Interface") -> bool:
+        if (
+            self.variant_group_prefix is not None
+            and self.variant_selector_option is not None
+        ):
+            selected = _selected_value_for_option(root, self.variant_selector_option)
+            if selected is not None:
+                return self.variant_key != _variant.key_text(selected)
+        return self.disabled
 
     def input_options(self) -> list[str]:
         return [
@@ -581,6 +592,14 @@ def _ctrl_value(ctrl: typing.Any) -> typing.Any:
 
 def _attached_interface(ctrl: typing.Any) -> Interface | None:
     return _interface_utils.attached_interface(ctrl, Interface)
+
+
+def _selected_value_for_option(
+    iface: Interface, selector_option: str | None
+) -> typing.Any:
+    return _interface_utils.selected_value_for_option(
+        iface, selector_option, Interface, _variant.selected_key
+    )
 
 
 def _usage_placeholders(iface: Interface) -> dict[str, str]:

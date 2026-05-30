@@ -169,19 +169,9 @@ def _active_variant_element(
 def _selected_value_for_option(
     iface: interface.Interface, selector_option: str | None
 ) -> typing.Any:
-    if selector_option is None:
-        return None
-    for ctrl in iface.controls:
-        sub_iface = _attached_interface(ctrl)
-        if sub_iface is not None:
-            selected = _selected_value_for_option(sub_iface, selector_option)
-            if selected is not None:
-                return selected
-            continue
-        input_control = iface.input_map.get(ctrl)
-        if input_control is not None and input_control.option == selector_option:
-            return _variant.selected_key(ctrl)
-    return None
+    return _interface_utils.selected_value_for_option(
+        iface, selector_option, interface.Interface, _variant.selected_key
+    )
 
 
 def _attached_interface(ctrl: typing.Any) -> interface.Interface | None:
