@@ -800,6 +800,22 @@ def test_controls_from_variant_displays_only_active_branch() -> None:
     assert list(visible._moops_visible_elements()) == ["mode", "travel-train"]
 
 
+def test_controls_from_variant_current_args_follow_live_selector_change() -> None:
+    """When a mirrored variant selector changes in the notebook, current args
+    should serialize the newly active branch, not the branch active at creation.
+    """
+    variant_iface = moops.interface_of(variant_trip)
+    parent = Group(cli_args=["parent.py"])
+    trip = parent.controls_from(variant_iface, prefix="trip")
+    iface = parent.interface(trip)
+
+    trip.elements["mode"]._value = "train"  # type: ignore[attr-defined]
+    trip.elements["mode"]._selected_key = "train"  # type: ignore[attr-defined]
+    trip.elements["travel-train"].elements["tickets"]._value = 4  # type: ignore[attr-defined]
+
+    assert iface._current_args() == "--trip-mode train --trip-travel-train-tickets 4"  # type: ignore[attr-defined]
+
+
 def test_variant_display_uses_selected_key_without_reading_value() -> None:
     class GuardedValueControl:
         _selected_key = "train"
