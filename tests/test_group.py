@@ -297,13 +297,6 @@ def test_validation_error_not_shown_for_unrendered_control(
     assert "Unexpected argument: --count" in capsys.readouterr().out
 
 
-def test_number_accepts_negative_value() -> None:
-    g = Group(cli_args=["script.py", "--count", "-3"])
-    ctrl = g.number(option="--count", help_text="A count")
-    g.interface(ctrl)
-    assert ctrl.value == -3
-
-
 def test_unbounded_number_none_value_round_trips() -> None:
     """An unbounded number can be cleared to None (marimo's number widget yields
     None when emptied), so that state must round-trip through the CLI instead of
@@ -1954,7 +1947,7 @@ _QUERY_CONTROL_STRATEGY: st.SearchStrategy[_options.InputControl] = st.one_of(
 
 
 @st.composite
-def _control_and_query_value(
+def _control_and_value(
     draw: st.DrawFn,
 ) -> tuple[_options.InputControl, typing.Any]:
     """Draw a control type, then a value from that control's own ``strategy()``."""
@@ -1964,7 +1957,7 @@ def _control_and_query_value(
 
 @pytest.mark.filterwarnings("ignore:.*outside the range of safe integers")
 @settings(max_examples=300)
-@given(case=_control_and_query_value())
+@given(case=_control_and_value())
 def test_all_control_types_query_param_round_trip(
     case: tuple[_options.InputControl, typing.Any],
 ) -> None:
@@ -1981,6 +1974,29 @@ def test_all_control_types_query_param_round_trip(
         assert value == control.default
         return
     result = control.parse_query_value(formatted)
+    assert isinstance(result, _options.ParseResult), result
+    assert result.value == value
+
+
+@pytest.mark.filterwarnings("ignore:.*outside the range of safe integers")
+@settings(max_examples=300)
+@given(case=_control_and_value())
+def test_all_control_types_cli_round_trip(
+    case: tuple[_options.InputControl, typing.Any],
+) -> None:
+    """Any value round-trips through a control's CLI serialization.
+
+    The companion to the query-param round-trip, over the same meta strategy:
+    ``format_value`` then reparsing the resulting tokens must reconstruct the
+    value, and an empty serialization must mean the value equals the default.
+    Subsumes the per-control CLI parse checks (e.g. negative numbers).
+    """
+    control, value = case
+    tokens = shlex.split(" ".join(control.format_value(value)))
+    if not tokens:
+        assert value == control.default
+        return
+    result = control.parse(_parse.ParsedArgs.from_options(tokens))
     assert isinstance(result, _options.ParseResult), result
     assert result.value == value
 
