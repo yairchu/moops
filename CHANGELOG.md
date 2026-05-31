@@ -41,6 +41,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   CLI and query params via a `--no-<option>` flag (mirroring `dropdown`'s none
   handling) instead of serializing to an invalid `--option None`. Bounded
   numbers and sliders coerce `None` to their start, so they are unaffected.
+- `number()` and `slider()` now preserve integers larger than 2^53 instead of
+  silently rounding them. Integer-looking values were parsed through `float()`,
+  so e.g. `--count 9007199254740993` resolved to `9007199254740992` on the CLI
+  and via query params; they are now parsed as exact integers first.
 
 ## [0.7.2] - 2026-05-28 - CLI help formatting
 
