@@ -1846,6 +1846,145 @@ def test_list_empty_value_overrides_non_empty_default_in_query() -> None:
     }
 
 
+def _control_from(build: typing.Callable[[Group], typing.Any]) -> _options.InputControl:
+    """Build a control through the public Group API and return its InputControl.
+
+    Going through the builders (rather than constructing ``_options`` dataclasses
+    directly) keeps the generated controls configured exactly as real usage
+    produces them -- correct metavars, ``select_opts`` mappings, none handling.
+    """
+    group = Group(cli_args=["script.py"])
+    element = build(group)
+    ctrl = group._input_map.get(element)  # type: ignore[reportPrivateUsage]
+    assert ctrl is not None
+    return ctrl
+
+
+_DICT_OPTS = {"a": 1, "b": 2, "c": 3}
+
+
+def _text_ctrl(value: str) -> _options.InputControl:
+    return _control_from(lambda g: g.text(value=value, option="--opt", help_text="h"))
+
+
+def _text_area_ctrl(value: str) -> _options.InputControl:
+    return _control_from(
+        lambda g: g.text_area(value=value, option="--opt", help_text="h")
+    )
+
+
+def _number_ctrl(value: float | None) -> _options.InputControl:
+    return _control_from(lambda g: g.number(value=value, option="--opt", help_text="h"))
+
+
+def _bounded_number_ctrl(value: float) -> _options.InputControl:
+    return _control_from(
+        lambda g: g.number(
+            start=0, stop=100, value=value, option="--opt", help_text="h"
+        )
+    )
+
+
+def _slider_ctrl(value: float) -> _options.InputControl:
+    return _control_from(
+        lambda g: g.slider(
+            start=0, stop=100, value=value, option="--opt", help_text="h"
+        )
+    )
+
+
+def _range_ctrl(pair: tuple[float, float]) -> _options.InputControl:
+    return _control_from(
+        lambda g: g.range_slider(
+            start=0, stop=100, value=sorted(pair), option="--opt", help_text="h"
+        )
+    )
+
+
+def _dropdown_ctrl(allow_none: bool) -> _options.InputControl:
+    return _control_from(
+        lambda g: g.dropdown(
+            _DICT_OPTS,
+            value="a",
+            allow_select_none=allow_none,
+            option="--opt",
+            help_text="h",
+        )
+    )
+
+
+def _multiselect_ctrl(default: list[int]) -> _options.InputControl:
+    return _control_from(
+        lambda g: g.multiselect(
+            _DICT_OPTS, value=default, option="--opt", help_text="h"
+        )
+    )
+
+
+# A meta strategy over control *types*: each branch yields an InputControl,
+# parameterized over the configuration knobs that change its query behavior
+# (bounds, none support, default). File controls are intentionally absent: they
+# inherit a text ``strategy()`` that generates arbitrary paths, but their
+# ``parse_query_value`` rejects paths that do not exist on disk, so their own
+# strategy cannot round-trip. Compound list controls have their own round-trip
+# tests (``test_list_*_round_trips``).
+_QUERY_CONTROL_STRATEGY: st.SearchStrategy[_options.InputControl] = st.one_of(
+    st.builds(_text_ctrl, st.text()),
+    st.builds(_text_area_ctrl, st.text()),
+    st.builds(
+        _number_ctrl,
+        st.one_of(
+            st.none(),
+            st.integers(),
+            st.floats(allow_nan=False, allow_infinity=False),
+        ),
+    ),
+    st.builds(_bounded_number_ctrl, st.floats(min_value=0, max_value=100)),
+    st.builds(_slider_ctrl, st.floats(min_value=0, max_value=100)),
+    st.builds(
+        _range_ctrl,
+        st.tuples(
+            st.floats(min_value=0, max_value=100),
+            st.floats(min_value=0, max_value=100),
+        ),
+    ),
+    st.builds(_dropdown_ctrl, st.booleans()),
+    st.builds(_multiselect_ctrl, st.lists(st.sampled_from([1, 2, 3]), unique=True)),
+)
+
+
+@st.composite
+def _control_and_query_value(
+    draw: st.DrawFn,
+) -> tuple[_options.InputControl, typing.Any]:
+    """Draw a control type, then a value from that control's own ``strategy()``."""
+    control = draw(_QUERY_CONTROL_STRATEGY)
+    return control, draw(control.strategy())
+
+
+@pytest.mark.filterwarnings("ignore:.*outside the range of safe integers")
+@settings(max_examples=300)
+@given(case=_control_and_query_value())
+def test_all_control_types_query_param_round_trip(
+    case: tuple[_options.InputControl, typing.Any],
+) -> None:
+    """Any value round-trips through a control's query-param serialization.
+
+    Generalizes the per-control round-trip checks over the control type itself:
+    ``format_query_value`` then ``parse_query_value`` must reconstruct the value,
+    and a ``None`` (omitted) serialization must mean the value equals the default
+    (so loading without the param hydrates the same value).
+    """
+    control, value = case
+    formatted = control.format_query_value(value)
+    if formatted is None:
+        assert value == control.default
+        return
+    result = control.parse_query_value(formatted)
+    assert isinstance(result, _options.ParseResult), result
+    assert result.value == value
+
+
 def test_list_merged_dropdown_item_accepts_no_flag() -> None:
     """Merged lists must parse the item control's auxiliary flags too.
 
