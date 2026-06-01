@@ -19,7 +19,7 @@ import moops._control_mirroring as control_mirroring
 import moops.group as group_module
 from examples.composition import variant_trip
 from moops import Group, _input_map, _options, _parse
-from moops.interface import CustomElement
+from moops._custom_element import CustomElement
 
 
 def test_help_exits_zero() -> None:

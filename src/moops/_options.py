@@ -10,7 +10,7 @@ import typing
 import marimo as mo
 from hypothesis import strategies as st
 
-from . import _choice_options, _parse, _ui_workarounds
+from . import _choice_options, _custom_element, _parse, _ui_workarounds
 
 Numeric = int | float
 
@@ -1158,9 +1158,7 @@ class CustomControl(InputControl):
         )
         if not mo.running_in_notebook():
             return fallback
-        from . import interface
-
-        return interface.CustomElement(self.build(value), fallback, self.value_fn)
+        return _custom_element.CustomElement(self.build(value), fallback, self.value_fn)
 
 
 def _parse_number(option: str, value: str) -> ParseResult | ParseError:

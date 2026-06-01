@@ -24,7 +24,9 @@ from . import (
     _variant,
     interface,
 )
+from ._custom_element import CustomElement
 from ._run_button import run_button
+from ._subgroup_registry import SubgroupRegistry
 from ._ui_workarounds import FileBrowserWithInitialSelection
 from .presets import Presets
 
@@ -80,7 +82,7 @@ class Group:
         self._variant_selector_parent_prefix: str = ""
         self._variant_key: str | None = None
         self._variant_group_prefix: str | None = None
-        self._subgroup_registry = interface.SubgroupRegistry()
+        self._subgroup_registry = SubgroupRegistry()
         self._value_resolver = self._make_value_resolver()
 
     @property
@@ -562,7 +564,7 @@ class Group:
         custom_control = _options.CustomControl.wrap(inner, build, value)
         fallback_value = fallback._value
         element = (
-            interface.CustomElement(build(fallback_value), fallback, value)
+            CustomElement(build(fallback_value), fallback, value)
             if mo.running_in_notebook()
             else fallback
         )
