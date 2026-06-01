@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `Group.number(..., allow_none=False)` disables `None` as a CLI value for
+  unbounded number inputs while preserving marimo's editable number widget.
+
 - `OutputMode` enum and a settable `Group.output_mode` property control where a
   notebook's dual-output (e.g. `Group.md`) goes: marimo display objects
   (`NOTEBOOK`), printed text (`STDOUT`), or nothing (`None`). It defaults from

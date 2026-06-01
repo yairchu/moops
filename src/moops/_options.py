@@ -579,15 +579,20 @@ class NumberControl(_NoneFlag, ValueControl):
     start: Numeric | None = None
     stop: Numeric | None = None
     widget: typing.Literal["number", "slider"] = "number"
+    allow_none: bool = True
 
     @property
-    def _is_none_capable(self) -> bool:
+    def _widget_allows_none(self) -> bool:
         """Whether the widget can actually hold None.
 
         Only an unbounded number input keeps a None value; bounded numbers and
         sliders coerce None to their start, so None is never a real state there.
         """
         return self.widget == "number" and self.start is None and self.stop is None
+
+    @property
+    def _is_none_capable(self) -> bool:
+        return self.allow_none and self._widget_allows_none
 
     @property
     def _has_no_flag(self) -> bool:
@@ -624,7 +629,7 @@ class NumberControl(_NoneFlag, ValueControl):
         return None if value is None else _parse_number(self.option, value)
 
     def parse_query_value(self, value: str) -> ParseResult | ParseError:
-        if not value and self._is_none_capable:
+        if not value and self._widget_allows_none:
             return ParseResult(None)
         return super().parse_query_value(value)
 
@@ -645,14 +650,15 @@ class NumberControl(_NoneFlag, ValueControl):
         if value == self.default:
             return []
         if value is None:
-            assert self._no_flag
-            return [self._no_flag]
+            return [self._no_flag] if self._no_flag else []
         return [f"{self.option} {value}"]
 
     def format_query_value(self, value: typing.Any) -> str | None:
         if value == self.default:
             return None
-        return "" if value is None else str(value)
+        if value is None:
+            return "" if self._widget_allows_none else None
+        return str(value)
 
     def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
         d = self.default if effective_default is _UNSET else effective_default

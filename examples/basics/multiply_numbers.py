@@ -66,7 +66,9 @@ def _(get_factors):
 def _(args, factors_val, set_factors):
     factors = args.list(
         option="--factor",
-        item=lambda g: g.number(value=1.0, option="--factor", help_text="A factor"),
+        item=lambda g: g.number(
+            value=1.0, option="--factor", help_text="A factor", allow_none=False
+        ),
         help_text="Factors to multiply",
         value=factors_val,
         on_change=set_factors,

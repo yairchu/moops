@@ -453,6 +453,7 @@ class Group:
         value: float | None = None,
         debounce: bool = False,
         *,
+        allow_none: bool = True,
         label: str | None = None,
         option: str | None = None,
         help_text: str,
@@ -463,7 +464,7 @@ class Group:
 
         kwargs = {"step": step, "debounce": debounce, **kwargs}
         opt, input_control = self._numeric_input_control(
-            start, stop, value, option, help_text, label, "number", kwargs
+            start, stop, value, option, help_text, label, "number", kwargs, allow_none
         )
         return self._register_control(opt, input_control, help_text, on_change)
 
@@ -594,6 +595,7 @@ class Group:
         label: str | None,
         widget: typing.Literal["number", "slider"] = "number",
         extra_kwargs: dict[str, typing.Any] | None = None,
+        allow_none: bool = True,
     ) -> tuple[_naming.OptionLabel, _options.NumberControl]:
         if value is None:
             value = start
@@ -606,6 +608,7 @@ class Group:
             start=start,
             stop=stop,
             widget=widget,
+            allow_none=allow_none,
             extra_kwargs=extra_kwargs or {},
         )
         return opt, input_control
