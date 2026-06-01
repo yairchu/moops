@@ -340,6 +340,44 @@ def test_unbounded_number_none_value_standalone_query_round_trips(
     assert target_count.value is None
 
 
+def test_unbounded_number_allow_none_false_rejects_empty_query(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``allow_none=False`` should make cleared query state invalid/absent.
+
+    The marimo widget can still be cleared, but moops should not persist that
+    state in standalone query params or hydrate an empty query value as ``None``.
+    """
+    source = Group(cli_args=["script.py"])
+    count = source.number(
+        value=5.0,
+        option="--count",
+        help_text="Count",
+        allow_none=False,
+    )
+    count._value = None  # type: ignore[attr-defined]
+
+    assert (
+        source.interface(count)._standalone_query_values() == {}
+    )  # type: ignore[reportPrivateUsage]
+
+    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
+    monkeypatch.setattr(group_module.mo, "query_params", lambda: {"count": ""})
+
+    target = Group(cli_args=["script.py"])
+    target_count = target.number(
+        value=5.0,
+        option="--count",
+        help_text="Count",
+        allow_none=False,
+    )
+
+    assert target_count.value == 5.0
+    assert target._state.validation_errors == {  # type: ignore[reportPrivateUsage]
+        "--count": "--count expects a number, got ''"
+    }
+
+
 def test_group_ui_method_signatures_match_marimo() -> None:
     group_names = {
         name for name, _ in inspect.getmembers(Group, predicate=inspect.isfunction)
