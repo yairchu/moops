@@ -223,7 +223,7 @@ def test_reset_button_clears_list_notebook_state(
             default_args="",
             get_current=mock.Mock(return_value=None),
             args_for=mock.Mock(return_value=""),
-            list=mock.Mock(return_value=[]),
+            list=mock.Mock(return_value=["saved"]),
             select=select,
         ),
     )
@@ -244,6 +244,45 @@ def test_reset_button_clears_list_notebook_state(
     select.assert_called_once_with("")
     assert params == {}
     assert changes == [[]]
+
+
+def test_reset_button_reapplies_inherited_preset_to_subgroup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    params = {"child.text": "Edited"}
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+    select = mock.Mock()
+    changes: list[str] = []
+    presets = typing.cast(
+        Presets,
+        mock.Mock(
+            selected_args="",
+            default_args="",
+            get_current=mock.Mock(return_value="saved"),
+            args_for=mock.Mock(return_value="--child-text Preset"),
+            list=mock.Mock(return_value=["saved"]),
+            select=select,
+        ),
+    )
+    group = Group(cli_args=["script.py"], presets=presets)
+    child = group.subgroup("child")
+    text = child.text(
+        value="Factory",
+        option="--text",
+        help_text="Input text",
+        on_change=changes.append,
+    )
+    child_iface = child.interface(text)
+    iface = group.interface(child_iface)
+    presets_ui = typing.cast(typing.Any, iface)._presets_ui
+    presets_ui.layout(iface._current_args())  # type: ignore[reportPrivateUsage]
+
+    presets_ui._reset_btn._on_click(None)
+
+    select.assert_called_once_with("saved")
+    assert params == {"child.text": "Preset"}
+    assert changes == ["Preset"]
 
 
 def test_selected_default_preset_does_not_override_edited_list_state(
