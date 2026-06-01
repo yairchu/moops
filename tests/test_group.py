@@ -134,11 +134,14 @@ def test_subgroup_markdown_demotes_headings_in_notebooks(
         rendered.append(text)
         return typing.cast(mo.Html, object())
 
+    # Patch before constructing: output_mode is set from running_in_notebook()
+    # at construction, and the notebook branch of __init__ reads query_params().
+    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
+    monkeypatch.setattr(group_module.mo, "query_params", lambda: dict[str, str]())
+    monkeypatch.setattr(group_module.mo, "md", fake_md)
+
     g = Group(cli_args=["script.py"])
     sub = g.subgroup("embedded")
-
-    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
-    monkeypatch.setattr(group_module.mo, "md", fake_md)
 
     sub.md("# Title\n## Section\n```\n# Not a title\n```\n####### Not a heading\n")
 

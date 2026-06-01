@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import enum
 import inspect
 import pathlib
 import typing
@@ -31,6 +32,18 @@ from .presets import Presets
 Numeric = int | float
 
 
+class OutputMode(enum.Enum):
+    """Where a notebook's dual-output (e.g. ``Group.md``) should go.
+
+    A child run via ``app.run`` cannot tell a lean CLI run from a parent that
+    wants its rendered displays, so the parent sets this on the injected
+    ``args``. ``output_mode = None`` silences output entirely.
+    """
+
+    NOTEBOOK = "notebook"  # emit marimo display objects
+    STDOUT = "stdout"  # print text to the terminal
+
+
 class Group:
     """Unified CLI argument parser and marimo UI element generator."""
 
@@ -50,6 +63,9 @@ class Group:
         )
         self._state = _parse.ParseState(args=_parse.ParsedArgs.from_options(rest))
         self._is_interface_query: bool = self._state.args.is_help
+        self.output_mode: OutputMode | None = (
+            OutputMode.NOTEBOOK if mo.running_in_notebook() else OutputMode.STDOUT
+        )
         self._input_map = _input_map.InputMap()
         self._overrides: dict[str, typing.Any] = {}
         self._presets = presets
@@ -88,6 +104,13 @@ class Group:
         instance = cls(["run"])
         instance._overrides = overrides
         instance._value_resolver = instance._make_value_resolver()
+        # Run-as-function (moops.run) executes the notebook in a context-less
+        # worker thread, so its output is CLI-like by default. Set this
+        # explicitly rather than inferring it from the caller's context: the
+        # Group is built here (possibly inside a notebook cell) but used during
+        # app.run elsewhere. A parent collecting a child's rendered output
+        # overrides this with OutputMode.NOTEBOOK on the returned Group.
+        instance.output_mode = OutputMode.STDOUT
         return instance
 
     @classmethod
@@ -154,6 +177,7 @@ class Group:
             child._resolve_preset_state() if presets else self._preset_state
         )
         child._is_interface_query = self._is_interface_query
+        child.output_mode = self.output_mode
         child._value_resolver = child._make_value_resolver()
         return child
 
@@ -260,13 +284,13 @@ class Group:
     def md(self, text: str, *, notebook_only: bool = False) -> mo.Html | None:
         """Display markdown in notebooks or plain text in CLI."""
 
-        if notebook_only and not mo.running_in_notebook():
+        if self.is_interface_query or self.output_mode is None:
+            return None
+        if notebook_only and self.output_mode is not OutputMode.NOTEBOOK:
             return None
         text = _markdown.demote_markdown_headings(text, self._markdown_heading_offset)
-        if mo.running_in_notebook():
+        if self.output_mode is OutputMode.NOTEBOOK:
             return mo.md(text)
-        if self._is_interface_query:
-            return None
         text = text.strip()
         if text.startswith("```\n") and text.endswith("\n```"):
             text = text[4:-4]

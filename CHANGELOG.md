@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `OutputMode` enum and a settable `Group.output_mode` property control where a
+  notebook's dual-output (e.g. `Group.md`) goes: marimo display objects
+  (`NOTEBOOK`), printed text (`STDOUT`), or nothing (`None`). It defaults from
+  context (notebook vs CLI). A parent running a child via `app.run` can set
+  `args.output_mode = OutputMode.NOTEBOOK` so the child renders its output, then
+  collect it from `app.run`'s returned definitions — see
+  `examples/composition/run_outputs.py`.
+
 ### Changed
 
 - The "This notebook also works as a script" callout now wraps long commands
