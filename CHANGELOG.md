@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-06-01 - List controls and notebook polish
+
 ### Added
 
 - `Group.number(..., allow_none=False)` disables `None` as a CLI value for
@@ -34,6 +36,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   no longer snap edited lists back to the preset value on each rerender.
 - Mirrored `Group.list()` notebook items now stay editable while a preset is
   active instead of snapping back to the preset item list on each rerender.
+- Merged `Group.list()` script-callout arguments now round-trip when a default
+  item value starts with `-`.
 
 ## [0.8.0] - 2026-06-01 - Repeated-option list controls
 
