@@ -1,4 +1,5 @@
 import abc
+import contextlib
 import dataclasses
 import json
 import math
@@ -1164,10 +1165,8 @@ class CustomControl(InputControl):
 def _parse_number(option: str, value: str) -> ParseResult | ParseError:
     # Parse integer-looking strings as int first: routing them through float()
     # would silently lose precision past 2**53 (e.g. "9007199254740993").
-    try:
+    with contextlib.suppress(ValueError):
         return ParseResult(int(value))
-    except ValueError:
-        pass
     try:
         num = float(value)
     except ValueError:

@@ -397,7 +397,8 @@ def attached_interface(ctrl: typing.Any) -> Interface | None:
     if isinstance(ctrl, Interface):
         return ctrl
     iface = getattr(ctrl, "_moops_interface", None)
-    return iface if isinstance(iface, Interface) else None
+    assert iface is None or isinstance(iface, Interface)
+    return iface
 
 
 def selected_value_for_option(
