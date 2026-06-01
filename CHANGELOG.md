@@ -26,8 +26,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- "Clear changes" now resets notebook list state created with `Group.list()`
-  add/remove buttons, instead of only clearing query parameters.
+- `Group.list()` notebook add/remove buttons now interact correctly with
+  presets: "Clear changes" resets list state, and active saved default presets
+  no longer snap edited lists back to the preset value on each rerender.
 
 ## [0.8.0] - 2026-06-01 - Repeated-option list controls
 

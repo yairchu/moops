@@ -4,7 +4,7 @@ import typing
 
 import marimo as mo
 
-from . import _options, _parse, _query_params
+from . import _list_options, _options, _parse, _query_params
 
 _UNSET: typing.Any = object()
 
@@ -32,7 +32,14 @@ class ValueResolver:
         key = self.override_key(control.option)
         if key in self.overrides:
             return self.overrides[key]
+        query_value = self._query_value(control, key)
         if self.preset_state is not None:
+            if (
+                _is_list_control(control)
+                and query_value is not _UNSET
+                and query_value == default
+            ):
+                return query_value
             match control.parse(self.preset_state.args):
                 case _options.ParseResult(value=v):
                     self.query_params.sync(control, key, v)
@@ -42,13 +49,8 @@ class ValueResolver:
                     return default
                 case _:
                     pass
-        raw = self.query_params.get(key)
-        if raw is not None:
-            match control.parse_query_value(raw):
-                case _options.ParseError(message=msg):
-                    self.state.validation_errors[control.option] = msg
-                case _options.ParseResult(value=v):
-                    return v
+        if query_value is not _UNSET:
+            return query_value
         match control.parse(self.state.args):
             case _options.ParseError(message=msg):
                 self.state.validation_errors[control.option] = msg
@@ -67,6 +69,21 @@ class ValueResolver:
                 case _:
                     pass
         return default
+
+    def _query_value(
+        self,
+        control: _options.InputControl,
+        key: str,
+    ) -> typing.Any:
+        raw = self.query_params.get(key)
+        if raw is None:
+            return _UNSET
+        match control.parse_query_value(raw):
+            case _options.ParseError(message=msg):
+                self.state.validation_errors[control.option] = msg
+                return _UNSET
+            case _options.ParseResult(value=v):
+                return v
 
     def _prompt_interactive(
         self,
@@ -108,3 +125,10 @@ class ValueResolver:
             on_change,
             disabled=self.is_overridden(control.option),
         )
+
+
+def _is_list_control(control: _options.InputControl) -> bool:
+    return isinstance(
+        control,
+        (_list_options.ListControl, _list_options.SubgroupListControl),
+    )
