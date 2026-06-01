@@ -1506,6 +1506,28 @@ def test_list_current_args_keeps_items_equal_to_item_default() -> None:
     assert iface._current_args() == "--factor 1.0 --factor 2.0"  # type: ignore[attr-defined]
 
 
+def test_script_callout_command_wraps_long_list_options() -> None:
+    """The script-callout command should wrap, even for a single list control.
+
+    A list emits its whole repeated sequence as one option group, so the
+    per-group wrapping kept it all on a single overflowing line. The wrapped
+    command should break long lines instead of producing one giant line."""
+    from moops.interface import _wrap_command  # type: ignore[reportPrivateUsage]
+
+    g = Group(cli_args=["script.py"])
+    ctrl = g.list(
+        option="--factor",
+        item=lambda grp: grp.number(value=1.0, option="--factor", help_text="Factor"),
+        help_text="Factors",
+        value=[float(n) for n in range(1, 11)],
+    )
+    iface = g.interface(ctrl)
+
+    command = _wrap_command("script.py", iface._arg_groups())  # type: ignore[attr-defined]
+    longest = max(len(line) for line in command.splitlines())
+    assert longest <= 72, command
+
+
 def test_list_controls_from_variant_parses_nested_items() -> None:
     variant_iface = moops.interface_of(variant_trip)
     g = Group(
