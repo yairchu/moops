@@ -95,6 +95,17 @@ class InputControl(abc.ABC):
     def format_value(self, value: typing.Any) -> list[str]:
         """Format the command line arguments for a given value."""
 
+    def format_value_groups(self, value: typing.Any) -> list[list[str]]:
+        """Format args split into wrap-friendly groups of tokens.
+
+        Each group is kept together on one line when the script-callout command
+        is wrapped. The default is a single group holding all of this control's
+        tokens; the list control overrides this to emit one group per item so
+        long repeated-option commands wrap per item instead of overflowing.
+        """
+        tokens = self.format_value(value)
+        return [tokens] if tokens else []
+
     @abc.abstractmethod
     def create_marimo_element(
         self,

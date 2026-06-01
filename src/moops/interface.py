@@ -288,19 +288,23 @@ class Interface:
         return " ".join(self._arg_groups())
 
     def _arg_groups(self) -> list[str]:
-        """Current CLI args grouped one entry per option.
+        """Current CLI args grouped into wrap-friendly chunks.
 
-        Each entry is the space-joined tokens for a single option (e.g.
-        ``"--trip-0-mode car"``). Used both for the flat ``_current_args``
-        string and for the line-wrapped command shown in the script callout.
+        Each entry is the space-joined tokens for one chunk: a single option
+        (e.g. ``"--trip-0-mode car"``), or one item of a list control (e.g.
+        ``"--trip --travel-car-distance 125"``) so long repeated-option commands
+        wrap per item. Used both for the flat ``_current_args`` string and for
+        the line-wrapped command shown in the script callout.
         """
         values = self.cur_values()
-        groups = [
-            " ".join(input_control.format_value(values[input_control.option]))
+        return [
+            " ".join(tokens)
             for input_control in self._input_controls(active_only=True)
             if input_control.option in values
+            for tokens in input_control.format_value_groups(
+                values[input_control.option]
+            )
         ]
-        return [group for group in groups if group]
 
     def missing_options(self) -> list[str]:
         covered = {

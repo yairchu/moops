@@ -351,20 +351,24 @@ class SubgroupListControl(InputControl):
         ]
 
     def format_value(self, value: typing.Any) -> list[str]:
-        result: list[str] = []
+        return [token for group in self.format_value_groups(value) for token in group]
+
+    def format_value_groups(self, value: typing.Any) -> list[list[str]]:
         selector_paths = self._variant_selector_paths()
+        groups: list[list[str]] = []
         for item in value:
-            result.append(self.option)
+            group = [self.option]
             for leaf in self.leaves:
                 if not self._is_active_variant_leaf(leaf, item, selector_paths):
                     continue
                 bare_control = leaf.bare_control()
-                result.extend(
+                group.extend(
                     bare_control.format_value(
                         get_path(item, leaf.value_path, bare_control.default)
                     )
                 )
-        return result
+            groups.append(group)
+        return groups
 
     def format_query_value(self, value: typing.Any) -> str | None:
         del value
@@ -614,7 +618,10 @@ class ListControl(InputControl):
         ]
 
     def format_value(self, value: typing.Any) -> list[str]:
-        result: list[str] = []
+        return [token for group in self.format_value_groups(value) for token in group]
+
+    def format_value_groups(self, value: typing.Any) -> list[list[str]]:
+        groups: list[list[str]] = []
         for v in value:
             formatted = self.item_control.format_value(v)
             if not self._is_merged:
@@ -622,11 +629,10 @@ class ListControl(InputControl):
                 # formats to no per-item token (e.g. an empty multiselect)
                 # needs no filler — the merged-mode fallback would emit a
                 # token the parser then rejects.
-                result.append(self.option)
-                result.extend(formatted)
+                groups.append([self.option, *formatted])
             else:
-                result.extend(formatted or self._format_default_item_value(v))
-        return result
+                groups.append(formatted or self._format_default_item_value(v))
+        return groups
 
     def format_query_value(self, value: typing.Any) -> str | None:
         items = list(value)
