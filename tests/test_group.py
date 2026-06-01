@@ -357,9 +357,7 @@ def test_unbounded_number_allow_none_false_rejects_empty_query(
     )
     count._value = None  # type: ignore[attr-defined]
 
-    assert (
-        source.interface(count)._standalone_query_values() == {}
-    )  # type: ignore[reportPrivateUsage]
+    assert source.interface(count)._standalone_query_values() == {}  # type: ignore[reportPrivateUsage]
 
     monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
     monkeypatch.setattr(group_module.mo, "query_params", lambda: {"count": ""})
@@ -374,7 +372,7 @@ def test_unbounded_number_allow_none_false_rejects_empty_query(
 
     assert target_count.value == 5.0
     assert target._state.validation_errors == {  # type: ignore[reportPrivateUsage]
-        "--count": "--count expects a number, got ''"
+        "--count": "Option --count expects a number, got: ''"
     }
 
 

@@ -629,7 +629,7 @@ class NumberControl(_NoneFlag, ValueControl):
         return None if value is None else _parse_number(self.option, value)
 
     def parse_query_value(self, value: str) -> ParseResult | ParseError:
-        if not value and self._widget_allows_none:
+        if not value and self._is_none_capable:
             return ParseResult(None)
         return super().parse_query_value(value)
 
@@ -657,7 +657,7 @@ class NumberControl(_NoneFlag, ValueControl):
         if value == self.default:
             return None
         if value is None:
-            return "" if self._widget_allows_none else None
+            return "" if self._is_none_capable else None
         return str(value)
 
     def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
