@@ -208,6 +208,44 @@ def test_reset_button_reapplies_active_factory_preset(
     assert params == {}
 
 
+def test_reset_button_clears_list_notebook_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    params = {"factor": "[1.0]"}
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+    select = mock.Mock()
+    changes: list[list[float]] = []
+    presets = typing.cast(
+        Presets,
+        mock.Mock(
+            selected_args="",
+            default_args="",
+            get_current=mock.Mock(return_value=None),
+            args_for=mock.Mock(return_value=""),
+            list=mock.Mock(return_value=[]),
+            select=select,
+        ),
+    )
+    group = Group(cli_args=["script.py"], presets=presets)
+    factors = group.list(
+        option="--factor",
+        item=lambda g: g.number(value=1.0, option="--factor", help_text="Factor"),
+        help_text="Factors",
+        value=[1.0],
+        on_change=changes.append,
+    )
+    iface = group.interface(factors)
+    presets_ui = typing.cast(typing.Any, iface)._presets_ui
+    presets_ui.layout(iface._current_args())  # type: ignore[reportPrivateUsage]
+
+    presets_ui._reset_btn._on_click(None)
+
+    select.assert_called_once_with("")
+    assert params == {}
+    assert changes == [[]]
+
+
 def test_empty_save_name_saves_default_preset() -> None:
     save = mock.Mock()
     presets = typing.cast(
