@@ -3,7 +3,6 @@ from __future__ import annotations
 import copy
 import dataclasses
 import json
-import shlex
 import typing
 
 import marimo as mo
@@ -668,7 +667,7 @@ class ListControl(InputControl):
         query_value = self.item_control.format_query_value(value)
         if query_value is None:
             query_value = str(value)
-        return [f"{self.item_control.option} {shlex.quote(query_value)}"]
+        return [_options.option_value_token(self.item_control.option, query_value)]
 
     def strategy(self) -> st.SearchStrategy:
         return st.lists(self.item_control.strategy())

@@ -18,7 +18,7 @@ Numeric = int | float
 _UNSET: typing.Any = object()
 
 
-def _option_value_token(option: str, value: str) -> str:
+def option_value_token(option: str, value: str) -> str:
     """Serialize an ``option value`` pair as one CLI token string.
 
     A value starting with ``-`` would be re-tokenized as a separate option by
@@ -322,9 +322,7 @@ class TextControl(ValueControl):
         return [self._help_line(show_default=bool(self.default))]
 
     def format_value(self, value: typing.Any) -> list[str]:
-        return (
-            [] if value == self.default else [_option_value_token(self.option, value)]
-        )
+        return [] if value == self.default else [option_value_token(self.option, value)]
 
     def format_query_value(self, value: typing.Any) -> str | None:
         return None if value == self.default else str(value)
@@ -483,7 +481,7 @@ class MultiFileControl(ValueControl):
         values = list(value)
         if values == self.default:
             return []
-        return [_option_value_token(self.option, v) for v in values]
+        return [option_value_token(self.option, v) for v in values]
 
     def format_query_value(self, value: typing.Any) -> str | None:
         values = list(value)
@@ -558,9 +556,7 @@ class TextAreaControl(ValueControl):
         ]
 
     def format_value(self, value: typing.Any) -> list[str]:
-        return (
-            [] if value == self.default else [_option_value_token(self.option, value)]
-        )
+        return [] if value == self.default else [option_value_token(self.option, value)]
 
     def format_query_value(self, value: typing.Any) -> str | None:
         return None if value == self.default else str(value)
@@ -924,7 +920,7 @@ class MultiSelectControl(_NoneFlag, ValueControl):
             return []
         if not values and self._no_flag:
             return [self._no_flag]
-        return [_option_value_token(self.option, self._key_for(v)) for v in values]
+        return [option_value_token(self.option, self._key_for(v)) for v in values]
 
     def format_query_value(self, value: typing.Any) -> str | None:
         values = list(value)
@@ -1029,7 +1025,7 @@ class DropdownControl(_NoneFlag, InputControl):
         if value is None:
             assert self._no_flag
             return [self._no_flag]
-        return [_option_value_token(self.option, value)]
+        return [option_value_token(self.option, value)]
 
     def format_query_value(self, value: typing.Any) -> str | None:
         if value == self.default:
