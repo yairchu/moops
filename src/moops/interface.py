@@ -9,62 +9,16 @@ import marimo as mo
 from hypothesis import strategies as st
 from marimo._plugins.ui._core.ui_element import UIElement
 
-from . import _input_map, _options, _parse, _query_params, _variant
+from . import (
+    _input_map,
+    _marimo_controls,
+    _options,
+    _parse,
+    _query_params,
+    _text_wrap,
+    _variant,
+)
 from .presets import Presets
-
-
-def _wrap_usage(prefix: str, parts: list[str], width: int = 88) -> str:
-    indent = " " * len(prefix)
-    lines: list[str] = []
-    current = prefix
-    first_on_line = True
-    for part in parts:
-        attempt = current + part if first_on_line else f"{current} {part}"
-        if first_on_line or len(attempt) <= width:
-            current = attempt
-            first_on_line = False
-        else:
-            lines.append(current)
-            current = indent + part
-    lines.append(current)
-    return "\n".join(lines)
-
-
-def _wrap_help_line(line: str, width: int = 88) -> list[str]:
-    if len(line) <= width:
-        return [line]
-    sep = ": "
-    sep_idx = line.find(sep)
-    if sep_idx == -1:
-        return [line]
-    header = line[: sep_idx + 1]  # e.g. "  --option METAVAR:"
-    indent = "      "
-    result = [header]
-    current = indent
-    first_on_line = True
-    for word in line[sep_idx + len(sep) :].split():
-        attempt = current + word if first_on_line else f"{current} {word}"
-        if first_on_line or len(attempt) <= width:
-            current = attempt
-            first_on_line = False
-        else:
-            result.append(current)
-            current = indent + word
-    result.append(current)
-    return result
-
-
-def _wrap_command(name: str, groups: list[str], width: int = 72) -> str:
-    """Render a script command, wrapping long lines with shell continuations.
-
-    Short commands stay on one line. When the single-line form exceeds ``width``,
-    each option group goes on its own line joined by `` \\`` continuations, which
-    remains valid copy-pasteable shell.
-    """
-    single_line = " ".join([name, *groups])
-    if not groups or len(single_line) <= width:
-        return single_line
-    return " \\\n    ".join([name, *groups])
 
 
 @dataclasses.dataclass
@@ -156,7 +110,7 @@ class Interface:
         usage_parts.append("[-h/--help]")
         name = self.command.rsplit("/", 1)[-1]
         prefix = f"Usage: {name} "
-        segments = [_wrap_usage(prefix, usage_parts)]
+        segments = [_text_wrap.wrap_usage(prefix, usage_parts)]
         help_lines = list(self._format_help_lines())
         if help_lines:
             segments.append("\n".join(help_lines))
@@ -178,7 +132,7 @@ class Interface:
                     if prev_was_group_with_content:
                         yield ""
                     for help_line in input_control.format_help_lines():
-                        yield from _wrap_help_line(help_line)
+                        yield from _text_wrap.wrap_help_line(help_line)
                 prev_was_group_with_content = False
 
     def _format_usage_parts(
@@ -281,7 +235,7 @@ class Interface:
             else:
                 input_control = self.input_map.get(ctrl)
                 if input_control is not None and not self._is_overridden(input_control):
-                    result[input_control.option] = _ctrl_value(ctrl)
+                    result[input_control.option] = _marimo_controls.ctrl_value(ctrl)
         return result
 
     def _current_args(self) -> str:
@@ -383,14 +337,14 @@ class Interface:
         input_control = input_map.get(ctrl)
         if input_control is None:
             return
-        value = input_control.format_query_value(_ctrl_value(ctrl))
+        value = input_control.format_query_value(_marimo_controls.ctrl_value(ctrl))
         if value is not None:
             values[_query_params.escape_url_key(self._key(input_control))] = value
 
     def _root_panel(self) -> mo.Html:
         args = self._current_args()
         name = self.command.rsplit("/", 1)[-1]
-        current_command = _wrap_command(name, self._arg_groups())
+        current_command = _text_wrap.wrap_command(name, self._arg_groups())
         missing_options = self.missing_options()
         missing_options_msg = (
             f"\nMissing options: {', '.join(f'`{opt}`' for opt in missing_options)}"
@@ -431,7 +385,9 @@ class Interface:
         for ctrl in self.controls:
             if (iface := attached_interface(ctrl)) is not None:
                 yield from iface._flatten()
-            elif (elements := _ui_dictionary_elements(ctrl)) is not None:
+            elif (
+                elements := _marimo_controls.ui_dictionary_elements(ctrl)
+            ) is not None:
                 for child in elements.values():
                     yield from Interface((child,), self.input_map)._flatten()
             else:
@@ -606,16 +562,6 @@ class CustomElement(UIElement[typing.Any, typing.Any]):
         return getattr(self._component, name)
 
 
-def _ctrl_value(ctrl: typing.Any) -> typing.Any:
-    if isinstance(ctrl, mo.ui.file_browser):
-        multiple = getattr(ctrl, "_component_args", {}).get("multiple", True)
-        if multiple:
-            return [str(info.path) for info in ctrl.value]
-        p = ctrl.path()
-        return str(p) if p is not None else ""
-    return ctrl._selected_key if hasattr(ctrl, "_selected_key") else ctrl.value
-
-
 def attached_interface(ctrl: typing.Any) -> Interface | None:
     if isinstance(ctrl, Interface):
         return ctrl
@@ -689,15 +635,6 @@ class SubgroupRegistry:
             missing.extend(iface.input_options())
         self._refs = live_refs
         return missing
-
-
-def _ui_dictionary_elements(ctrl: typing.Any) -> dict[str, typing.Any] | None:
-    elements = getattr(ctrl, "elements", None)
-    return (
-        typing.cast(dict[str, typing.Any], elements)
-        if isinstance(elements, dict)
-        else None
-    )
 
 
 def _default_custom_value(component: typing.Any, fallback: typing.Any) -> typing.Any:

@@ -1515,7 +1515,7 @@ def test_script_callout_command_wraps_long_list_options() -> None:
     A list emits its whole repeated sequence as one option group, so the
     per-group wrapping kept it all on a single overflowing line. The wrapped
     command should break long lines instead of producing one giant line."""
-    from moops.interface import _wrap_command  # type: ignore[reportPrivateUsage]
+    from moops._text_wrap import wrap_command
 
     g = Group(cli_args=["script.py"])
     ctrl = g.list(
@@ -1526,7 +1526,7 @@ def test_script_callout_command_wraps_long_list_options() -> None:
     )
     iface = g.interface(ctrl)
 
-    command = _wrap_command("script.py", iface._arg_groups())  # type: ignore[attr-defined]
+    command = wrap_command("script.py", iface._arg_groups())  # type: ignore[attr-defined]
     longest = max(len(line) for line in command.splitlines())
     assert longest <= 72, command
 
