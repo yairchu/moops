@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- The notebook UI for `Group.list` now renders per-item controls: move an item
+  up or down to reorder, remove any individual item, and insert a new item
+  above any item, plus a trailing "+ Append" button to add at the end.
+  Previously the only controls were a single "+ Add" (append) and "- Remove"
+  (remove last). Structural edits read the current item values, so in-progress
+  edits to other items are preserved across reorder, insert, and remove.
+
 ## [0.9.0] - 2026-06-01 - List controls and notebook polish
 
 ### Added

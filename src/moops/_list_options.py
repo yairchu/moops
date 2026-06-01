@@ -18,13 +18,18 @@ _UNSET: typing.Any = object()
 
 
 class _ListUI:
-    """Notebook UI wrapper for a list control with add/remove buttons."""
+    """Notebook UI wrapper for a list control.
+
+    The display is a prebuilt layout (see :func:`_build_list_ui`) that renders
+    each item alongside per-item reorder, remove, and insert controls. The
+    ``_add_btn`` (append) button is kept as an attribute so callers and tests
+    can drive an append directly.
+    """
 
     def __init__(
         self,
         array: typing.Any,
         add_btn: typing.Any,
-        remove_btn: typing.Any,
         *,
         display: typing.Any | None = None,
         value_getter: typing.Callable[[], list[typing.Any]] | None = None,
@@ -33,7 +38,6 @@ class _ListUI:
         self._display = display if display is not None else array
         self._value_getter = value_getter
         self._add_btn = add_btn
-        self._remove_btn = remove_btn
         self._id = array._id
 
     @property
@@ -43,10 +47,84 @@ class _ListUI:
         return list(self._array.value)
 
     def _mime_(self) -> typing.Any:
-        combined = mo.vstack(
-            [self._display, mo.hstack([self._add_btn, self._remove_btn])]
+        return self._display._mime_()  # type: ignore[reportPrivateUsage]
+
+
+def _build_list_ui(
+    elements: list[typing.Any],
+    *,
+    value_getter: typing.Callable[[], list[typing.Any]],
+    make_default: typing.Callable[[], typing.Any],
+    on_change: typing.Callable[[typing.Any], None],
+) -> tuple[typing.Any, typing.Any]:
+    """Build the notebook list layout with per-item controls.
+
+    Returns ``(display, add_btn)``. ``display`` is the full vstack: each item is
+    preceded by a left-aligned control cluster operating on that item (insert
+    above / move-up / move-down / remove), and a trailing "+ Append" button adds
+    at the end. All mutations read the current item values via ``value_getter``
+    (so in-progress edits to other items are preserved) and report the new list
+    through ``on_change``.
+
+    ``add_btn`` appends a fresh ``make_default()`` item and is returned so
+    callers can expose that operation directly.
+    """
+
+    def insert_at(idx: int) -> None:
+        current = value_getter()
+        on_change([*current[:idx], make_default(), *current[idx:]])
+
+    def remove_at(idx: int) -> None:
+        current = value_getter()
+        if 0 <= idx < len(current):
+            on_change([*current[:idx], *current[idx + 1 :]])
+
+    def move(idx: int, delta: int) -> None:
+        current = value_getter()
+        target = idx + delta
+        if 0 <= idx < len(current) and 0 <= target < len(current):
+            reordered = list(current)
+            reordered[idx], reordered[target] = reordered[target], reordered[idx]
+            on_change(reordered)
+
+    count = len(elements)
+    rows: list[typing.Any] = []
+    for i, element in enumerate(elements):
+        insert_btn = mo.ui.button(
+            label="+",
+            tooltip="Insert an item here",
+            on_click=lambda _, idx=i: insert_at(idx),
         )
-        return combined._mime_()  # type: ignore[reportPrivateUsage]
+        up_btn = mo.ui.button(
+            label="↑",
+            tooltip="Move up",
+            disabled=i == 0,
+            on_click=lambda _, idx=i: move(idx, -1),
+        )
+        down_btn = mo.ui.button(
+            label="↓",
+            tooltip="Move down",
+            disabled=i == count - 1,
+            on_click=lambda _, idx=i: move(idx, 1),
+        )
+        item_remove_btn = mo.ui.button(
+            label="✕",
+            kind="danger",
+            tooltip="Remove this item",
+            on_click=lambda _, idx=i: remove_at(idx),
+        )
+        controls = mo.hstack(
+            [insert_btn, up_btn, down_btn, item_remove_btn],
+            justify="start",
+        )
+        rows.append(mo.vstack([controls, element]))
+
+    add_btn = mo.ui.button(
+        label="+ Append",
+        on_click=lambda _: insert_at(len(value_getter())),
+    )
+    rows.append(add_btn)
+    return mo.vstack(rows), add_btn
 
 
 class _ElementList:
@@ -420,23 +498,16 @@ class SubgroupListControl(InputControl):
             def value_getter() -> list[typing.Any]:
                 return [element.value for element in elements]
 
-            add_btn = mo.ui.button(
-                label="+ Add",
-                on_click=lambda _: on_change(
-                    [*value_getter(), copy.deepcopy(self.item_template_default)]
-                ),
-            )
-            remove_btn = mo.ui.button(
-                label="- Remove",
-                on_click=lambda _: (
-                    on_change(value_getter()[:-1]) if value_getter() else None
-                ),
+            display, add_btn = _build_list_ui(
+                elements,
+                value_getter=value_getter,
+                make_default=lambda: copy.deepcopy(self.item_template_default),
+                on_change=on_change,
             )
             return _ListUI(
                 _ElementList(elements),
                 add_btn,
-                remove_btn,
-                display=mo.vstack(elements),
+                display=display,
                 value_getter=value_getter,
             )
         return mo.ui.array(elements)
@@ -704,16 +775,22 @@ class ListControl(InputControl):
         ]
         array = mo.ui.array(elements)
         if on_change is not None and mo.running_in_notebook():
-            item_default = self.item_control.default
-            add_btn = mo.ui.button(
-                label="+ Add",
-                on_click=lambda _: on_change([*items, item_default]),
+
+            def value_getter() -> list[typing.Any]:
+                return [element.value for element in elements]
+
+            display, add_btn = _build_list_ui(
+                elements,
+                value_getter=value_getter,
+                make_default=lambda: copy.deepcopy(self.item_control.default),
+                on_change=on_change,
             )
-            remove_btn = mo.ui.button(
-                label="- Remove",
-                on_click=lambda _: on_change(items[:-1]) if items else None,
+            return _ListUI(
+                array,
+                add_btn,
+                display=display,
+                value_getter=value_getter,
             )
-            return _ListUI(array, add_btn, remove_btn)
         return array
 
     def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
