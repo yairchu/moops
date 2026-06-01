@@ -219,10 +219,14 @@ def _validate_item_args(
 
 def _leaf_was_provided(args: _parse.ParsedArgs, leaf: SubgroupListLeaf) -> str | None:
     bare_control = leaf.bare_control()
-    for option in bare_control.options() | bare_control.flags():
-        if args.has(option):
-            return option
-    return None
+    return next(
+        (
+            option
+            for option in bare_control.options() | bare_control.flags()
+            if args.has(option)
+        ),
+        None,
+    )
 
 
 @dataclasses.dataclass
@@ -524,10 +528,7 @@ class ListControl(InputControl):
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         if self._is_merged:
-            item_results = self._parse_merged_items(args.raw_args)
-            if item_results is None:
-                return None
-            return item_results
+            return self._parse_merged_items(args.raw_args)
         if err := self._validate_non_merged_item_placement(args.raw_args):
             return err
         segments = _segment_by_anchor(
