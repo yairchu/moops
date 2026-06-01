@@ -54,6 +54,19 @@ def _wrap_help_line(line: str, width: int = 88) -> list[str]:
     return result
 
 
+def _wrap_command(name: str, groups: list[str], width: int = 72) -> str:
+    """Render a script command, wrapping long lines with shell continuations.
+
+    Short commands stay on one line. When the single-line form exceeds ``width``,
+    each option group goes on its own line joined by `` \\`` continuations, which
+    remains valid copy-pasteable shell.
+    """
+    single_line = " ".join([name, *groups])
+    if not groups or len(single_line) <= width:
+        return single_line
+    return " \\\n    ".join([name, *groups])
+
+
 @dataclasses.dataclass
 class Interface:
     """Controls registered by a subgroup's interface, for passing to the parent."""
@@ -272,13 +285,22 @@ class Interface:
         return result
 
     def _current_args(self) -> str:
+        return " ".join(self._arg_groups())
+
+    def _arg_groups(self) -> list[str]:
+        """Current CLI args grouped one entry per option.
+
+        Each entry is the space-joined tokens for a single option (e.g.
+        ``"--trip-0-mode car"``). Used both for the flat ``_current_args``
+        string and for the line-wrapped command shown in the script callout.
+        """
         values = self.cur_values()
-        return " ".join(
-            arg
+        groups = [
+            " ".join(input_control.format_value(values[input_control.option]))
             for input_control in self._input_controls(active_only=True)
             if input_control.option in values
-            for arg in input_control.format_value(values[input_control.option])
-        )
+        ]
+        return [group for group in groups if group]
 
     def missing_options(self) -> list[str]:
         covered = {
@@ -364,7 +386,7 @@ class Interface:
     def _root_panel(self) -> mo.Html:
         args = self._current_args()
         name = self.command.rsplit("/", 1)[-1]
-        current_command = f"{name} {args}" if args else name
+        current_command = _wrap_command(name, self._arg_groups())
         missing_options = self.missing_options()
         missing_options_msg = (
             f"\nMissing options: {', '.join(f'`{opt}`' for opt in missing_options)}"
