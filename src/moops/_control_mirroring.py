@@ -141,13 +141,11 @@ def _active_variant_element(
 def _selected_value_for_option(
     iface: interface.Interface, selector_option: str | None
 ) -> typing.Any:
-    return _interface_utils.selected_value_for_option(
-        iface, selector_option, interface.Interface, _variant.selected_key
-    )
+    return interface.selected_value_for_option(iface, selector_option)
 
 
 def _attached_interface(ctrl: typing.Any) -> interface.Interface | None:
-    return _interface_utils.attached_interface(ctrl, interface.Interface)
+    return interface.attached_interface(ctrl)
 
 
 def _copy_variant_metadata(

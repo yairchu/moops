@@ -9,7 +9,7 @@ import marimo as mo
 from hypothesis import strategies as st
 from marimo._plugins.ui._core.ui_element import UIElement
 
-from . import _input_map, _interface_utils, _options, _parse, _query_params, _variant
+from . import _input_map, _options, _parse, _query_params, _variant
 from .presets import Presets
 
 
@@ -165,7 +165,7 @@ class Interface:
     def _format_help_lines(self) -> typing.Iterator[str]:
         prev_was_group_with_content = False
         for ctrl in self.controls:
-            if (sub_iface := _attached_interface(ctrl)) is not None:
+            if (sub_iface := attached_interface(ctrl)) is not None:
                 lines = list(sub_iface._format_help_lines())
                 if lines and sub_iface.help_heading:
                     yield ""
@@ -185,7 +185,7 @@ class Interface:
         self, placeholders_by_option: dict[str, str]
     ) -> typing.Iterator[str]:
         for ctrl in self.controls:
-            sub_iface = _attached_interface(ctrl)
+            sub_iface = attached_interface(ctrl)
             if sub_iface is None:
                 input_control = self.input_map.get(ctrl)
                 if input_control is not None and not self._is_overridden(input_control):
@@ -221,7 +221,7 @@ class Interface:
         if active_only and self._is_inactive(root):
             return
         for ctrl in self.controls:
-            if (iface := _attached_interface(ctrl)) is not None:
+            if (iface := attached_interface(ctrl)) is not None:
                 yield from iface._input_controls(active_only=active_only, root=root)
             else:
                 input_control = self.input_map.get(ctrl)
@@ -233,7 +233,7 @@ class Interface:
             self.variant_group_prefix is not None
             and self.variant_selector_option is not None
         ):
-            selected = _selected_value_for_option(root, self.variant_selector_option)
+            selected = selected_value_for_option(root, self.variant_selector_option)
             if selected is not None:
                 return self.variant_key != _variant.key_text(selected)
         return self.disabled
@@ -260,7 +260,7 @@ class Interface:
         Used by ``Group.controls_from`` to mirror another notebook's structure.
         """
         for ctrl in self.controls:
-            if (sub_iface := _attached_interface(ctrl)) is not None:
+            if (sub_iface := attached_interface(ctrl)) is not None:
                 sub_prefix = sub_iface.option_prefix[len(self.option_prefix) :].lstrip(
                     "-"
                 )
@@ -276,7 +276,7 @@ class Interface:
     def cur_values(self) -> dict[str, typing.Any]:
         result: dict[str, typing.Any] = {}
         for ctrl in self.controls:
-            if (iface := _attached_interface(ctrl)) is not None:
+            if (iface := attached_interface(ctrl)) is not None:
                 result.update(iface.cur_values())
             else:
                 input_control = self.input_map.get(ctrl)
@@ -310,7 +310,7 @@ class Interface:
         covered = {
             input_control.option
             for ctrl in self.controls
-            if _attached_interface(ctrl) is None
+            if attached_interface(ctrl) is None
             for input_control in [self.input_map.get(ctrl)]
             if input_control is not None
         }
@@ -354,7 +354,7 @@ class Interface:
         for ctrl in self.controls:
             if isinstance(ctrl, Interface):
                 values.update(ctrl._standalone_query_values())
-            elif (sub_iface := _attached_interface(ctrl)) is not None:
+            elif (sub_iface := attached_interface(ctrl)) is not None:
                 values.update(self._controls_from_query_values(sub_iface))
             else:
                 self._add_query_value(values, ctrl, self.input_map)
@@ -368,7 +368,7 @@ class Interface:
         """
         values: dict[str, str] = {}
         for ctrl in sub_iface.controls:
-            if (nested := _attached_interface(ctrl)) is not None:
+            if (nested := attached_interface(ctrl)) is not None:
                 values.update(self._controls_from_query_values(nested))
             else:
                 self._add_query_value(values, ctrl, sub_iface.input_map)
@@ -420,7 +420,7 @@ class Interface:
 
     def _clear_query_params(self) -> None:
         for ctrl in self.controls:
-            if (iface := _attached_interface(ctrl)) is not None:
+            if (iface := attached_interface(ctrl)) is not None:
                 iface._clear_query_params()
             else:
                 input_control = self.input_map.get(ctrl)
@@ -429,7 +429,7 @@ class Interface:
 
     def _flatten(self) -> typing.Iterator[typing.Any]:
         for ctrl in self.controls:
-            if (iface := _attached_interface(ctrl)) is not None:
+            if (iface := attached_interface(ctrl)) is not None:
                 yield from iface._flatten()
             elif (elements := _ui_dictionary_elements(ctrl)) is not None:
                 for child in elements.values():
@@ -616,16 +616,29 @@ def _ctrl_value(ctrl: typing.Any) -> typing.Any:
     return ctrl._selected_key if hasattr(ctrl, "_selected_key") else ctrl.value
 
 
-def _attached_interface(ctrl: typing.Any) -> Interface | None:
-    return _interface_utils.attached_interface(ctrl, Interface)
+def attached_interface(ctrl: typing.Any) -> Interface | None:
+    if isinstance(ctrl, Interface):
+        return ctrl
+    iface = getattr(ctrl, "_moops_interface", None)
+    return iface if isinstance(iface, Interface) else None
 
 
-def _selected_value_for_option(
+def selected_value_for_option(
     iface: Interface, selector_option: str | None
 ) -> typing.Any:
-    return _interface_utils.selected_value_for_option(
-        iface, selector_option, Interface, _variant.selected_key
-    )
+    if selector_option is None:
+        return None
+    for ctrl in iface.controls:
+        sub_iface = attached_interface(ctrl)
+        if sub_iface is not None:
+            selected = selected_value_for_option(sub_iface, selector_option)
+            if selected is not None:
+                return selected
+            continue
+        input_control = iface.input_map.get(ctrl)
+        if input_control is not None and input_control.option == selector_option:
+            return _variant.selected_key(ctrl)
+    return None
 
 
 def _usage_placeholders(iface: Interface) -> dict[str, str]:
@@ -641,7 +654,7 @@ def _collect_usage_placeholders(
     if iface.usage_placeholder and iface.usage_after_option:
         result.setdefault(iface.usage_after_option, iface.usage_placeholder)
     for ctrl in iface.controls:
-        if sub_iface := _attached_interface(ctrl):
+        if sub_iface := attached_interface(ctrl):
             _collect_usage_placeholders(sub_iface, result)
 
 
@@ -661,7 +674,7 @@ class SubgroupRegistry:
         covered_ids = {
             id(iface)
             for ctrl in controls
-            for iface in [_attached_interface(ctrl)]
+            for iface in [attached_interface(ctrl)]
             if iface is not None
         }
         missing: list[str] = []

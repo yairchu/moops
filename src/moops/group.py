@@ -12,7 +12,6 @@ from . import (
     _choice_options,
     _control_mirroring,
     _input_map,
-    _interface_utils,
     _list_controls,
     _list_options,
     _markdown,
@@ -746,9 +745,7 @@ class Group:
         probe = type(self)(["_probe"])
         probe.option = self.option
         probe_ctrl = item(probe)
-        item_template = _interface_utils.attached_interface(
-            probe_ctrl, interface.Interface
-        )
+        item_template = interface.attached_interface(probe_ctrl)
         if item_template is not None:
             if item_template.option_prefix != opt.option:
                 raise ValueError(
