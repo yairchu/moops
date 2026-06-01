@@ -273,6 +273,66 @@ def test_selected_default_preset_does_not_override_edited_list_state(
     assert params == {"factor": "[2.0, 1.0]"}
 
 
+def test_selected_default_preset_does_not_lock_edited_subgroup_list_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    params: dict[str, str] = {}
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops._list_options.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+    preset_trip = [{"mode": "car", "distance": 120}]
+    edited_trip = [*preset_trip, {"mode": "car", "distance": 120}]
+    presets = typing.cast(
+        Presets,
+        mock.Mock(
+            selected_args="--trip --mode car --distance 120",
+            default_args="--trip --mode car --distance 120",
+            get_current=mock.Mock(return_value="default"),
+        ),
+    )
+    template = Group(cli_args=["template.py"])
+    mode = template.dropdown(
+        ["car", "train"],
+        value="car",
+        option="--mode",
+        help_text="Travel mode",
+        allow_select_none=False,
+    )
+    distance = template.number(
+        value=120,
+        option="--distance",
+        help_text="Distance",
+    )
+    template_iface = template.interface(mode, distance)
+
+    group = Group(cli_args=["script.py"], presets=presets)
+    changes: list[list[dict[str, typing.Any]]] = []
+    trips = group.list(
+        option="--trip",
+        item=lambda g: g.controls_from(template_iface, prefix="trip"),
+        help_text="Trips",
+        value=preset_trip,
+        on_change=changes.append,
+    )
+    trips._add_btn._on_click(None)
+
+    assert changes == [edited_trip]
+    assert params == {
+        "trip": ('[{"mode": "car", "distance": 120}, {"mode": "car", "distance": 120}]')
+    }
+
+    rerendered_group = Group(cli_args=["script.py"], presets=presets)
+    rerendered_trips = rerendered_group.list(
+        option="--trip",
+        item=lambda g: g.controls_from(template_iface, prefix="trip"),
+        help_text="Trips",
+        value=changes[-1],
+        on_change=lambda _: None,
+    )
+
+    assert rerendered_trips.value == edited_trip
+
+
 def test_empty_save_name_saves_default_preset() -> None:
     save = mock.Mock()
     presets = typing.cast(

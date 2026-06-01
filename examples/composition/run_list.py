@@ -43,8 +43,14 @@ def _():
 
 
 @app.cell
-def _(moops):
-    args = moops.Group()
+def _(mo):
+    get_preset, set_preset = mo.state(None)
+    return get_preset, set_preset
+
+
+@app.cell
+def _(get_preset, moops, set_preset):
+    args = moops.Group(presets=moops.Presets(get_preset, set_preset))
     return (args,)
 
 
