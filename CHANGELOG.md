@@ -32,6 +32,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `Group.list()` notebook add/remove buttons now interact correctly with
   presets: "Clear changes" resets list state, and active saved default presets
   no longer snap edited lists back to the preset value on each rerender.
+- Mirrored `Group.list()` notebook items now stay editable while a preset is
+  active instead of snapping back to the preset item list on each rerender.
 
 ## [0.8.0] - 2026-06-01 - Repeated-option list controls
 

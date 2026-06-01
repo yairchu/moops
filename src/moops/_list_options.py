@@ -371,14 +371,19 @@ class SubgroupListControl(InputControl):
         return groups
 
     def format_query_value(self, value: typing.Any) -> str | None:
-        del value
-        return None
+        try:
+            return json.dumps(value)
+        except TypeError:
+            return None
 
     def parse_query_value(self, value: str) -> ParseResult | ParseError:
-        del value
-        return ParseError(
-            f"Query parameters are not supported for compound list {self.option}"
-        )
+        try:
+            raw_items: typing.Any = json.loads(value)
+        except json.JSONDecodeError:
+            return ParseError(f"Query parameter for {self.option} must be a JSON list")
+        if not isinstance(raw_items, list):
+            return ParseError(f"Query parameter for {self.option} must be a JSON list")
+        return ParseResult(raw_items)
 
     def strategy(self) -> st.SearchStrategy:
         leaf_strategies = {
