@@ -1545,6 +1545,29 @@ def test_list_current_args_keeps_items_equal_to_item_default() -> None:
     assert iface._current_args() == "--factor 1.0 --factor 2.0"  # type: ignore[attr-defined]
 
 
+def test_list_current_args_round_trips_default_item_starting_with_dash() -> None:
+    g = Group(cli_args=["script.py"])
+    ctrl = g.list(
+        option="--word",
+        item=lambda grp: grp.text(value="-x", option="--word", help_text="Word"),
+        help_text="Words",
+        value=["-x"],
+    )
+    current_args = g.interface(ctrl)._current_args()  # type: ignore[attr-defined]
+
+    target = Group(cli_args=["script.py", *shlex.split(current_args)])
+    target_ctrl = target.list(
+        option="--word",
+        item=lambda grp: grp.text(value="-x", option="--word", help_text="Word"),
+        help_text="Words",
+        value=[],
+    )
+
+    target.interface(target_ctrl)
+
+    assert target_ctrl.value == ["-x"]
+
+
 def test_script_callout_command_wraps_long_list_options() -> None:
     """The script-callout command should wrap, even for a single list control.
 
