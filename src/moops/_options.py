@@ -17,6 +17,19 @@ Numeric = int | float
 _UNSET: typing.Any = object()
 
 
+def _option_value_token(option: str, value: str) -> str:
+    """Serialize an ``option value`` pair as one CLI token string.
+
+    A value starting with ``-`` would be re-tokenized as a separate option by
+    ``_parse.ParsedArgs.from_options`` (which has no per-option spec to know the
+    value belongs to ``option``), so emit it as ``option=value``, which
+    ``from_options`` parses unambiguously. Other values use the plain
+    ``option value`` form. The value is shell-quoted either way.
+    """
+    quoted = shlex.quote(value)
+    return f"{option}={quoted}" if value.startswith("-") else f"{option} {quoted}"
+
+
 @dataclasses.dataclass
 class ParseError:
     message: str
@@ -308,7 +321,9 @@ class TextControl(ValueControl):
         return [self._help_line(show_default=bool(self.default))]
 
     def format_value(self, value: typing.Any) -> list[str]:
-        return [] if value == self.default else [f"{self.option} {shlex.quote(value)}"]
+        return (
+            [] if value == self.default else [_option_value_token(self.option, value)]
+        )
 
     def format_query_value(self, value: typing.Any) -> str | None:
         return None if value == self.default else str(value)
@@ -467,7 +482,7 @@ class MultiFileControl(ValueControl):
         values = list(value)
         if values == self.default:
             return []
-        return [f"{self.option} {shlex.quote(v)}" for v in values]
+        return [_option_value_token(self.option, v) for v in values]
 
     def format_query_value(self, value: typing.Any) -> str | None:
         values = list(value)
@@ -542,7 +557,9 @@ class TextAreaControl(ValueControl):
         ]
 
     def format_value(self, value: typing.Any) -> list[str]:
-        return [] if value == self.default else [f"{self.option} {shlex.quote(value)}"]
+        return (
+            [] if value == self.default else [_option_value_token(self.option, value)]
+        )
 
     def format_query_value(self, value: typing.Any) -> str | None:
         return None if value == self.default else str(value)
@@ -900,7 +917,7 @@ class MultiSelectControl(_NoneFlag, ValueControl):
             return []
         if not values and self._no_flag:
             return [self._no_flag]
-        return [f"{self.option} {shlex.quote(self._key_for(v))}" for v in values]
+        return [_option_value_token(self.option, self._key_for(v)) for v in values]
 
     def format_query_value(self, value: typing.Any) -> str | None:
         values = list(value)
@@ -1005,7 +1022,7 @@ class DropdownControl(_NoneFlag, InputControl):
         if value is None:
             assert self._no_flag
             return [self._no_flag]
-        return [f"{self.option} {shlex.quote(value)}"]
+        return [_option_value_token(self.option, value)]
 
     def format_query_value(self, value: typing.Any) -> str | None:
         if value == self.default:
