@@ -246,6 +246,33 @@ def test_reset_button_clears_list_notebook_state(
     assert changes == [[]]
 
 
+def test_selected_default_preset_does_not_override_edited_list_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    params = {"factor": "[2.0, 1.0]"}
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+    presets = typing.cast(
+        Presets,
+        mock.Mock(
+            selected_args="--factor 2",
+            default_args="--factor 2",
+            get_current=mock.Mock(return_value="default"),
+        ),
+    )
+    group = Group(cli_args=["script.py"], presets=presets)
+    factors = group.list(
+        option="--factor",
+        item=lambda g: g.number(value=1.0, option="--factor", help_text="Factor"),
+        help_text="Factors",
+        value=[2.0, 1.0],
+        on_change=lambda _: None,
+    )
+
+    assert factors.value == [2.0, 1.0]
+    assert params == {"factor": "[2.0, 1.0]"}
+
+
 def test_empty_save_name_saves_default_preset() -> None:
     save = mock.Mock()
     presets = typing.cast(
