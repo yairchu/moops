@@ -1,5 +1,6 @@
 import dataclasses
 import html
+import shlex
 import sys
 import typing
 import urllib.parse
@@ -9,6 +10,7 @@ from hypothesis import strategies as st
 
 from . import (
     _input_map,
+    _list_options,
     _marimo_controls,
     _options,
     _parse,
@@ -368,8 +370,40 @@ class Interface:
     def _select_preset(self, preset: str | None) -> None:
         assert self.presets is not None
         self.presets.select("" if preset is None else preset)
+        self._reset_notebook_state(preset)
         if preset is None:
             self._clear_query_params()
+
+    def _reset_notebook_state(self, preset: str | None) -> None:
+        assert self.presets is not None
+        args = _parse.ParsedArgs.from_options(
+            shlex.split(self.presets.args_for(preset))
+        )
+        for ctrl in self.controls:
+            if (iface := attached_interface(ctrl)) is not None:
+                iface._reset_notebook_state(preset)
+            elif (
+                elements := _marimo_controls.ui_dictionary_elements(ctrl)
+            ) is not None:
+                for child in elements.values():
+                    Interface((child,), self.input_map)._reset_notebook_state(preset)
+            else:
+                self._reset_control_notebook_state(ctrl, args)
+
+    def _reset_control_notebook_state(
+        self,
+        ctrl: typing.Any,
+        args: _parse.ParsedArgs,
+    ) -> None:
+        input_control = self.input_map.get(ctrl)
+        reset_state = getattr(ctrl, "_moops_reset_state", None)
+        if (
+            input_control is None
+            or not callable(reset_state)
+            or self._is_overridden(input_control)
+        ):
+            return
+        reset_state(_reset_value(input_control, args))
 
     def _clear_query_params(self) -> None:
         for ctrl in self.controls:
@@ -399,6 +433,26 @@ def attached_interface(ctrl: typing.Any) -> Interface | None:
     iface = getattr(ctrl, "_moops_interface", None)
     assert iface is None or isinstance(iface, Interface)
     return iface
+
+
+def _reset_value(
+    input_control: _options.InputControl,
+    args: _parse.ParsedArgs,
+) -> typing.Any:
+    match input_control.parse(args):
+        case _options.ParseResult(value=value):
+            return value
+        case _:
+            return _empty_reset_value(input_control)
+
+
+def _empty_reset_value(input_control: _options.InputControl) -> typing.Any:
+    if isinstance(
+        input_control,
+        (_list_options.ListControl, _list_options.SubgroupListControl),
+    ):
+        return []
+    return input_control.default
 
 
 def selected_value_for_option(

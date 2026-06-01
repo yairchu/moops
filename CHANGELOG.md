@@ -24,6 +24,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   onto multiple lines using shell `\` continuations (one option per line)
   instead of overflowing horizontally, keeping the command copy-pasteable.
 
+### Fixed
+
+- "Clear changes" now resets notebook list state created with `Group.list()`
+  add/remove buttons, instead of only clearing query parameters.
+
 ## [0.8.0] - 2026-06-01 - Repeated-option list controls
 
 ### Added

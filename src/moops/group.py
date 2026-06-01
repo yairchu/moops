@@ -828,18 +828,15 @@ class Group:
         help_text: str,
         on_change: typing.Callable[[typing.Any], None] | None,
     ) -> typing.Any:
-        return self._input_map.register(
-            input_control.create_marimo_element(
-                self._value_resolver.get_value(input_control, input_control.default),
-                label=opt.label_with_tooltip(help_text),
-                disabled=self._value_resolver.is_overridden(opt.option)
-                or self._disabled,
-                on_change=self._value_resolver.query_on_change(
-                    input_control, on_change
-                ),
-            ),
-            input_control,
+        control = input_control.create_marimo_element(
+            self._value_resolver.get_value(input_control, input_control.default),
+            label=opt.label_with_tooltip(help_text),
+            disabled=self._value_resolver.is_overridden(opt.option) or self._disabled,
+            on_change=self._value_resolver.query_on_change(input_control, on_change),
         )
+        if on_change is not None:
+            control._moops_reset_state = on_change
+        return self._input_map.register(control, input_control)
 
     def _make_opt(
         self, label: str | None, option: str | None, prefix: str | None = None
