@@ -16,6 +16,7 @@ from . import (
     _parse,
     _query_params,
     _text_wrap,
+    _ui_workarounds,
     _variant,
 )
 from .presets import Presets
@@ -458,25 +459,6 @@ class _PresetsUI:
         )
 
 
-class _ValueView:
-    """Exposes a UIElement's value without tripping marimo's same-cell guard.
-
-    `.value` reads the element's converted `_value` attribute directly, which is
-    safe to read in the cell that created the element (unlike the `.value`
-    property). Other attribute access delegates to the element.
-    """
-
-    def __init__(self, element: typing.Any) -> None:
-        self._element = element
-
-    @property
-    def value(self) -> typing.Any:
-        return self._element._value
-
-    def __getattr__(self, name: str) -> typing.Any:
-        return getattr(self._element, name)
-
-
 class CustomElement(UIElement[typing.Any, typing.Any]):
     """A notebook component whose value is derived from a fallback control.
 
@@ -520,7 +502,10 @@ class CustomElement(UIElement[typing.Any, typing.Any]):
         # there. So hand value_fn views whose `.value` reads the unguarded
         # `_value` attribute instead; it stays live because the frontend updates
         # that attribute on the underlying element.
-        return self._value_fn(_ValueView(self._component), _ValueView(self._fallback))
+        return self._value_fn(
+            _ui_workarounds.ValueView(self._component),
+            _ui_workarounds.ValueView(self._fallback),
+        )
 
     @property
     def value(self) -> typing.Any:

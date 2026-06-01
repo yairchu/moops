@@ -1,4 +1,4 @@
-"""Workarounds for marimo UI elements that lack `disabled` support."""
+"""Workarounds for marimo UI element limitations."""
 
 import html
 import pathlib
@@ -8,6 +8,25 @@ import marimo as mo
 from marimo._messaging.mimetypes import KnownMimeType
 from marimo._plugins.ui._core.ui_element import UIElement
 from marimo._plugins.ui._impl.file_browser import FileBrowserFileInfo
+
+
+class ValueView:
+    """Exposes a UIElement's value without tripping marimo's same-cell guard.
+
+    `.value` reads the element's converted `_value` attribute directly, which is
+    safe to read in the cell that created the element (unlike the `.value`
+    property). Other attribute access delegates to the element.
+    """
+
+    def __init__(self, element: typing.Any) -> None:
+        self._element = element
+
+    @property
+    def value(self) -> typing.Any:
+        return self._element._value
+
+    def __getattr__(self, name: str) -> typing.Any:
+        return getattr(self._element, name)
 
 
 def locked_dropdown_options(
