@@ -748,66 +748,66 @@ class Group:
         probe.option = self.option
         probe_ctrl = item(probe)
         item_template = interface.attached_interface(probe_ctrl)
-        if item_template is not None:
-            if item_template.option_prefix != opt.option:
-                raise ValueError(
-                    "args.list() controls_from item prefix must match the list option"
-                )
-            leaves = tuple(_list_controls.subgroup_leaves(item_template))
-            if not leaves:
+        if item_template is None:
+            item_input_ctrl = probe._input_map.get(probe_ctrl)
+            if item_input_ctrl is None:
+                raise ValueError("args.list() item factory must return a moops control")
+            if not item_input_ctrl.options():
                 raise ValueError("args.list() item factory must return a value control")
-            leaf_args = {
-                arg
-                for leaf in leaves
-                for arg in (leaf.bare_control().options() | leaf.bare_control().flags())
-            }
-            if opt.option in leaf_args:
-                raise ValueError(
-                    f"args.list() option {opt.option!r} conflicts with an item option"
-                )
-            stem = _list_controls.relative_stem(self.option, opt.option)
 
-            def item_builder(i: int, item_dict: dict[str, typing.Any]) -> typing.Any:
-                child = self.subgroup(f"{stem}-{i}")
-                item_prefix = f"{child.option}-{stem}"
-                seed_args = _list_controls.seed_args_for_subgroup_item(
-                    leaves,
-                    list_option=opt.option,
-                    item_prefix=item_prefix,
-                    item_dict=item_dict,
-                )
-                child._state = _parse.ParseState(
-                    args=_parse.ParsedArgs.from_options(seed_args)
-                )
-                child._preset_state = _preset_state.PresetState(
-                    selected=None,
-                    default=None,
-                    active=None,
-                )
-                child._value_resolver = child._make_value_resolver()
-                return item(child)
-
-            list_input_ctrl = _list_options.SubgroupListControl(
+            list_input_ctrl = _list_options.ListControl(
                 option=opt.option,
                 help_text=help_text,
                 default=list(value) if value is not None else [],
-                item_template_default=item_template.default,
-                leaves=leaves,
-                item_builder=item_builder,
+                item_control=item_input_ctrl,
             )
             return self._register_control(opt, list_input_ctrl, help_text, on_change)
 
-        item_input_ctrl = probe._input_map.get(probe_ctrl)
-        if item_input_ctrl is None:
-            raise ValueError("args.list() item factory must return a moops control")
-        if not item_input_ctrl.options():
+        if item_template.option_prefix != opt.option:
+            raise ValueError(
+                "args.list() controls_from item prefix must match the list option"
+            )
+        leaves = tuple(_list_controls.subgroup_leaves(item_template))
+        if not leaves:
             raise ValueError("args.list() item factory must return a value control")
+        leaf_args = {
+            arg
+            for leaf in leaves
+            for arg in (leaf.bare_control().options() | leaf.bare_control().flags())
+        }
+        if opt.option in leaf_args:
+            raise ValueError(
+                f"args.list() option {opt.option!r} conflicts with an item option"
+            )
+        stem = _list_controls.relative_stem(self.option, opt.option)
 
-        list_input_ctrl = _list_options.ListControl(
+        def item_builder(i: int, item_dict: dict[str, typing.Any]) -> typing.Any:
+            child = self.subgroup(f"{stem}-{i}")
+            item_prefix = f"{child.option}-{stem}"
+            seed_args = _list_controls.seed_args_for_subgroup_item(
+                leaves,
+                list_option=opt.option,
+                item_prefix=item_prefix,
+                item_dict=item_dict,
+            )
+            child._state = _parse.ParseState(
+                args=_parse.ParsedArgs.from_options(seed_args)
+            )
+            child._preset_state = _preset_state.PresetState(
+                selected=None,
+                default=None,
+                active=None,
+            )
+            child._value_resolver = child._make_value_resolver()
+            return item(child)
+
+        list_input_ctrl = _list_options.SubgroupListControl(
             option=opt.option,
             help_text=help_text,
             default=list(value) if value is not None else [],
-            item_control=item_input_ctrl,
+            item_template_default=item_template.default,
+            leaves=leaves,
+            item_builder=item_builder,
         )
         return self._register_control(opt, list_input_ctrl, help_text, on_change)
 
