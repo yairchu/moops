@@ -374,19 +374,30 @@ class Interface:
         if preset is None:
             self._clear_query_params()
 
-    def _reset_notebook_state(self, preset: str | None) -> None:
-        assert self.presets is not None
-        args = _parse.ParsedArgs.from_options(
-            shlex.split(self.presets.args_for(preset))
-        )
+    def _reset_notebook_state(
+        self,
+        preset: str | None,
+        args: _parse.ParsedArgs | None = None,
+    ) -> None:
+        if args is None:
+            assert self.presets is not None
+            args = _parse.ParsedArgs.from_options(
+                shlex.split(self.presets.args_for(preset))
+            )
         for ctrl in self.controls:
             if (iface := attached_interface(ctrl)) is not None:
-                iface._reset_notebook_state(preset)
+                iface._reset_notebook_state(
+                    preset,
+                    None if iface.presets is not None else args,
+                )
             elif (
                 elements := _marimo_controls.ui_dictionary_elements(ctrl)
             ) is not None:
                 for child in elements.values():
-                    Interface((child,), self.input_map)._reset_notebook_state(preset)
+                    Interface((child,), self.input_map)._reset_notebook_state(
+                        preset,
+                        args,
+                    )
             else:
                 self._reset_control_notebook_state(ctrl, args)
 
