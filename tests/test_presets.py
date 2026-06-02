@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 
-from moops import Group
+from moops import Group, _text_wrap
 from moops.interface import Interface
 from moops.presets import Presets
 
@@ -421,6 +421,41 @@ def test_factory_preset_can_reset_saved_default() -> None:
     presets_ui._reset_default_btn._on_click(None)
 
     delete.assert_called_once_with("default")
+
+
+def test_command_box_wraps_long_command_like_markdown(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The editable command box should use the same line-split formatting the
+    read-only markdown code block does.
+
+    Known failure: ``command_box`` currently shows the flat single-line command
+    (``f"{name} {args}"``), while the no-presets markdown fallback wraps long
+    commands with ``\\``-continuations via ``wrap_command``.
+    """
+    params: dict[str, str] = {}
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+
+    long_value = "a-value-long-enough-to-push-this-command-past-the-wrap-width"
+    presets = _mock_presets(
+        selected_args="",
+        default_args="",
+        get_current=mock.Mock(return_value=None),
+        args_for=mock.Mock(return_value=""),
+        list=mock.Mock(return_value=[]),
+    )
+    group = Group(cli_args=["script.py", "--text", long_value], presets=presets)
+    text = group.text(value="Default", option="--text", help_text="Input text")
+    iface = group.interface(text)
+
+    expected = _text_wrap.wrap_command("script.py", iface._arg_groups())  # type: ignore[reportPrivateUsage]
+    assert "\n" in expected  # sanity: this command is long enough to wrap
+
+    iface._mime_()  # type: ignore[misc]
+    box_value = typing.cast(typing.Any, iface)._presets_ui._command_input.value
+
+    assert box_value == expected
 
 
 def test_delete_calls_select_to_trigger_rerender(
