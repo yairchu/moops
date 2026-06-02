@@ -114,6 +114,10 @@ get_preset, set_preset = mo.state(None)
 args = moops.Group(presets=moops.Presets(get_preset, set_preset))
 ```
 
+With presets enabled, the command line shown in the script callout is editable:
+edit it in place (or paste a different command) and commit to initialize every
+control from those arguments. Malformed input is reported inline.
+
 ## Custom notebook controls
 
 Use `args.custom()` when the notebook needs an interactive control that moops

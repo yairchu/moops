@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- In preset-enabled notebooks the command line in the script callout is now
+  editable. Edit it in place (or paste a different command) and commit to
+  initialize all controls from those arguments. Malformed input — unbalanced
+  quotes, unknown options, or values of the wrong type — is reported inline and
+  leaves the controls unchanged.
+
 ### Changed
 
 - The notebook UI for `Group.list` now renders per-item controls: move an item

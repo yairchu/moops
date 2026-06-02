@@ -1,7 +1,39 @@
+import dataclasses
 import inspect
 import json
 import pathlib
 import typing
+
+
+@dataclasses.dataclass(frozen=True)
+class PendingCliInput:
+    """A command-box submission awaiting display in the script callout.
+
+    Stored alongside the selected preset so a failed (or in-flight) submission
+    survives the marimo rerun that renders its error message.
+    """
+
+    text: str
+    errors: tuple[str, ...]
+
+
+@dataclasses.dataclass(frozen=True)
+class _UIState:
+    """Value stored in the user-provided preset-selection ``mo.state``.
+
+    A single state drives the whole root callout: it carries both the selected
+    preset name and any pending command-box input.
+    """
+
+    preset: str | None = None
+    pending_cli: PendingCliInput | None = None
+
+
+def _as_ui_state(raw: typing.Any) -> _UIState:
+    if isinstance(raw, _UIState):
+        return raw
+    # The initial mo.state value (None) or a legacy bare preset name.
+    return _UIState(preset=raw)
 
 
 class Presets:
@@ -9,21 +41,35 @@ class Presets:
 
     def __init__(
         self,
-        get_selected_preset: typing.Callable[[], str | None],
-        set_selected_preset: typing.Callable[[str | None], None],
+        get_selected_preset: typing.Callable[[], typing.Any],
+        set_selected_preset: typing.Callable[[typing.Any], None],
         *,
         filename: str | pathlib.Path | None = None,
     ) -> None:
         self._filename = (
             pathlib.Path(filename) if filename is not None else _infer_filename()
         )
-        self.get_current = get_selected_preset
-        self.select = set_selected_preset
+        self._get_raw = get_selected_preset
+        self._set_raw = set_selected_preset
         if self._filename.exists():
             with self._filename.open() as f:
                 self._data: dict[str, str] = json.load(f).get("presets", {})
         else:
             self._data = {}
+
+    def get_current(self) -> str | None:
+        return _as_ui_state(self._get_raw()).preset
+
+    def select(self, name: str | None) -> None:
+        """Select a preset, clearing any pending command-box input."""
+        self._set_raw(_UIState(preset=name))
+
+    def get_pending_cli(self) -> PendingCliInput | None:
+        return _as_ui_state(self._get_raw()).pending_cli
+
+    def set_pending_cli(self, pending: PendingCliInput | None) -> None:
+        current = _as_ui_state(self._get_raw())
+        self._set_raw(dataclasses.replace(current, pending_cli=pending))
 
     def list(self) -> typing.Iterable[str]:
         return self._data.keys()

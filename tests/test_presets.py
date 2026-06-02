@@ -9,6 +9,19 @@ from moops.interface import Interface
 from moops.presets import Presets
 
 
+def _mock_presets(**attrs: typing.Any) -> Presets:
+    """Build a ``Presets`` test double with safe defaults.
+
+    Uses ``spec=Presets`` so typos or removed methods raise ``AttributeError``
+    instead of silently returning a truthy child ``Mock``. In particular
+    ``get_pending_cli`` defaults to ``None``: a stray ``Mock`` there flows into
+    ``mo.ui.text_area(value=...)`` and sends marimo into unbounded allocation
+    (a multi-GB hang), so callers must opt in to a real value.
+    """
+    defaults: dict[str, typing.Any] = {"get_pending_cli": mock.Mock(return_value=None)}
+    return typing.cast(Presets, mock.Mock(spec=Presets, **{**defaults, **attrs}))
+
+
 def _mock_preset_caller(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: pathlib.Path,
@@ -40,10 +53,7 @@ def test_selected_preset_updates_query_params(
     monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
     monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
 
-    presets = typing.cast(
-        Presets,
-        mock.Mock(selected_args="--text Preset --style snake"),
-    )
+    presets = _mock_presets(selected_args="--text Preset --style snake")
     group = Group(cli_args=["script.py"], presets=presets)
     text = group.text(value="Default", option="--text", help_text="Input text")
     style = group.dropdown(
@@ -66,7 +76,7 @@ def test_selected_preset_clears_unspecified_query_params(
     monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
     monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
 
-    presets = typing.cast(Presets, mock.Mock(selected_args="--style snake"))
+    presets = _mock_presets(selected_args="--style snake")
     group = Group(cli_args=["script.py"], presets=presets)
     text = group.text(value="Default", option="--text", help_text="Input text")
     style = group.dropdown(
@@ -89,13 +99,10 @@ def test_query_params_disable_default_preset(
     monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
     monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
 
-    presets = typing.cast(
-        Presets,
-        mock.Mock(
-            selected_args="",
-            default_args="--text DefaultPreset --style snake",
-            get_current=mock.Mock(return_value=None),
-        ),
+    presets = _mock_presets(
+        selected_args="",
+        default_args="--text DefaultPreset --style snake",
+        get_current=mock.Mock(return_value=None),
     )
     group = Group(cli_args=["script.py"], presets=presets)
     text = group.text(value="Default", option="--text", help_text="Input text")
@@ -122,15 +129,12 @@ def test_default_preset_is_selected_in_dropdown(
     def _args_for(name: str | None) -> str:
         return "--text DefaultPreset" if name == "default" else ""
 
-    presets = typing.cast(
-        Presets,
-        mock.Mock(
-            selected_args="",
-            default_args="--text DefaultPreset",
-            get_current=mock.Mock(return_value=None),
-            args_for=mock.Mock(side_effect=_args_for),
-            list=mock.Mock(return_value=["default"]),
-        ),
+    presets = _mock_presets(
+        selected_args="",
+        default_args="--text DefaultPreset",
+        get_current=mock.Mock(return_value=None),
+        args_for=mock.Mock(side_effect=_args_for),
+        list=mock.Mock(return_value=["default"]),
     )
     group = Group(cli_args=["script.py"], presets=presets)
     text = group.text(value="Default", option="--text", help_text="Input text")
@@ -148,16 +152,13 @@ def test_factory_preset_selection_clears_query_params(
     monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
     monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
     select = mock.Mock()
-    presets = typing.cast(
-        Presets,
-        mock.Mock(
-            selected_args="--text Preset --style snake",
-            default_args="--text DefaultPreset",
-            get_current=mock.Mock(return_value="saved"),
-            args_for=mock.Mock(return_value="--text Preset --style snake"),
-            list=mock.Mock(return_value=["default", "saved"]),
-            select=select,
-        ),
+    presets = _mock_presets(
+        selected_args="--text Preset --style snake",
+        default_args="--text DefaultPreset",
+        get_current=mock.Mock(return_value="saved"),
+        args_for=mock.Mock(return_value="--text Preset --style snake"),
+        list=mock.Mock(return_value=["default", "saved"]),
+        select=select,
     )
     group = Group(cli_args=["script.py"], presets=presets)
     text = group.text(value="Factory", option="--text", help_text="Input text")
@@ -185,16 +186,13 @@ def test_reset_button_reapplies_active_factory_preset(
     monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
     monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
     select = mock.Mock()
-    presets = typing.cast(
-        Presets,
-        mock.Mock(
-            selected_args="",
-            default_args="",
-            get_current=mock.Mock(return_value=""),
-            args_for=mock.Mock(return_value=""),
-            list=mock.Mock(return_value=["default", "saved"]),
-            select=select,
-        ),
+    presets = _mock_presets(
+        selected_args="",
+        default_args="",
+        get_current=mock.Mock(return_value=""),
+        args_for=mock.Mock(return_value=""),
+        list=mock.Mock(return_value=["default", "saved"]),
+        select=select,
     )
     group = Group(cli_args=["script.py"], presets=presets)
     text = group.text(value="Factory", option="--text", help_text="Input text")
@@ -216,16 +214,13 @@ def test_reset_button_clears_list_notebook_state(
     monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
     select = mock.Mock()
     changes: list[list[float]] = []
-    presets = typing.cast(
-        Presets,
-        mock.Mock(
-            selected_args="",
-            default_args="",
-            get_current=mock.Mock(return_value=None),
-            args_for=mock.Mock(return_value=""),
-            list=mock.Mock(return_value=["saved"]),
-            select=select,
-        ),
+    presets = _mock_presets(
+        selected_args="",
+        default_args="",
+        get_current=mock.Mock(return_value=None),
+        args_for=mock.Mock(return_value=""),
+        list=mock.Mock(return_value=["saved"]),
+        select=select,
     )
     group = Group(cli_args=["script.py"], presets=presets)
     factors = group.list(
@@ -254,16 +249,13 @@ def test_reset_button_reapplies_inherited_preset_to_subgroup(
     monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
     select = mock.Mock()
     changes: list[str] = []
-    presets = typing.cast(
-        Presets,
-        mock.Mock(
-            selected_args="",
-            default_args="",
-            get_current=mock.Mock(return_value="saved"),
-            args_for=mock.Mock(return_value="--child-text Preset"),
-            list=mock.Mock(return_value=["saved"]),
-            select=select,
-        ),
+    presets = _mock_presets(
+        selected_args="",
+        default_args="",
+        get_current=mock.Mock(return_value="saved"),
+        args_for=mock.Mock(return_value="--child-text Preset"),
+        list=mock.Mock(return_value=["saved"]),
+        select=select,
     )
     group = Group(cli_args=["script.py"], presets=presets)
     child = group.subgroup("child")
@@ -291,13 +283,10 @@ def test_selected_default_preset_does_not_override_edited_list_state(
     params = {"factor": "[2.0, 1.0]"}
     monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
     monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
-    presets = typing.cast(
-        Presets,
-        mock.Mock(
-            selected_args="--factor 2",
-            default_args="--factor 2",
-            get_current=mock.Mock(return_value="default"),
-        ),
+    presets = _mock_presets(
+        selected_args="--factor 2",
+        default_args="--factor 2",
+        get_current=mock.Mock(return_value="default"),
     )
     group = Group(cli_args=["script.py"], presets=presets)
     factors = group.list(
@@ -321,13 +310,10 @@ def test_selected_default_preset_does_not_lock_edited_subgroup_list_state(
     monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
     preset_trip = [{"mode": "car", "distance": 120}]
     edited_trip = [*preset_trip, {"mode": "car", "distance": 120}]
-    presets = typing.cast(
-        Presets,
-        mock.Mock(
-            selected_args="--trip --mode car --distance 120",
-            default_args="--trip --mode car --distance 120",
-            get_current=mock.Mock(return_value="default"),
-        ),
+    presets = _mock_presets(
+        selected_args="--trip --mode car --distance 120",
+        default_args="--trip --mode car --distance 120",
+        get_current=mock.Mock(return_value="default"),
     )
     template = Group(cli_args=["template.py"])
     mode = template.dropdown(
@@ -374,14 +360,11 @@ def test_selected_default_preset_does_not_lock_edited_subgroup_list_state(
 
 def test_empty_save_name_saves_default_preset() -> None:
     save = mock.Mock()
-    presets = typing.cast(
-        Presets,
-        mock.Mock(
-            get_current=mock.Mock(return_value=None),
-            args_for=mock.Mock(return_value=""),
-            list=mock.Mock(return_value=[]),
-            save=save,
-        ),
+    presets = _mock_presets(
+        get_current=mock.Mock(return_value=None),
+        args_for=mock.Mock(return_value=""),
+        list=mock.Mock(return_value=[]),
+        save=save,
     )
     group = Group(cli_args=["script.py", "--text", "Edited"])
     text = group.text(value="Factory", option="--text", help_text="Input text")
@@ -400,13 +383,10 @@ def test_empty_save_name_saves_default_preset() -> None:
 
 
 def test_default_preset_rename_placeholder_is_not_default() -> None:
-    presets = typing.cast(
-        Presets,
-        mock.Mock(
-            args_for=mock.Mock(return_value="--text DefaultPreset"),
-            get_current=mock.Mock(return_value="default"),
-            list=mock.Mock(return_value=["default"]),
-        ),
+    presets = _mock_presets(
+        args_for=mock.Mock(return_value="--text DefaultPreset"),
+        get_current=mock.Mock(return_value="default"),
+        list=mock.Mock(return_value=["default"]),
     )
     iface = Interface(
         controls=typing.cast(tuple[typing.Any], ()),
@@ -422,15 +402,12 @@ def test_default_preset_rename_placeholder_is_not_default() -> None:
 
 def test_factory_preset_can_reset_saved_default() -> None:
     delete = mock.Mock()
-    presets = typing.cast(
-        Presets,
-        mock.Mock(
-            args_for=mock.Mock(return_value=""),
-            default_args="--text DefaultPreset",
-            get_current=mock.Mock(return_value=""),
-            list=mock.Mock(return_value=["default"]),
-            delete=delete,
-        ),
+    presets = _mock_presets(
+        args_for=mock.Mock(return_value=""),
+        default_args="--text DefaultPreset",
+        get_current=mock.Mock(return_value=""),
+        list=mock.Mock(return_value=["default"]),
+        delete=delete,
     )
     iface = Interface(
         controls=typing.cast(tuple[typing.Any], ()),
@@ -449,7 +426,7 @@ def test_factory_preset_can_reset_saved_default() -> None:
 def test_delete_calls_select_to_trigger_rerender(
     tmp_path: pathlib.Path,
 ) -> None:
-    selected: list[str | None] = []
+    selected: list[typing.Any] = []
     filename = tmp_path / "presets.json"
     presets = Presets(
         get_selected_preset=lambda: None,
@@ -461,7 +438,7 @@ def test_delete_calls_select_to_trigger_rerender(
 
     presets.delete("default")
 
-    assert selected == [""]
+    assert [s.preset for s in selected] == [""]
     assert filename.exists()
 
 
@@ -470,7 +447,7 @@ def test_presets_can_infer_filename_from_caller(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _mock_preset_caller(monkeypatch, tmp_path)
-    selected: list[str | None] = []
+    selected: list[typing.Any] = []
     presets = Presets(lambda: None, selected.append)
 
     presets.save("default", "--foo bar")
@@ -478,7 +455,7 @@ def test_presets_can_infer_filename_from_caller(
     assert (tmp_path / "notebook_presets.json").read_text() == (
         '{\n  "presets": {\n    "default": "--foo bar"\n  }\n}'
     )
-    assert selected == ["default"]
+    assert [s.preset for s in selected] == ["default"]
 
 
 def test_presets_prefer_marimo_notebook_filename(
