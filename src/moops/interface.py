@@ -120,6 +120,10 @@ class Interface:
         Subgroups with their own presets keep their own state and are not
         reset from ``text`` (see ``_reset_notebook_state``).
         """
+        # Fold shell line-continuations first: the box shows the command
+        # wrapped with `\`-continuations, but shlex would otherwise leave the
+        # escaped newline behind as a stray token.
+        text = text.replace("\\\r\n", " ").replace("\\\n", " ")
         try:
             tokens = shlex.split(text)
         except ValueError as exc:
@@ -396,8 +400,10 @@ class Interface:
         if self._presets_ui is not None:
             # With presets the command line itself is editable: edit (or paste)
             # a command and commit to initialize every control from it. The box
-            # shows the whole command, program name included, so it round-trips.
-            command = f"{name} {args}".rstrip()
+            # shows the whole command, program name included and wrapped the same
+            # way as the read-only callout, so it round-trips (apply_cli_args
+            # folds the `\`-continuations back together before parsing).
+            command = _text_wrap.wrap_command(name, self._arg_groups())
             body_items: list[typing.Any] = [
                 mo.md(intro),
                 self._presets_ui.command_box(command),
