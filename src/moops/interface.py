@@ -56,6 +56,7 @@ class Interface:
             if id(ctrl) in seen_ids:
                 raise ValueError("Duplicate control passed to interface")
             seen_ids.add(id(ctrl))
+        self._check_duplicate_options()
         self._presets_ui = (
             _presets_ui.PresetsUI(
                 self.presets,
@@ -68,6 +69,35 @@ class Interface:
             if self.presets is not None
             else None
         )
+
+    def _check_duplicate_options(self) -> None:
+        """Reject sibling controls that resolve to the same option name.
+
+        Only direct controls at this level are compared. Attached
+        sub-interfaces (e.g. variant branches) legitimately reuse option
+        names across mutually-exclusive branches and list/dict element
+        controls repeat options by design, so both are skipped here — they
+        are validated at their own level instead.
+        """
+        seen: set[str] = set()
+        for ctrl in self.controls:
+            if attached_interface(ctrl) is not None:
+                continue
+            if _marimo_controls.ui_dictionary_elements(ctrl) is not None:
+                continue
+            input_control = self.input_map.get(ctrl)
+            if input_control is None:
+                continue
+            option = input_control.option
+            if option in seen:
+                raise ValueError(
+                    f"Multiple controls map to the option {option!r}. Labels with "
+                    f"parenthetical units share a base option name — e.g. "
+                    f"'Length (seconds)' and 'Length (minutes)' both become "
+                    f"{option!r}; give them distinct labels or pass explicit, "
+                    f"different option names."
+                )
+            seen.add(option)
 
     def has_prefixed_options(self, state: _parse.ParseState) -> bool:
         """True if state has CLI options starting with this interface's prefix."""
@@ -125,8 +155,10 @@ class Interface:
         controls are left unchanged. On success the controls (and their query
         params) are reset to the parsed values and ``()`` is returned.
 
-        Subgroups with their own presets keep their own state and are not
-        reset from ``text`` (see ``_reset_notebook_state``).
+        Subgroups that own their presets are not initialized from ``text``:
+        the parsed args are not threaded into them. As with any preset change
+        they are reset through their own preset mechanism (see
+        ``_reset_notebook_state``), independently of the edited command.
         """
         # Fold shell line-continuations first: the box shows the command
         # wrapped with `\`-continuations, but shlex would otherwise leave the
