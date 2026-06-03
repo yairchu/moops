@@ -1,5 +1,8 @@
 import dataclasses
 import html
+import re
+
+_PARENTHETICAL_SUFFIX = re.compile(r"^(?P<label>.+?)\s*\((?P<metavar>[^()]+)\)$")
 
 
 def option_to_label(option: str) -> str:
@@ -13,6 +16,7 @@ class OptionLabel:
 
     label: str
     option: str
+    metavar_label: str | None = None
 
     @staticmethod
     def make(
@@ -20,9 +24,11 @@ class OptionLabel:
     ) -> "OptionLabel":
         """Generate OptionLabel from label or option name."""
 
+        metavar_label = None
         if option is None:
             assert label is not None, "Either label or option must be provided"
-            option = f"--{prefix or ''}{label.lower().replace(' ', '-')}"
+            option_label, metavar_label = split_label_metavar(label)
+            option = f"--{prefix or ''}{option_label.lower().replace(' ', '-')}"
         else:
             assert option.startswith("-"), f"Option must start with dash: {option}"
             assert prefix is None or option.startswith(f"--{prefix}"), (
@@ -30,14 +36,22 @@ class OptionLabel:
             )
             if label is None:
                 label = option_to_label(option)
-        return OptionLabel(label=label, option=option)
+        return OptionLabel(label=label, option=option, metavar_label=metavar_label)
 
     @property
     def metavar(self) -> str:
-        return self.label.upper().replace(" ", "_")
+        label = self.metavar_label or self.label
+        return label.upper().replace(" ", "_")
 
     def label_with_tooltip(self, help_text: str) -> str:
         return (
             f'<span title="{html.escape(help_text, quote=True)} ({self.option})">'
             f"{self.label}</span>"
         )
+
+
+def split_label_metavar(label: str) -> tuple[str, str | None]:
+    match = _PARENTHETICAL_SUFFIX.match(label)
+    if match is None:
+        return label, None
+    return match.group("label"), match.group("metavar")

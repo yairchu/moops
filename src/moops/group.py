@@ -851,5 +851,6 @@ class Group:
             opt = _naming.OptionLabel(
                 label=opt.label,
                 option=f"{self.option}-{opt.option.lstrip('-')}",
+                metavar_label=opt.metavar_label,
             )
         return opt

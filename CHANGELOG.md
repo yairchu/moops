@@ -31,6 +31,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `Word Count` use arguments such as `--notebook word-count` and variant branch
   options such as `--notebook-word-count-*`. Invalid inactive-branch arguments
   fail validation without emitting embedded child output first.
+- Labels with parenthetical units now use the base label for the option name and
+  the unit for the metavar; for example `Length (seconds)` becomes
+  `--length SECONDS` instead of `--length-(seconds) LENGTH_(SECONDS)`.
 
 ## [0.9.0] - 2026-06-01 - List controls and notebook polish
 
