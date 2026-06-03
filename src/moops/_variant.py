@@ -1,6 +1,26 @@
+import dataclasses
 import typing
 
 from . import _choice_options, _naming, _options
+
+
+@dataclasses.dataclass(frozen=True)
+class VariantContext:
+    """Per-branch presentation state derived from ``Group.variant()``.
+
+    These fields are always populated together by ``variant()`` and otherwise
+    left at their defaults, so they travel as one value object shared between a
+    ``Group`` and the ``Interface`` it builds. Lives here (rather than on
+    ``Group``) so ``interface.py`` can read it without importing ``group``.
+    """
+
+    help_heading: str | None = None
+    usage_placeholder: str | None = None
+    usage_after_option: str | None = None
+    selector_option: str | None = None
+    selector_parent_prefix: str = ""
+    key: str | None = None
+    group_prefix: str | None = None
 
 
 def selected_key(selector: typing.Any) -> typing.Any:

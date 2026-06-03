@@ -76,13 +76,7 @@ class Group:
         self._parent_group: Group | None = None
         self._markdown_heading_offset = 0
         self._disabled = False
-        self._help_heading: str | None = None
-        self._usage_placeholder: str | None = None
-        self._usage_after_option: str | None = None
-        self._variant_selector_option: str | None = None
-        self._variant_selector_parent_prefix: str = ""
-        self._variant_key: str | None = None
-        self._variant_group_prefix: str | None = None
+        self._variant_ctx = _variant.VariantContext()
         self._subgroup_registry = SubgroupRegistry()
         self._value_resolver = self._make_value_resolver()
 
@@ -164,13 +158,7 @@ class Group:
             self._markdown_heading_offset + markdown_heading_offset
         )
         child._disabled = self._disabled
-        child._help_heading = None
-        child._usage_placeholder = None
-        child._usage_after_option = None
-        child._variant_selector_option = None
-        child._variant_selector_parent_prefix = ""
-        child._variant_key = None
-        child._variant_group_prefix = None
+        child._variant_ctx = _variant.VariantContext()
         child._overrides = {**self._overrides.get(prefix, {}), **(overrides or {})}
         child.option = f"{self.option}-{prefix}" if self.option else f"--{prefix}"
         child._presets = presets
@@ -213,13 +201,15 @@ class Group:
                     selector_option and self._state.args.has(selector_option)
                 )
                 heading += " (selected)" if explicit else " (default)"
-            group._help_heading = heading
-            group._usage_placeholder = usage_placeholder
-            group._usage_after_option = selector_option
-            group._variant_selector_option = selector_option
-            group._variant_selector_parent_prefix = self.option
-            group._variant_key = key_text
-            group._variant_group_prefix = prefix
+            group._variant_ctx = _variant.VariantContext(
+                help_heading=heading,
+                usage_placeholder=usage_placeholder,
+                usage_after_option=selector_option,
+                selector_option=selector_option,
+                selector_parent_prefix=self.option,
+                key=key_text,
+                group_prefix=prefix,
+            )
             result[key] = group
         return result
 
@@ -260,14 +250,8 @@ class Group:
             query_params=self._query_params,
             command=self._command,
             extra_missing_options=extra_missing_options,
-            help_heading=self._help_heading,
-            usage_placeholder=self._usage_placeholder,
-            usage_after_option=self._usage_after_option,
             disabled=self._disabled,
-            variant_selector_option=self._variant_selector_option,
-            variant_selector_parent_prefix=self._variant_selector_parent_prefix,
-            variant_key=self._variant_key,
-            variant_group_prefix=self._variant_group_prefix,
+            variant_ctx=self._variant_ctx,
         )
         if self._parent_group is not None:
             self._parent_group._subgroup_registry.register(iface)

@@ -41,14 +41,10 @@ class Interface:
     )
     command: str = ""
     extra_missing_options: tuple[str, ...] = ()
-    help_heading: str | None = None
-    usage_placeholder: str | None = None
-    usage_after_option: str | None = None
     disabled: bool = False
-    variant_selector_option: str | None = None
-    variant_selector_parent_prefix: str = ""
-    variant_key: str | None = None
-    variant_group_prefix: str | None = None
+    variant_ctx: _variant.VariantContext = dataclasses.field(
+        default_factory=_variant.VariantContext
+    )
 
     def __post_init__(self) -> None:
         seen_ids: set[int] = set()
@@ -202,9 +198,9 @@ class Interface:
         for ctrl in self.controls:
             if (sub_iface := attached_interface(ctrl)) is not None:
                 lines = list(sub_iface._format_help_lines())
-                if lines and sub_iface.help_heading:
+                if lines and sub_iface.variant_ctx.help_heading:
                     yield ""
-                    yield f"{sub_iface.help_heading}:"
+                    yield f"{sub_iface.variant_ctx.help_heading}:"
                 yield from lines
                 prev_was_group_with_content = bool(lines)
             else:
@@ -229,7 +225,7 @@ class Interface:
                         if placeholder := placeholders_by_option.pop(option, None):
                             yield placeholder
 
-            elif not sub_iface.usage_placeholder:
+            elif not sub_iface.variant_ctx.usage_placeholder:
                 yield from sub_iface._format_usage_parts(placeholders_by_option)
 
     @property
@@ -277,21 +273,19 @@ class Interface:
         *,
         active_args: _parse.ParsedArgs | None = None,
     ) -> bool:
-        if (
-            self.variant_group_prefix is not None
-            and self.variant_selector_option is not None
-        ):
+        ctx = self.variant_ctx
+        if ctx.group_prefix is not None and ctx.selector_option is not None:
             selected = (
-                selected_value_for_option(root, self.variant_selector_option)
+                selected_value_for_option(root, ctx.selector_option)
                 if active_args is None
                 else selected_value_for_option_args(
                     root,
-                    self.variant_selector_option,
+                    ctx.selector_option,
                     active_args,
                 )
             )
             if selected is not None:
-                return self.variant_key != _variant.key_text(selected)
+                return ctx.key != _variant.key_text(selected)
         return self.disabled
 
     def input_options(self) -> list[str]:
@@ -647,8 +641,9 @@ def _collect_usage_placeholders(
     iface: Interface,
     result: dict[str, str],
 ) -> None:
-    if iface.usage_placeholder and iface.usage_after_option:
-        result.setdefault(iface.usage_after_option, iface.usage_placeholder)
+    ctx = iface.variant_ctx
+    if ctx.usage_placeholder and ctx.usage_after_option:
+        result.setdefault(ctx.usage_after_option, ctx.usage_placeholder)
     for ctrl in iface.controls:
         if sub_iface := attached_interface(ctrl):
             _collect_usage_placeholders(sub_iface, result)

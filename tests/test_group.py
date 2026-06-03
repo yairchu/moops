@@ -854,10 +854,10 @@ def test_variant_interfaces_expose_branch_metadata() -> None:
     distance = branches["car"].number(option="--distance", help_text="Miles")
     car_iface = branches["car"].interface(distance)
 
-    assert car_iface.variant_selector_option == "--mode"
-    assert car_iface.variant_selector_parent_prefix == ""
-    assert car_iface.variant_key == "car"
-    assert car_iface.variant_group_prefix == "travel"
+    assert car_iface.variant_ctx.selector_option == "--mode"
+    assert car_iface.variant_ctx.selector_parent_prefix == ""
+    assert car_iface.variant_ctx.key == "car"
+    assert car_iface.variant_ctx.group_prefix == "travel"
 
 
 def test_controls_from_variant_displays_only_active_branch() -> None:
@@ -1354,8 +1354,8 @@ def test_variant_heading_selected_when_non_default_chosen_without_cli_arg() -> N
     )
     variants = g.variant("travel", mock_selector)
     iface = variants["train"].interface()
-    assert iface.help_heading is not None
-    assert "(selected)" in iface.help_heading
+    assert iface.variant_ctx.help_heading is not None
+    assert "(selected)" in iface.variant_ctx.help_heading
 
 
 def test_standalone_option_after_variant_group_is_separated_in_help(

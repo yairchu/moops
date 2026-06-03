@@ -19,11 +19,11 @@ def subgroup_leaves(
         if isinstance(ctrl_or_sub, interface.Interface):
             child_variant_selector = variant_selector_bare_option
             child_variant_key = variant_key
-            if ctrl_or_sub.variant_selector_option is not None:
+            if ctrl_or_sub.variant_ctx.selector_option is not None:
                 child_variant_selector = _interface_utils.unprefixed_option(
-                    top, ctrl_or_sub.variant_selector_option
+                    top, ctrl_or_sub.variant_ctx.selector_option
                 )
-                child_variant_key = ctrl_or_sub.variant_key
+                child_variant_key = ctrl_or_sub.variant_ctx.key
             yield from subgroup_leaves(
                 ctrl_or_sub,
                 child_path,

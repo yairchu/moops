@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import dataclasses
 import typing
 
 import marimo as mo
@@ -40,9 +41,11 @@ def controls_from(
     for key, original in controls.items():
         _reattach_interface_to_clone(original, result.elements[key])
     # Use the live clones (result.elements) rather than the originals so
-    # that cur_values() reads up-to-date widget values.
+    # that cur_values() reads up-to-date widget values. Apply the mirrored
+    # variant metadata to the child group first, so the interface it builds
+    # already carries it instead of being mutated afterwards.
+    _apply_mirrored_variant_ctx(iface, child, group.option)
     mirrored_iface = child.interface(*result.elements.values())
-    _copy_variant_metadata(iface, mirrored_iface, group.option)
     result._moops_interface = mirrored_iface  # type: ignore[attr-defined]
     return result
 
@@ -74,13 +77,13 @@ class VariantAwareDictionary(mo.ui.dictionary):
         rendered_variant_groups: set[tuple[str, str]] = set()
         for name, element in self.elements.items():
             sub_iface = _attached_interface(element)
-            if sub_iface is None or sub_iface.variant_group_prefix is None:
+            if sub_iface is None or sub_iface.variant_ctx.group_prefix is None:
                 result[name] = element
                 continue
-            assert sub_iface.variant_selector_option is not None
+            assert sub_iface.variant_ctx.selector_option is not None
             group_key = (
-                sub_iface.variant_selector_option,
-                sub_iface.variant_group_prefix,
+                sub_iface.variant_ctx.selector_option,
+                sub_iface.variant_ctx.group_prefix,
             )
             if group_key in rendered_variant_groups:
                 continue
@@ -118,8 +121,8 @@ def _active_variant_element(
     elements: dict[str, typing.Any],
     variant_iface: interface.Interface,
 ) -> tuple[str, typing.Any] | None:
-    selector_option = variant_iface.variant_selector_option
-    variant_group_prefix = variant_iface.variant_group_prefix
+    selector_option = variant_iface.variant_ctx.selector_option
+    variant_group_prefix = variant_iface.variant_ctx.group_prefix
     selected = _selected_value_for_option(root_iface, selector_option)
     if selected is None:
         return None
@@ -128,9 +131,9 @@ def _active_variant_element(
         sub_iface = _attached_interface(element)
         if (
             sub_iface is not None
-            and sub_iface.variant_selector_option == selector_option
-            and sub_iface.variant_group_prefix == variant_group_prefix
-            and sub_iface.variant_key == selected_key
+            and sub_iface.variant_ctx.selector_option == selector_option
+            and sub_iface.variant_ctx.group_prefix == variant_group_prefix
+            and sub_iface.variant_ctx.key == selected_key
         ):
             return name, element
     return None
@@ -146,18 +149,22 @@ def _attached_interface(ctrl: typing.Any) -> interface.Interface | None:
     return interface.attached_interface(ctrl)
 
 
-def _copy_variant_metadata(
+def _apply_mirrored_variant_ctx(
     source: interface.Interface,
-    target: interface.Interface,
+    child_group: typing.Any,
     mirrored_parent_prefix: str,
 ) -> None:
-    target.variant_key = source.variant_key
-    target.variant_group_prefix = source.variant_group_prefix
-    target.variant_selector_parent_prefix = source.variant_selector_parent_prefix
-    target.variant_selector_option = _mirrored_selector_option(
-        source.variant_selector_option,
-        source.variant_selector_parent_prefix,
-        mirrored_parent_prefix,
+    source_ctx = source.variant_ctx
+    child_group._variant_ctx = dataclasses.replace(
+        child_group._variant_ctx,
+        key=source_ctx.key,
+        group_prefix=source_ctx.group_prefix,
+        selector_parent_prefix=source_ctx.selector_parent_prefix,
+        selector_option=_mirrored_selector_option(
+            source_ctx.selector_option,
+            source_ctx.selector_parent_prefix,
+            mirrored_parent_prefix,
+        ),
     )
 
 
