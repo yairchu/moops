@@ -275,15 +275,7 @@ class Interface:
     ) -> bool:
         ctx = self.variant_ctx
         if ctx.group_prefix is not None and ctx.selector_option is not None:
-            selected = (
-                selected_value_for_option(root, ctx.selector_option)
-                if active_args is None
-                else selected_value_for_option_args(
-                    root,
-                    ctx.selector_option,
-                    active_args,
-                )
-            )
+            selected = selected_value_for_option(root, ctx.selector_option, active_args)
             if selected is not None:
                 return ctx.key != _variant.key_text(selected)
         return self.disabled
@@ -589,40 +581,31 @@ def _empty_reset_value(input_control: _options.InputControl) -> typing.Any:
 
 
 def selected_value_for_option(
-    iface: Interface, selector_option: str | None
-) -> typing.Any:
-    if selector_option is None:
-        return None
-    for ctrl in iface.controls:
-        sub_iface = attached_interface(ctrl)
-        if sub_iface is not None:
-            selected = selected_value_for_option(sub_iface, selector_option)
-            if selected is not None:
-                return selected
-            continue
-        input_control = iface.input_map.get(ctrl)
-        if input_control is not None and input_control.option == selector_option:
-            return _variant.selected_key(ctrl)
-    return None
-
-
-def selected_value_for_option_args(
     iface: Interface,
     selector_option: str | None,
-    args: _parse.ParsedArgs,
+    args: _parse.ParsedArgs | None = None,
 ) -> typing.Any:
+    """Find the variant selector's current value within ``iface``.
+
+    Walks nested interfaces for the control whose option is
+    ``selector_option``. With ``args is None`` the value is read from the live
+    widget; otherwise it is parsed from ``args`` (falling back to an empty
+    reset value when the option is absent).
+    """
     if selector_option is None:
         return None
     for ctrl in iface.controls:
         sub_iface = attached_interface(ctrl)
         if sub_iface is not None:
-            selected = selected_value_for_option_args(sub_iface, selector_option, args)
+            selected = selected_value_for_option(sub_iface, selector_option, args)
             if selected is not None:
                 return selected
             continue
         input_control = iface.input_map.get(ctrl)
         if input_control is None or input_control.option != selector_option:
             continue
+        if args is None:
+            return _variant.selected_key(ctrl)
         match input_control.parse(args):
             case _options.ParseResult(value=value):
                 return value
