@@ -8,6 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `Group.figure` displays a figure both in notebooks and on the CLI: a
+  matplotlib `Figure`/`Axes`, PIL `Image`, or raw PNG `bytes` is rendered by
+  marimo in notebooks and streamed inline to the terminal via the Kitty
+  graphics protocol (kitty, Ghostty, WezTerm, Konsole) on the CLI. The
+  `Group.graphics_supported` property reports whether inline images will
+  render, so notebooks can gate plotting or fall back to text/ASCII. The Game
+  of Life example uses it to show the board as an image when supported and the
+  ASCII grid otherwise.
+
 ## [0.10.0] - 2026-06-03 - Editable commands and option naming
 
 ### Added

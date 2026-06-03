@@ -97,11 +97,17 @@ def _(game_of_life_iteration, moops, step_controls, steps):
 
 
 @app.cell
-def _(np, plt, result):
-    plt.imshow(np.array([list(x) for x in result.split()]) == "#")
-    plt.xticks([])
-    plt.yticks([])
-    plt.gca()
+def _(args, np, plt, result):
+    # In a notebook (or a Kitty-protocol terminal) show the board as an image;
+    # on a plain terminal fall back to the raw ASCII grid via args.md.
+    if args.graphics_supported:
+        plt.imshow(np.array([list(x) for x in result.split()]) == "#")
+        plt.xticks([])
+        plt.yticks([])
+        _out = args.figure(plt.gcf())
+    else:
+        _out = args.md("```\n" + "\n".join(result.split()) + "\n```")
+    _out
     return
 
 

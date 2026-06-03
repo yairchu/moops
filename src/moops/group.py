@@ -20,6 +20,7 @@ from . import (
     _parse,
     _preset_state,
     _query_params,
+    _terminal_graphics,
     _value_resolution,
     _variant,
     interface,
@@ -298,6 +299,49 @@ class Group:
         elif text.startswith("`") and text.endswith("`"):
             text = text[1:-1]
         print(f"{text}\n")
+        return None
+
+    @property
+    def graphics_supported(self) -> bool:
+        """True when ``figure`` will actually render in the current context.
+
+        Always ``True`` in notebooks (marimo renders figures); on the CLI,
+        ``True`` only when stdout is a terminal speaking a supported graphics
+        protocol (currently Kitty). Gate expensive plotting on this, or branch
+        to a text/ASCII fallback when it is ``False``::
+
+            mo.stop(not args.graphics_supported)
+        """
+        if self.output_mode is OutputMode.NOTEBOOK:
+            return True
+        if self.output_mode is None:
+            return False
+        return _terminal_graphics.detect() is not _terminal_graphics.Protocol.NONE
+
+    def figure(
+        self,
+        fig: typing.Any,
+        *,
+        notebook_only: bool = False,
+        dpi: int | None = None,
+    ) -> mo.Html | typing.Any | None:
+        """Display a figure: rendered in notebooks, inline on the terminal on CLI.
+
+        ``fig`` may be a matplotlib ``Figure`` or ``Axes``, a PIL ``Image``, or
+        raw PNG ``bytes``. In notebooks the object is returned for marimo to
+        render; on the CLI it is rasterized to PNG and streamed to the terminal
+        via a graphics protocol (currently Kitty). Mirrors :meth:`md`: returns
+        ``None`` during interface queries, when output is silenced, or on the
+        CLI. Check :attr:`graphics_supported` first if you want an ASCII
+        fallback when the terminal cannot show images.
+        """
+        if self.is_interface_query or self.output_mode is None:
+            return None
+        if notebook_only and self.output_mode is not OutputMode.NOTEBOOK:
+            return None
+        if self.output_mode is OutputMode.NOTEBOOK:
+            return mo.image(fig) if isinstance(fig, bytes) else fig
+        _terminal_graphics.emit(_terminal_graphics.to_png(fig, dpi=dpi))
         return None
 
     def switch(
