@@ -28,7 +28,12 @@ def controls_from(
         for name, ctrl_or_sub in iface.iter_controls()
         if name not in excluded
     }
-    result = mo.ui.dictionary(controls)
+    # Build the dictionary as a VariantAwareDictionary so the mirrored controls
+    # stay a reactive UIElement: marimo's UIElementRegistry binds reruns only to
+    # globals where isinstance(value, UIElement), so a non-UIElement wrapper
+    # would leave the dictionary bound to no name and edits would not propagate.
+    cls = VariantAwareDictionary if _wrap_display else mo.ui.dictionary
+    result = cls(controls)
     # mo.ui.dictionary clones its elements, so result.elements[key] is a
     # different object than controls[key]. Rebind nested dictionary clones
     # to interfaces that track their own live cloned elements.
@@ -39,33 +44,32 @@ def controls_from(
     mirrored_iface = child.interface(*result.elements.values())
     _copy_variant_metadata(iface, mirrored_iface, group.option)
     result._moops_interface = mirrored_iface  # type: ignore[attr-defined]
-    if _wrap_display:
-        return VariantAwareDictionary(result)
     return result
 
 
-class VariantAwareDictionary:
-    """Display proxy for mirrored controls.
+class VariantAwareDictionary(mo.ui.dictionary):
+    """A mirrored-controls dictionary with custom display.
 
-    It keeps the dictionary value/element API, but displays controls as a plain
-    vertical stack and hides inactive variant branches.
+    A real ``mo.ui.dictionary`` subclass, so it stays a reactive ``UIElement``
+    (cells referencing it rerun when a mirrored control changes). It overrides
+    display to show the controls as a plain vertical stack and to hide inactive
+    variant branches, instead of marimo's default dictionary layout.
     """
 
-    def __init__(self, dictionary: mo.ui.dictionary) -> None:
-        self._dictionary = dictionary
-        self._id = getattr(dictionary, "_id", f"variant-dict-{id(self)}")
-        self._moops_interface = typing.cast(typing.Any, dictionary)._moops_interface
+    # Set after construction (controls_from). dictionary.__init__ renders
+    # _mime_ before then, so default to None and show all elements until it is.
+    _moops_interface: interface.Interface | None = None
 
-    @property
-    def value(self) -> typing.Any:
-        return self._dictionary.value
-
-    @property
-    def elements(self) -> dict[str, typing.Any]:
-        return self._dictionary.elements
+    def _clone(self) -> VariantAwareDictionary:
+        # Route through UIElement's deepcopy path (not dictionary._clone, which
+        # rebuilds a plain dictionary) so the subclass and the _moops_interface
+        # attribute set after construction survive cloning.
+        return copy.deepcopy(self)
 
     def _moops_visible_elements(self) -> dict[str, typing.Any]:
-        iface = typing.cast(interface.Interface, self._moops_interface)
+        iface = self._moops_interface
+        if iface is None:
+            return dict(self.elements)
         result: dict[str, typing.Any] = {}
         rendered_variant_groups: set[tuple[str, str]] = set()
         for name, element in self.elements.items():
@@ -95,12 +99,6 @@ class VariantAwareDictionary:
             ]
         )
         return typing.cast(typing.Any, visible)._mime_()
-
-    def __deepcopy__(self, memo: dict[int, typing.Any]) -> VariantAwareDictionary:
-        return type(self)(copy.deepcopy(self._dictionary, memo))
-
-    def __getattr__(self, name: str) -> typing.Any:
-        return getattr(self._dictionary, name)
 
 
 def _display_element(element: typing.Any) -> typing.Any:

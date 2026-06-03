@@ -60,12 +60,12 @@ def _(get_preset_sel, moops, set_preset_sel):
 
 
 @app.cell
-def _(args, game_of_life_iteration, mo, moops):
+def _(args, game_of_life_iteration, moops):
     step_controls = args.controls_from(
         moops.interface_of(game_of_life_iteration),
         prefix="step",
     )
-    mo.vstack(step_controls.values())
+    step_controls
     return (step_controls,)
 
 

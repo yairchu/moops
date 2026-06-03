@@ -25,6 +25,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   of Life example uses it to show the board as an image when supported and the
   ASCII grid otherwise.
 
+### Fixed
+
+- Editing a control created with `Group.controls_from` now reactively reruns
+  dependent cells. The mirrored controls were returned as a non-`UIElement`
+  wrapper, which marimo's reactivity could not bind to, so changes did not
+  propagate until another control triggered a rerun.
+
 ## [0.10.0] - 2026-06-03 - Editable commands and option naming
 
 ### Added
