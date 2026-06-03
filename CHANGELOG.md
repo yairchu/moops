@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-06-03 - Editable commands and option naming
+
 ### Added
 
 - In preset-enabled notebooks the command line in the script callout is now
