@@ -79,6 +79,15 @@ def test_label_parenthetical_unit_becomes_metavar(
     assert "LENGTH_(SECONDS)" not in help_text
 
 
+def test_parenthetical_units_colliding_on_option_raise() -> None:
+    g = Group(cli_args=["script.py"])
+    secs = g.number(label="Length (seconds)", help_text="Clip length in seconds")
+    mins = g.number(label="Length (minutes)", help_text="Clip length in minutes")
+
+    with pytest.raises(ValueError, match=r"--length.*parenthetical"):
+        g.interface(secs, mins)
+
+
 def test_duplicate_control_error_mentions_interface() -> None:
     g = Group(cli_args=["script.py"])
     ctrl = g.switch(label="Verbose", help_text="Enable verbose output")
