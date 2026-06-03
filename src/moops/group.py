@@ -644,6 +644,7 @@ class Group:
         input_control = _options.DropdownControl(
             option=opt.option,
             dropdown_opts=dropdown_opts,
+            cli_opts=_choice_options.option_cli_keys(dropdown_opts),
             supports_none=allow_select_none,
             default=value,
             help_text=help_text,

@@ -27,10 +27,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- Variant branch CLI prefixes now normalize display labels with spaces, so
-  labels like `Name Casing` use arguments such as
-  `--notebook-name-casing-*` and invalid inactive-branch arguments fail
-  validation without emitting embedded child output first.
+- Dropdown CLI values now normalize display labels with spaces, so labels like
+  `Word Count` use arguments such as `--notebook word-count` and variant branch
+  options such as `--notebook-word-count-*`. Invalid inactive-branch arguments
+  fail validation without emitting embedded child output first.
 
 ## [0.9.0] - 2026-06-01 - List controls and notebook polish
 

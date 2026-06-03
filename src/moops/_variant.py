@@ -1,6 +1,6 @@
 import typing
 
-from . import _naming, _options
+from . import _choice_options, _naming, _options
 
 
 def selected_key(selector: typing.Any) -> typing.Any:
@@ -21,7 +21,7 @@ def keys(selector: typing.Any) -> list[typing.Any]:
 def key_text(key: typing.Any) -> str:
     if isinstance(key, bool):
         return str(key).lower()
-    return str(key).lower().replace(" ", "-")
+    return _choice_options.cli_key(str(key))
 
 
 def control_option(control: typing.Any) -> str | None:

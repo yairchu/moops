@@ -18,6 +18,10 @@ Numeric = int | float
 _UNSET: typing.Any = object()
 
 
+def _empty_cli_opts() -> dict[str, str]:
+    return {}
+
+
 def option_value_token(option: str, value: str) -> str:
     """Serialize an ``option value`` pair as one CLI token string.
 
@@ -951,6 +955,11 @@ class DropdownControl(_NoneFlag, InputControl):
     dropdown_opts: dict[str, typing.Any]
     supports_none: bool
     default: str | None
+    cli_opts: dict[str, str] = dataclasses.field(default_factory=_empty_cli_opts)
+
+    def __post_init__(self) -> None:
+        if not self.cli_opts:
+            self.cli_opts = _choice_options.option_cli_keys(self.dropdown_opts)
 
     def create_marimo_element(
         self,
@@ -983,22 +992,24 @@ class DropdownControl(_NoneFlag, InputControl):
         raw = args.value_for(self.option)
         if raw is None:
             return None
-        if raw not in self.dropdown_opts:
+        key = self._key_from_cli(raw)
+        if key is None:
             return ParseError(
                 f"Option {self.option} must be one of"
-                f" {list(self.dropdown_opts)!r}, got: {raw!r}"
+                f" {list(self.cli_opts)!r}, got: {raw!r}"
             )
-        return ParseResult(raw)
+        return ParseResult(key)
 
     def parse_query_value(self, value: str) -> ParseResult | ParseError:
         if not value and self.supports_none:
             return ParseResult(None)
-        if value not in self.dropdown_opts:
+        key = self._key_from_cli(value)
+        if key is None:
             return ParseError(
                 f"Query parameter for {self.option} must be one of"
-                f" {list(self.dropdown_opts)!r}, got: {value!r}"
+                f" {list(self.cli_opts)!r}, got: {value!r}"
             )
-        return ParseResult(value)
+        return ParseResult(key)
 
     def strategy(self) -> st.SearchStrategy:
         return st.sampled_from(
@@ -1011,12 +1022,12 @@ class DropdownControl(_NoneFlag, InputControl):
         return [self._usage_with_no_flag(self._values_text())]
 
     def _values_text(self) -> str:
-        return "{" + "|".join(self.dropdown_opts) + "}"
+        return "{" + "|".join(self.cli_opts) + "}"
 
     def format_help_lines(self) -> list[str]:
         line = f"  {self.option} {self._values_text()}: {self.help_text}"
         if self.default is not None:
-            line += f" (default: {self.default})"
+            line += f" (default: {self._key_for_cli(self.default)})"
         return [line, *self._help_no_flag_line(f"Set {self.option} to none")]
 
     def format_value(self, value: typing.Any) -> list[str]:
@@ -1025,22 +1036,20 @@ class DropdownControl(_NoneFlag, InputControl):
         if value is None:
             assert self._no_flag
             return [self._no_flag]
-        return [option_value_token(self.option, value)]
+        return [option_value_token(self.option, self._key_for_cli(value))]
 
     def format_query_value(self, value: typing.Any) -> str | None:
         if value == self.default:
             return None
-        return next(
-            (k for k, v in self.dropdown_opts.items() if v == value),
-            "" if value is None else str(value),
-        )
+        return self._key_for_cli(value)
 
     def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
         d = self.default if effective_default is _UNSET else effective_default
-        choices = [*(["none"] if self.supports_none else []), *self.dropdown_opts]
+        choices = [*(["none"] if self.supports_none else []), *self.cli_opts]
         for i, v in enumerate(choices, 1):
             print(f"  {i}) {v}")
-        default_display = f" [{d if d is not None else 'none'}]"
+        default_key = self._key_for_cli(d) if d is not None else "none"
+        default_display = f" [{default_key}]"
         while True:
             response = input(f"{self.help_text}{default_display}: ").strip()
             if not response:
@@ -1051,12 +1060,12 @@ class DropdownControl(_NoneFlag, InputControl):
                 idx = int(response) - 1
                 select_none = self.supports_none and idx == 0
                 chosen = choices[idx]
-            elif response in self.dropdown_opts:
+            elif response in self.cli_opts:
                 chosen = response
             elif (
                 response.lower() == "none"
                 and self.supports_none
-                and "none" not in self.dropdown_opts
+                and "none" not in self.cli_opts
             ):
                 select_none = True
             else:
@@ -1066,6 +1075,27 @@ class DropdownControl(_NoneFlag, InputControl):
                 no_flag = self._no_flag
                 return [no_flag] if no_flag else []
             return [self.option, chosen]
+
+    def _key_from_cli(self, value: str) -> str | None:
+        if value in self.cli_opts:
+            return self.cli_opts[value]
+        if value in self.dropdown_opts:
+            return value
+        return None
+
+    def _key_for_cli(self, value: typing.Any) -> str:
+        key = next(
+            (
+                option_key
+                for option_key, option_value in self.dropdown_opts.items()
+                if option_value == value
+            ),
+            value,
+        )
+        return next(
+            (cli for cli, option_key in self.cli_opts.items() if option_key == key),
+            "" if value is None else str(value),
+        )
 
 
 @dataclasses.dataclass
