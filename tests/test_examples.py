@@ -50,6 +50,25 @@ def test_variant_embed_help_lists_all_notebook_branches() -> None:
     assert "Options for --notebook word-count" in result.stdout
 
 
+def test_variant_embed_selector_accepts_normalized_branch_key() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "examples/composition/variant_embed.py",
+            "--notebook",
+            "word-count",
+        ],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        timeout=10,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout
+    assert "Selected notebook result: `2`" in result.stdout
+
+
 def test_variant_embed_invalid_args_do_not_emit_child_output() -> None:
     result = subprocess.run(
         [
