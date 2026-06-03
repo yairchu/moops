@@ -19,7 +19,9 @@ def keys(selector: typing.Any) -> list[typing.Any]:
 
 
 def key_text(key: typing.Any) -> str:
-    return str(key).lower() if isinstance(key, bool) else str(key)
+    if isinstance(key, bool):
+        return str(key).lower()
+    return str(key).lower().replace(" ", "-")
 
 
 def control_option(control: typing.Any) -> str | None:

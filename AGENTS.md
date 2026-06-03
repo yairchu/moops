@@ -32,6 +32,10 @@ the same turn. In that state, verify the commit by running any pre-test checks
 that should still pass (for example formatting and type checks), then run the
 focused test that fails because of the documented bug.
 
+When a small follow-up is needed for an unpushed commit, amend the commit instead
+of adding a separate follow-up commit, unless the follow-up documents a failing
+bug or should otherwise stand alone for review.
+
 ## Release handoff
 
 AI assistants may prepare release commits, run checks, and build release
