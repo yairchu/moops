@@ -60,11 +60,7 @@ class Interface:
         self._presets_ui = (
             _presets_ui.PresetsUI(
                 self.presets,
-                self.active_preset,
-                self._select_preset,
-                self._current_args,
-                self.apply_cli_args,
-                self.presets.get_pending_cli(),
+                self,
             )
             if self.presets is not None
             else None
@@ -344,6 +340,9 @@ class Interface:
                     result[input_control.option] = _marimo_controls.ctrl_value(ctrl)
         return result
 
+    def preset_args(self) -> str:
+        return self._current_args()
+
     def _current_args(self) -> str:
         return " ".join(self._arg_groups())
 
@@ -491,6 +490,9 @@ class Interface:
         if self._presets_ui is not None:
             items.append(self._presets_ui.layout(args))
         return mo.vstack(items)
+
+    def select_preset(self, preset: str | None) -> None:
+        self._select_preset(preset)
 
     def _select_preset(self, preset: str | None) -> None:
         assert self.presets is not None

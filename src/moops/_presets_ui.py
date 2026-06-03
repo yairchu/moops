@@ -7,26 +7,31 @@ import marimo as mo
 from .presets import PendingCliInput, Presets
 
 
+class PresetsUIOwner(typing.Protocol):
+    active_preset: str | None
+
+    def select_preset(self, preset: str | None) -> None: ...
+
+    def preset_args(self) -> str: ...
+
+    def apply_cli_args(self, text: str) -> tuple[str, ...]: ...
+
+
 class PresetsUI:
     def __init__(
         self,
         presets: Presets,
-        active_preset: str | None,
-        select_preset: typing.Callable[[str | None], None],
-        get_args: typing.Callable[[], str],
-        apply_cli_args: typing.Callable[[str], tuple[str, ...]],
-        pending_cli: PendingCliInput | None,
+        owner: PresetsUIOwner,
     ) -> None:
         self._presets = presets
-        self._active_preset = active_preset
-        self._select_preset = select_preset
-        self._apply_cli_args = apply_cli_args
-        self._pending_cli = pending_cli
+        self._owner = owner
+        self._active_preset = owner.active_preset
+        self._pending_cli = presets.get_pending_cli()
         self._name_input = mo.ui.text(label="as", placeholder="default")
         self._save_btn = mo.ui.button(
             label="Save",
             on_click=lambda _: presets.save(
-                self._name_input.value or "default", get_args()
+                self._name_input.value or "default", owner.preset_args()
             ),
         )
         rename_placeholder = (
@@ -42,7 +47,7 @@ class PresetsUI:
         )
         self._reset_btn = mo.ui.button(
             label="Clear changes",
-            on_click=lambda _: self._select_preset(self._active_preset),
+            on_click=lambda _: owner.select_preset(self._active_preset),
         )
         self._reset_default_btn = mo.ui.button(
             label="Reset default",
@@ -76,7 +81,7 @@ class PresetsUI:
         return self._pending_cli.errors if self._pending_cli is not None else ()
 
     def _on_command_change(self, text: str) -> None:
-        errors = self._apply_cli_args(text)
+        errors = self._owner.apply_cli_args(text)
         if errors:
             self._presets.set_pending_cli(PendingCliInput(text, errors))
         else:
@@ -98,7 +103,7 @@ class PresetsUI:
             options=list(self._presets.list()),
             allow_select_none=True,
             value=self._active_preset,
-            on_change=self._select_preset,
+            on_change=self._owner.select_preset,
         )
         active_args = self._presets.args_for(self._active_preset)
         controls: list[typing.Any] = [self._dropdown]
