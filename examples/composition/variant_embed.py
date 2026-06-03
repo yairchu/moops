@@ -68,10 +68,9 @@ def _(get_preset_sel, moops, set_preset_sel):
 def _(args, name_casing, word_count):
     notebook = args.dropdown(
         {
-            "name-casing": name_casing.app,
-            "word-count": word_count.app,
+            "Name Casing": name_casing.app,
+            "Word Count": word_count.app,
         },
-        value="name-casing",
         option="--notebook",
         help_text="Notebook to embed",
         allow_select_none=False,
