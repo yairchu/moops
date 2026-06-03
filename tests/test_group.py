@@ -63,6 +63,22 @@ def test_label_derived_from_option_has_no_leading_spaces() -> None:
     assert not ctrl._args.label.startswith(" ")  # type: ignore
 
 
+def test_label_parenthetical_unit_becomes_metavar(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    g = Group(cli_args=["script.py", "--help"])
+    ctrl = g.number(label="Length (seconds)", help_text="Clip length")
+
+    with pytest.raises(SystemExit) as exc_info:
+        g.interface(ctrl)
+
+    assert exc_info.value.code == 0
+    help_text = capsys.readouterr().out
+    assert "--length SECONDS" in help_text
+    assert "--length-(seconds)" not in help_text
+    assert "LENGTH_(SECONDS)" not in help_text
+
+
 def test_duplicate_control_error_mentions_interface() -> None:
     g = Group(cli_args=["script.py"])
     ctrl = g.switch(label="Verbose", help_text="Enable verbose output")
