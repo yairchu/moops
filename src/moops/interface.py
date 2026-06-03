@@ -80,10 +80,18 @@ class Interface:
             and k != _parse.interactive_flag
         )
 
-    def validate(self, state: _parse.ParseState) -> typing.Iterator[str]:
+    def validate(
+        self,
+        state: _parse.ParseState,
+        *,
+        active_args: _parse.ParsedArgs | None = None,
+    ) -> typing.Iterator[str]:
         flags: set[str] = set()
         value_options: dict[str, _options.InputControl] = {}
-        for input_control in self._input_controls(active_only=True):
+        for input_control in self._input_controls(
+            active_only=True,
+            active_args=active_args,
+        ):
             flags.update(input_control.flags())
             for option in input_control.options():
                 value_options[option] = input_control
@@ -133,13 +141,16 @@ class Interface:
             tokens = tokens[1:]
         args = _parse.ParsedArgs.from_options(tokens)
         state = _parse.ParseState(args=args)
-        for input_control in self._input_controls(active_only=True):
+        for input_control in self._input_controls(
+            active_only=True,
+            active_args=args,
+        ):
             match input_control.parse(args):
                 case _options.ParseError(message=msg):
                     state.validation_errors[input_control.option] = msg
                 case _:
                     pass
-        errors = tuple(self.validate(state))
+        errors = tuple(self.validate(state, active_args=args))
         if errors:
             return errors
         self._reset_notebook_state(None, args)
@@ -211,25 +222,46 @@ class Interface:
         )
 
     def _input_controls(
-        self, *, active_only: bool, root: "Interface | None" = None
+        self,
+        *,
+        active_only: bool,
+        root: "Interface | None" = None,
+        active_args: _parse.ParsedArgs | None = None,
     ) -> typing.Iterator[_options.InputControl]:
         root = self if root is None else root
-        if active_only and self._is_inactive(root):
+        if active_only and self._is_inactive(root, active_args=active_args):
             return
         for ctrl in self.controls:
             if (iface := attached_interface(ctrl)) is not None:
-                yield from iface._input_controls(active_only=active_only, root=root)
+                yield from iface._input_controls(
+                    active_only=active_only,
+                    root=root,
+                    active_args=active_args,
+                )
             else:
                 input_control = self.input_map.get(ctrl)
                 if input_control is not None and not self._is_overridden(input_control):
                     yield input_control
 
-    def _is_inactive(self, root: "Interface") -> bool:
+    def _is_inactive(
+        self,
+        root: "Interface",
+        *,
+        active_args: _parse.ParsedArgs | None = None,
+    ) -> bool:
         if (
             self.variant_group_prefix is not None
             and self.variant_selector_option is not None
         ):
-            selected = selected_value_for_option(root, self.variant_selector_option)
+            selected = (
+                selected_value_for_option(root, self.variant_selector_option)
+                if active_args is None
+                else selected_value_for_option_args(
+                    root,
+                    self.variant_selector_option,
+                    active_args,
+                )
+            )
             if selected is not None:
                 return self.variant_key != _variant.key_text(selected)
         return self.disabled
@@ -542,6 +574,31 @@ def selected_value_for_option(
         input_control = iface.input_map.get(ctrl)
         if input_control is not None and input_control.option == selector_option:
             return _variant.selected_key(ctrl)
+    return None
+
+
+def selected_value_for_option_args(
+    iface: Interface,
+    selector_option: str | None,
+    args: _parse.ParsedArgs,
+) -> typing.Any:
+    if selector_option is None:
+        return None
+    for ctrl in iface.controls:
+        sub_iface = attached_interface(ctrl)
+        if sub_iface is not None:
+            selected = selected_value_for_option_args(sub_iface, selector_option, args)
+            if selected is not None:
+                return selected
+            continue
+        input_control = iface.input_map.get(ctrl)
+        if input_control is None or input_control.option != selector_option:
+            continue
+        match input_control.parse(args):
+            case _options.ParseResult(value=value):
+                return value
+            case _:
+                return _empty_reset_value(input_control)
     return None
 
 
