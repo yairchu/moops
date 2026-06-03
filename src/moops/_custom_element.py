@@ -7,7 +7,17 @@ from marimo._plugins.ui._core.ui_element import UIElement
 from . import _ui_workarounds
 
 
-def _default_custom_value(component: typing.Any, fallback: typing.Any) -> typing.Any:
+class CustomValueSource(typing.Protocol):
+    @property
+    def value(self) -> typing.Any: ...
+
+
+CustomValueFn = typing.Callable[[CustomValueSource, CustomValueSource], typing.Any]
+
+
+def _default_custom_value(
+    component: CustomValueSource, fallback: CustomValueSource
+) -> typing.Any:
     del fallback
     return component.value
 
@@ -30,7 +40,7 @@ class CustomElement(UIElement[typing.Any, typing.Any]):
         self,
         component: typing.Any,
         fallback: typing.Any,
-        value_fn: typing.Callable[[typing.Any, typing.Any], typing.Any] | None = None,
+        value_fn: CustomValueFn | None = None,
     ) -> None:
         if not isinstance(component, UIElement):
             raise TypeError("custom controls must build a marimo UIElement")

@@ -1114,7 +1114,7 @@ class CustomControl(InputControl):
 
     inner: InputControl
     build: typing.Callable[[typing.Any], typing.Any]
-    value_fn: typing.Callable[[typing.Any, typing.Any], typing.Any] | None = None
+    value_fn: _custom_element.CustomValueFn | None = None
 
     # ``build`` receives the fallback's resolved *value* (a snapshot), not the
     # live element. controls_from creates the fallback and calls build in one
@@ -1128,7 +1128,7 @@ class CustomControl(InputControl):
         cls,
         inner: InputControl,
         build: typing.Callable[[typing.Any], typing.Any],
-        value_fn: typing.Callable[[typing.Any, typing.Any], typing.Any] | None,
+        value_fn: _custom_element.CustomValueFn | None,
     ) -> "CustomControl":
         return cls(
             option=inner.option,

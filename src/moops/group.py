@@ -25,7 +25,7 @@ from . import (
     _variant,
     interface,
 )
-from ._custom_element import CustomElement
+from ._custom_element import CustomElement, CustomValueFn
 from ._run_button import run_button
 from ._subgroup_registry import SubgroupRegistry
 from ._ui_workarounds import FileBrowserWithInitialSelection
@@ -578,7 +578,7 @@ class Group:
         fallback: typing.Any,
         build: typing.Callable[[typing.Any], typing.Any],
         *,
-        value: typing.Callable[[typing.Any, typing.Any], typing.Any] | None = None,
+        value: CustomValueFn | None = None,
     ) -> typing.Any:
         """Pair a notebook-only component with a moops control as CLI fallback.
 

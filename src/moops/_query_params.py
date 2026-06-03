@@ -8,13 +8,21 @@ from . import _options
 _MARIMO_RESERVED_PARAMS = frozenset({"file"})
 
 
+class QueryParamStore(typing.Protocol):
+    def __iter__(self) -> typing.Iterator[typing.Any]: ...
+
+    def __setitem__(self, key: str, value: str) -> None: ...
+
+    def get(self, key: str) -> typing.Any: ...
+
+
 def escape_url_key(key: str) -> str:
     return f"{key}_" if key in _MARIMO_RESERVED_PARAMS else key
 
 
 @dataclasses.dataclass
 class QueryParams:
-    params: typing.Any | None
+    params: QueryParamStore | None
     prefix: str = ""
 
     @classmethod
