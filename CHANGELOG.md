@@ -10,6 +10,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `moops.run` accepts `output_mode=` to control where a child notebook's
+  dual-output goes. It defaults to `OutputMode.STDOUT` (unchanged behavior);
+  pass `None` to silence the child, e.g. when looping and only the final
+  iteration should be displayed. The Game of Life example uses this with a
+  "Show intermediate steps" switch.
+
 - `Group.figure` displays a figure both in notebooks and on the CLI: a
   matplotlib `Figure`/`Axes`, PIL `Image`, or raw PNG `bytes` is rendered by
   marimo in notebooks and streamed inline to the terminal via the Kitty

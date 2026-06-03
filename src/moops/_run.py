@@ -20,15 +20,28 @@ def interface_of(module: types.ModuleType) -> Interface:
     return defs["interface"]
 
 
-def run(module: types.ModuleType, **kwargs: typing.Any) -> typing.Any:
+def run(
+    module: types.ModuleType,
+    *,
+    output_mode: group.OutputMode | None = group.OutputMode.STDOUT,
+    **kwargs: typing.Any,
+) -> typing.Any:
     """Run a notebook as a function, returning its `result` variable.
 
     Keyword arguments override control values by option name
     (leading dashes removed and dashes replaced with underscores). For example,
     a text area with option "--input-text" is overridden with input_text="...".
     All controls are overridable, including those not passed to interface.
+
+    `output_mode` controls where the child's dual-output (``args.md``,
+    ``args.figure``) goes. It defaults to ``OutputMode.STDOUT`` so a child run
+    prints as it would on its own CLI; pass ``None`` to silence it, e.g. when
+    looping and only the final iteration should be displayed. ``NOTEBOOK``
+    builds marimo display objects, but ``run`` returns only ``result``, so they
+    are not surfaced.
     """
     args = group.Group.with_overrides(kwargs)
+    args.output_mode = output_mode
     _, defs = workarounds.run_in_thread_if_in_async(module.app.run, defs={"args": args})
     if "result" not in defs:
         raise RuntimeError(

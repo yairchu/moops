@@ -18,8 +18,8 @@ def _(args):
 
 
 @app.cell
-def _(args, step_controls, steps):
-    interface = args.interface(step_controls, steps)
+def _(args, show_steps, step_controls, steps):
+    interface = args.interface(step_controls, steps, show_steps)
     interface
     return
 
@@ -30,7 +30,7 @@ def _():
     import matplotlib.pyplot as plt
     import numpy as np
 
-    return mo, np, plt
+    return (mo,)
 
 
 @app.cell
@@ -84,30 +84,59 @@ def _(args):
 
 
 @app.cell
-def _(game_of_life_iteration, moops, step_controls, steps):
-    _kwargs = step_controls.value
-    _board = _kwargs["board"]
-    for _ in range(int(steps.value)):
-        _board = moops.run(
-            game_of_life_iteration,
-            **{**_kwargs, "board": _board},
-        )
-    result = _board
-    return (result,)
+def _(args):
+    show_steps = args.switch(
+        value=True,
+        label="Show intermediate steps",
+        help_text="Print every generation, not just the final board",
+    )
+    show_steps
+    return (show_steps,)
 
 
 @app.cell
-def _(args, np, plt, result):
-    # In a notebook (or a Kitty-protocol terminal) show the board as an image;
-    # on a plain terminal fall back to the raw ASCII grid via args.md.
-    if args.graphics_supported:
-        plt.imshow(np.array([list(x) for x in result.split()]) == "#")
-        plt.xticks([])
-        plt.yticks([])
-        _out = args.figure(plt.gcf())
-    else:
-        _out = args.md("```\n" + "\n".join(result.split()) + "\n```")
-    _out
+def _(game_of_life_iteration, moops, step_controls, steps):
+    # Children run silent (output_mode=None); the parent renders the boards
+    # itself below, so intermediate steps display in both the notebook and the
+    # CLI. moops.run discards a child's own display, so emitting there would
+    # only ever reach the CLI.
+    _kwargs = step_controls.value
+    boards = [_kwargs["board"]]
+    for _ in range(int(steps.value)):
+        boards.append(
+            moops.run(
+                game_of_life_iteration,
+                output_mode=None,
+                **{**_kwargs, "board": boards[-1]},
+            )
+        )
+    return (boards,)
+
+
+@app.cell
+def _(boards):
+    max_width = max(len(x.split("\n", 1)[0]) for x in boards)
+    return (max_width,)
+
+
+@app.cell
+def _(args, boards, game_of_life_iteration, max_width, mo, show_steps):
+    # Render with the parent's own args so figures land in this notebook (or
+    # stream to the terminal on the CLI). boards[0] is the input, so the
+    # intermediate-and-final view is boards[1:].
+    _to_show = boards[1:] if show_steps.value else boards[-1:]
+    mo.vstack(
+        [
+            game_of_life_iteration.show(
+                args,
+                b,
+                width=min(8, max(2, max_width * 0.15))
+                * len(b.split("\n", 1)[0])
+                / max_width,
+            )
+            for b in _to_show
+        ]
+    )
     return
 
 

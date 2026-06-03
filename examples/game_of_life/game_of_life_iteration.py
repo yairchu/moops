@@ -12,6 +12,12 @@ import marimo
 __generated_with = "0.23.8"
 app = marimo.App(width="full")
 
+with app.setup:
+    import marimo as mo
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import xarray as xr
+
 
 @app.cell(hide_code=True)
 def _(args):
@@ -28,22 +34,13 @@ def _(args, birth_rule, board_input, survive_rule):
 
 @app.cell
 def _():
-    import marimo as mo
-    import numpy as np
-    import xarray as xr
-
-    return mo, np, xr
-
-
-@app.cell
-def _():
     import moops
 
     return (moops,)
 
 
 @app.cell
-def _(mo):
+def _():
     get_preset_sel, set_preset_sel = mo.state(None)
     return get_preset_sel, set_preset_sel
 
@@ -55,7 +52,7 @@ def _(get_preset_sel, moops, set_preset_sel):
 
 
 @app.cell
-def _(mo):
+def _():
     get_board, set_board = mo.state(None)
     return get_board, set_board
 
@@ -82,7 +79,7 @@ def _(board_cli, set_board):
 
 
 @app.cell
-def _(args, board_cli, get_board, mo):
+def _(args, board_cli, get_board):
     # A custom control is necessary to enable the "Step" mechanism.
 
     board_input = args.custom(
@@ -118,14 +115,14 @@ def _(args):
 
 
 @app.cell
-def _(birth_rule, np, survive_rule):
+def _(birth_rule, survive_rule):
     survive_set = np.array([int(x) for x in survive_rule.value])
     birth_set = np.array([int(x) for x in birth_rule.value])
     return birth_set, survive_set
 
 
 @app.cell
-def _(birth_set, board_input, np, survive_set, xr):
+def _(birth_set, board_input, survive_set):
     _rows = board_input.value.strip().splitlines()
     _height = len(_rows)
     _width = max((len(r) for r in _rows), default=0)
@@ -152,16 +149,34 @@ def _(birth_set, board_input, np, survive_set, xr):
 
 
 @app.cell
-def _(mo, result, set_board):
+def _(result, set_board):
     mo.ui.button(label="Advance →", on_click=lambda _: set_board(result))
     return
 
 
+@app.function
+def show(args, result, width=5):
+    # In a notebook (or a Kitty-protocol terminal) show the board as an image;
+    # on a plain terminal fall back to the raw ASCII grid via args.md.
+    # Use a dedicated figure so rendering several boards (e.g. a parent showing
+    # every step) does not overlay them on the shared pyplot figure.
+    if not args.graphics_supported:
+        return args.md("```\n" + "\n".join(result.split()) + "\n```")
+    lines = result.split("\n")
+    fig, ax = plt.subplots(figsize=(width, width * len(lines) / len(lines[0])))
+    ax.imshow(np.array([list(x) for x in result.split()]) == "#")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    out = args.figure(fig)
+    plt.close(fig)
+    return out
+
+
 @app.cell
-def _(args, mo, result):
+def _(args, result):
     mo.stop(args.is_interface_query)
 
-    args.md(f"```\n{result}\n```")
+    show(args, result)
     return
 
 
