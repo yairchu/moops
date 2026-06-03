@@ -822,6 +822,25 @@ def test_controls_from_displays_as_stacked_controls() -> None:
     assert "marimo-dict" not in html
 
 
+def test_controls_from_result_is_reactive_ui_element() -> None:
+    # controls_from's result must be a UIElement: marimo only reruns cells that
+    # reference it when the bound global is a UIElement (UIElementRegistry scans
+    # the namespace for `isinstance(value, UIElement)`). A non-UIElement wrapper
+    # leaves the dictionary bound to no global, so editing a mirrored control
+    # never propagates until some other element forces a rerun.
+    source = Group(cli_args=["child.py"])
+    name = source.text(option="--name", value="Alice", help_text="Name")
+    child_iface = source.interface(name)
+
+    parent = Group(cli_args=["parent.py"])
+    step = parent.controls_from(child_iface, prefix="step")
+
+    # The child clones are lens views of the dictionary, so their updates
+    # resolve up to it — which propagates only if the dictionary itself is the
+    # UIElement bound to the global.
+    assert isinstance(step, UIElement)
+
+
 def test_variant_interfaces_expose_branch_metadata() -> None:
     g = Group(cli_args=["script.py"])
     mode = g.dropdown(
