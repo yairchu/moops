@@ -512,21 +512,22 @@ class Interface:
                 shlex.split(self.presets.args_for(preset))
             )
         for ctrl in self.controls:
-            if (iface := attached_interface(ctrl)) is not None:
+            iface = attached_interface(ctrl)
+            if iface is not None:
                 iface._reset_notebook_state(
                     preset,
                     None if iface.presets is not None else args,
                 )
-            elif (
-                elements := _marimo_controls.ui_dictionary_elements(ctrl)
-            ) is not None:
-                for child in elements.values():
-                    Interface((child,), self.input_map)._reset_notebook_state(
-                        preset,
-                        args,
-                    )
-            else:
+                continue
+            elements = _marimo_controls.ui_dictionary_elements(ctrl)
+            if elements is None:
                 self._reset_control_notebook_state(ctrl, args)
+                continue
+            for child in elements.values():
+                Interface((child,), self.input_map)._reset_notebook_state(
+                    preset,
+                    args,
+                )
 
     def _reset_control_notebook_state(
         self,
