@@ -69,6 +69,10 @@ class VariantAwareDictionary(mo.ui.dictionary):
         # attribute set after construction survive cloning.
         return copy.deepcopy(self)
 
+    @property
+    def text(self) -> str:
+        return self._moops_stacked_display().text
+
     def _moops_visible_elements(self) -> dict[str, typing.Any]:
         iface = self._moops_interface
         if iface is None:
@@ -94,14 +98,16 @@ class VariantAwareDictionary(mo.ui.dictionary):
                 result[active_name] = active_element
         return result
 
-    def _mime_(self) -> typing.Any:
-        visible = mo.vstack(
+    def _moops_stacked_display(self) -> typing.Any:
+        return mo.vstack(
             [
                 _display_element(element)
                 for element in self._moops_visible_elements().values()
             ]
         )
-        return typing.cast(typing.Any, visible)._mime_()
+
+    def _mime_(self) -> typing.Any:
+        return self._moops_stacked_display()._mime_()
 
 
 def _display_element(element: typing.Any) -> typing.Any:

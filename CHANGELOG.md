@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `Group.controls_from` mirrors keep their stacked, variant-aware display when
+  embedded inside composite controls such as `Group.list`, while remaining
+  reactive `UIElement`s.
+
 ## [0.11.0] - 2026-06-04 - Kitty Terminal graphics protocol support
 
 ### Added
