@@ -842,6 +842,20 @@ def test_controls_from_displays_as_stacked_controls() -> None:
     assert "marimo-dict" not in html
 
 
+def test_controls_from_text_embeds_stacked_controls() -> None:
+    # Composite controls embed child UI elements through their .text HTML, not
+    # through _mime_(). Mirrored controls must keep the stacked display there too.
+    source = Group(cli_args=["child.py"])
+    name = source.text(option="--name", value="Alice", help_text="Name")
+    child_iface = source.interface(name)
+
+    parent = Group(cli_args=["parent.py"])
+    step = parent.controls_from(child_iface, prefix="step")
+
+    assert "display: flex" in step.text
+    assert "marimo-dict" not in step.text
+
+
 def test_controls_from_result_is_reactive_ui_element() -> None:
     # controls_from's result must be a UIElement: marimo only reruns cells that
     # reference it when the bound global is a UIElement (UIElementRegistry scans
