@@ -31,6 +31,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   dependent cells. The mirrored controls were returned as a non-`UIElement`
   wrapper, which marimo's reactivity could not bind to, so changes did not
   propagate until another control triggered a rerun.
+- Overridden dropdown controls now accept non-string option values, such as
+  classes, while rendering the locked read-only dropdown.
 
 ## [0.10.0] - 2026-06-03 - Editable commands and option naming
 

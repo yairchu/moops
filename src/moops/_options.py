@@ -969,14 +969,19 @@ class DropdownControl(_NoneFlag, InputControl):
         on_change: typing.Callable[[typing.Any], None] | None = None,
         disabled: bool = False,
     ) -> typing.Any:
+        selected_key = (
+            None
+            if value is None
+            else _choice_options.option_key(self.dropdown_opts, value)
+        )
         opts: typing.Any = (
-            _ui_workarounds.locked_dropdown_options(value, self.dropdown_opts)
+            _ui_workarounds.locked_dropdown_options(selected_key, self.dropdown_opts)
             if disabled
             else self.dropdown_opts
         )
         return mo.ui.dropdown(
             options=opts,
-            value=value,
+            value=selected_key,
             label=label,
             on_change=on_change,
             **self.extra_kwargs,
