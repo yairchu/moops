@@ -244,6 +244,26 @@ def test_overridden_control_not_in_help(capsys: pytest.CaptureFixture[str]):
     assert "--casing-style" not in capsys.readouterr().out
 
 
+def test_overridden_dropdown_accepts_non_string_option_value() -> None:
+    class Adam:
+        pass
+
+    class SGD:
+        pass
+
+    g = Group(cli_args=["script.py"])
+    optimizer = g.subgroup("optimizer", overrides={"kind": Adam})
+    ctrl = optimizer.dropdown(
+        {"Adam": Adam, "SGD": SGD},
+        option="--kind",
+        help_text="Optimizer",
+        allow_select_none=False,
+    )
+
+    assert ctrl.value is Adam
+    assert ctrl._selected_key == "Adam"  # type: ignore[attr-defined]
+
+
 def test_equals_flag_not_consumed_as_prefix_for_next_arg(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
