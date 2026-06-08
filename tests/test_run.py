@@ -35,6 +35,27 @@ def test_script_mode_embed_forwards_interface() -> None:
     assert len(iface.controls) > 0
 
 
+def test_passthrough_equality_keeps_embed_cache_warm() -> None:
+    # marimo's embed-output cache compares the `defs` it was handed, so two
+    # Passthroughs forwarding the same result must compare equal -- otherwise a
+    # cell that rebuilds `Passthrough(input_result)` on every re-run keeps
+    # missing the cache and resets the embedded notebook's UI.
+    result = object()
+    assert moops.Passthrough({"result": result}) == moops.Passthrough(
+        {"result": result}
+    )
+    assert moops.Passthrough({"result": result}) != moops.Passthrough(
+        {"result": object()}
+    )
+    # Resultless passthroughs (e.g. interface-only) are interchangeable too.
+    assert moops.Passthrough({}) == moops.Passthrough({})
+    assert moops.Passthrough({"result": result}) != object()
+    # Equal passthroughs must hash equal to stay usable as set/dict members.
+    assert hash(moops.Passthrough({"result": result})) == hash(
+        moops.Passthrough({"result": result})
+    )
+
+
 def test_moops_embed_rejects_app_defined_in_same_cell(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
