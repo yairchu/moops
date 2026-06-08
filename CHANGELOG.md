@@ -10,6 +10,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+
+## [0.11.1] - 2026-06-04
+
+### Fixed
+
 - `Group.controls_from` mirrors keep their stacked, variant-aware display when
   embedded inside composite controls such as `Group.list`, while remaining
   reactive `UIElement`s.
