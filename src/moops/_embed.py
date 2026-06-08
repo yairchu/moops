@@ -141,6 +141,24 @@ class Passthrough:
             self.defs["result"] = source_defs["result"]
         self.output = None
 
+    def __eq__(self, other: object) -> bool:
+        # Passthroughs are interchangeable when they forward the same result.
+        # marimo's embed-output cache compares the `defs` it was handed (see
+        # marimo's `_defs_equal`): when a Passthrough is passed as an
+        # `input_instance` override and the embedding cell re-runs, a freshly
+        # built Passthrough must still compare equal, or the cache always
+        # misses and the embedded notebook's UI (e.g. dropdowns) resets on
+        # every interaction. Compare the forwarded result by identity to stay
+        # cheap and to avoid ambiguous element-wise `__eq__` on array results.
+        if not isinstance(other, Passthrough):
+            return NotImplemented
+        if ("result" in self.defs) != ("result" in other.defs):
+            return False
+        return self.defs.get("result") is other.defs.get("result")
+
+    def __hash__(self) -> int:
+        return hash(id(self.defs.get("result")))
+
     async def embed(self, defs: dict[str, typing.Any]) -> "Passthrough":
         unexpected = defs.keys() - {"args"}
         if unexpected:

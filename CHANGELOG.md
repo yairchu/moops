@@ -10,6 +10,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- `Passthrough` instances forwarding the same result now compare equal (and
+  hash equal). marimo's embed-output cache compares the overrides it was
+  handed, so a cell that rebuilt `Passthrough(input_result)` on every re-run
+  used to miss the cache and reset the embedded notebook's UI (e.g. dropdowns)
+  on each interaction; the inline pattern is now cache-stable.
 
 ## [0.11.1] - 2026-06-04
 
