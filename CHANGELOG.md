@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `controls_from` mirrors with nested variants now hide the inactive nested
+  branch in notebook display. Previously only the top-level variant was
+  variant-aware; a variant branch that was itself a mirrored subgroup
+  containing another variant showed all of its inner branches at once.
+
 ## [0.11.3] - 2026-06-09
 
 ### Fixed

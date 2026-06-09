@@ -15,14 +15,13 @@ def controls_from(
     *,
     prefix: str,
     exclude: typing.Iterable[str] = (),
-    _wrap_display: bool = True,
 ) -> typing.Any:
     """Create a subgroup of controls mirroring another notebook's interface."""
     child = group.subgroup(prefix)
     excluded = set(exclude)
     controls: dict[str, typing.Any] = {
         name: (
-            controls_from(child, ctrl_or_sub, prefix=name, _wrap_display=False)
+            controls_from(child, ctrl_or_sub, prefix=name)
             if isinstance(ctrl_or_sub, interface.Interface)
             else _create_control(child, iface, ctrl_or_sub)
         )
@@ -33,8 +32,9 @@ def controls_from(
     # stay a reactive UIElement: marimo's UIElementRegistry binds reruns only to
     # globals where isinstance(value, UIElement), so a non-UIElement wrapper
     # would leave the dictionary bound to no name and edits would not propagate.
-    cls = VariantAwareDictionary if _wrap_display else mo.ui.dictionary
-    result = cls(controls)
+    # Nested subgroups use it too, so each level can hide its own inactive
+    # variant branches via _moops_visible_elements.
+    result = VariantAwareDictionary(controls)
     # mo.ui.dictionary clones its elements, so result.elements[key] is a
     # different object than controls[key]. Rebind nested dictionary clones
     # to interfaces that track their own live cloned elements.
