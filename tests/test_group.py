@@ -910,6 +910,66 @@ def test_controls_from_variant_displays_only_active_branch() -> None:
     assert list(visible._moops_visible_elements()) == ["mode", "travel-train"]
 
 
+def test_controls_from_nested_variant_displays_only_active_branch() -> None:
+    source = Group(cli_args=["child.py"])
+    mode = source.dropdown(
+        ["advanced", "simple"],
+        value="advanced",
+        option="--mode",
+        help_text="Mode",
+        allow_select_none=False,
+    )
+    mode_branches = source.variant("mode", mode)
+
+    advanced = mode_branches["advanced"]
+    detail = advanced.dropdown(
+        ["basic", "custom"],
+        value="basic",
+        option="--detail",
+        help_text="Detail level",
+        allow_select_none=False,
+    )
+    detail_branches = advanced.variant("detail", detail)
+    basic_count = detail_branches["basic"].number(
+        value=1,
+        option="--count",
+        help_text="Count",
+    )
+    custom_name = detail_branches["custom"].text(
+        value="example",
+        option="--name",
+        help_text="Name",
+    )
+    simple_count = mode_branches["simple"].number(
+        value=2,
+        option="--count",
+        help_text="Count",
+    )
+    child_iface = source.interface(
+        mode,
+        advanced.interface(
+            detail,
+            detail_branches["basic"].interface(basic_count),
+            detail_branches["custom"].interface(custom_name),
+        ),
+        mode_branches["simple"].interface(simple_count),
+    )
+
+    parent = Group(cli_args=["parent.py"])
+    mirror = parent.controls_from(child_iface, prefix="settings")
+    visible = typing.cast(typing.Any, mirror)
+    advanced_mirror = typing.cast(typing.Any, mirror.elements["mode-advanced"])
+
+    assert list(visible._moops_visible_elements()) == ["mode", "mode-advanced"]
+    # The active outer variant branch is itself a mirrored subgroup containing
+    # another variant. It should keep the same variant-aware display API as the
+    # top-level mirror, so the inactive nested branch can be hidden.
+    assert list(advanced_mirror._moops_visible_elements()) == [
+        "detail",
+        "detail-basic",
+    ]
+
+
 def test_controls_from_variant_current_args_follow_live_selector_change() -> None:
     """When a mirrored variant selector changes in the notebook, current args
     should serialize the newly active branch, not the branch active at creation.
