@@ -1866,6 +1866,81 @@ def test_list_controls_from_item_edits_update_outer_list_state(
     assert changes[-1][0]["travel-train"]["tickets"] == 4
 
 
+def test_list_controls_from_nested_variant_selector_edit_updates_live_item_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = Group(cli_args=["child.py"])
+    mode = source.dropdown(
+        ["advanced", "simple"],
+        value="advanced",
+        option="--mode",
+        help_text="Mode",
+        allow_select_none=False,
+    )
+    mode_branches = source.variant("mode", mode)
+    advanced = mode_branches["advanced"]
+    detail = advanced.dropdown(
+        ["basic", "custom"],
+        value="basic",
+        option="--detail",
+        help_text="Detail level",
+        allow_select_none=False,
+    )
+    detail_branches = advanced.variant("detail", detail)
+    basic_count = detail_branches["basic"].number(
+        value=1,
+        option="--count",
+        help_text="Count",
+    )
+    custom_name = detail_branches["custom"].text(
+        value="example",
+        option="--name",
+        help_text="Name",
+    )
+    simple_count = mode_branches["simple"].number(
+        value=2,
+        option="--count",
+        help_text="Count",
+    )
+    child_iface = source.interface(
+        mode,
+        advanced.interface(
+            detail,
+            detail_branches["basic"].interface(basic_count),
+            detail_branches["custom"].interface(custom_name),
+        ),
+        mode_branches["simple"].interface(simple_count),
+    )
+
+    changes: list[list[typing.Any]] = []
+    g = Group(cli_args=["script.py"])
+    monkeypatch.setattr(_options.mo, "running_in_notebook", lambda: True)
+    fake_query_params: dict[str, typing.Any] = {}
+    monkeypatch.setattr(_options.mo, "query_params", lambda: fake_query_params)
+    ctrl = g.list(
+        option="--settings",
+        item=lambda grp: grp.controls_from(child_iface, prefix="settings"),
+        help_text="Settings",
+        value=[
+            {
+                "mode": "advanced",
+                "mode-advanced": {"detail": "custom"},
+            }
+        ],
+        on_change=changes.append,
+    )
+
+    item = ctrl._array.elements[0]  # type: ignore[attr-defined]
+    advanced_mirror = item.elements["mode-advanced"]
+    advanced_mirror.elements["detail"]._on_change("basic")  # type: ignore[attr-defined]
+
+    assert changes[-1][0]["mode-advanced"]["detail"] == "basic"
+    # The live list item value is read while handling later edits and list
+    # mutations. It must reflect the nested selector edit immediately, not keep
+    # the previous active branch until the next notebook rerun.
+    assert item.value["mode-advanced"]["detail"] == "basic"
+
+
 def test_list_controls_from_variant_displays_only_active_branch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
