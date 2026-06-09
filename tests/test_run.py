@@ -56,6 +56,20 @@ def test_passthrough_equality_keeps_embed_cache_warm() -> None:
     )
 
 
+def test_passthrough_supports_script_mode_embed() -> None:
+    # An embedded notebook that calls moops.embed(override, ...) -- rather than
+    # override.embed(...) directly -- routes through _embed_in_script -> app.run
+    # in script mode.  A Passthrough injected as that override must therefore
+    # support .run, not just .embed; otherwise this raises
+    # AttributeError: 'Passthrough' object has no attribute 'run'.
+    # A Passthrough is injected as an embed override at runtime (via marimo
+    # def injection), so it stands in for an _App without structurally
+    # satisfying the protocol -- hence the cast.
+    pt = typing.cast(typing.Any, moops.Passthrough({"result": "hello"}))
+    out = asyncio.run(moops.embed(pt, defs={"args": object()}))
+    assert out.defs.get("result") == "hello"
+
+
 def test_moops_embed_rejects_app_defined_in_same_cell(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
