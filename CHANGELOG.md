@@ -18,6 +18,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   item's live value immediately. Previously the list change callback received
   the new selector value, but the mirrored item's cached value could still hold
   the previous branch until the next notebook rerun.
+- Deleting or reordering a `Group.list` item no longer leaks an edited item's
+  value onto the item that takes its position. Per-item mirrored controls used
+  to sync to query params keyed by list index, so a value edited in one item
+  reappeared on whichever item later occupied that index. List items no longer
+  write per-index query params; the list as a whole still round-trips through
+  its own query param.
 
 ## [0.11.3] - 2026-06-09
 

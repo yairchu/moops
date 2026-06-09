@@ -815,6 +815,12 @@ class Group:
 
         def item_builder(i: int, item_dict: dict[str, typing.Any]) -> typing.Any:
             child = self.subgroup(f"{stem}-{i}")
+            # Item subgroups are keyed by list index, so syncing their controls
+            # to query params would key persisted values by position. A delete
+            # or reorder then leaks one item's value onto whichever item lands
+            # at that index. The list as a whole already round-trips through its
+            # own query param, so disable per-item query params entirely.
+            child._query_params = _query_params.QueryParams(params=None)
             item_prefix = f"{child.option}-{stem}"
             seed_args = _list_controls.seed_args_for_subgroup_item(
                 leaves,
