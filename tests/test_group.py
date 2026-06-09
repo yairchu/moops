@@ -1932,7 +1932,8 @@ def test_list_controls_from_nested_variant_selector_edit_updates_live_item_value
 
     item = ctrl._array.elements[0]  # type: ignore[attr-defined]
     advanced_mirror = item.elements["mode-advanced"]
-    advanced_mirror.elements["detail"]._on_change("basic")  # type: ignore[attr-defined]
+    # Drive the selector the way the frontend does, via marimo's _update.
+    advanced_mirror.elements["detail"]._update(["basic"])  # type: ignore[attr-defined]
 
     assert changes[-1][0]["mode-advanced"]["detail"] == "basic"
     # The live list item value is read while handling later edits and list
