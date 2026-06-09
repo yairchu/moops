@@ -1866,6 +1866,60 @@ def test_list_controls_from_item_edits_update_outer_list_state(
     assert changes[-1][0]["travel-train"]["tickets"] == 4
 
 
+def test_list_controls_from_delete_does_not_resurrect_by_index(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Editing one item then deleting it must not leak that item's value onto
+    the item that takes its index.
+
+    Each list item is mirrored in an index-keyed subgroup (``trip-0``,
+    ``trip-1``), so an edit to item 0 writes a query param keyed by index 0.
+    After deleting item 0, the surviving item is rebuilt at index 0 and the
+    resolver reads the stale ``trip-0`` query param with priority over the
+    seeded value, so the survivor wrongly shows the deleted item's value.
+    Symptom: change the first of two trips to "train", delete the first, and
+    the remaining trip shows "train" instead of the second trip's "car".
+    """
+    # Patch before constructing the Group so its query params are notebook-live;
+    # QueryParams is captured at Group construction via from_notebook().
+    monkeypatch.setattr(_options.mo, "running_in_notebook", lambda: True)
+    fake_query_params: dict[str, typing.Any] = {}
+    monkeypatch.setattr(_options.mo, "query_params", lambda: fake_query_params)
+
+    variant_iface = moops.interface_of(variant_trip)
+    trips: list[typing.Any] = [
+        dict(variant_iface.default),
+        dict(variant_iface.default),
+    ]
+
+    def build() -> typing.Any:
+        def on_change(new: list[typing.Any]) -> None:
+            trips[:] = [dict(item) for item in new]
+
+        g = Group(cli_args=["script.py"])
+        return g.list(
+            option="--trip",
+            item=lambda grp: grp.controls_from(variant_iface, prefix="trip"),
+            help_text="Trips",
+            value=[dict(item) for item in trips],
+            on_change=on_change,
+        )
+
+    ctrl = build()
+    ctrl._array.elements[0].elements["mode"]._on_change("train")  # type: ignore[attr-defined]
+
+    # Rerun, then delete the (now "train") first item the way the remove button
+    # does: read the live item values, drop index 0, and report through the
+    # list's synced on_change so the list-level query param is rewritten too.
+    ctrl = build()
+    live = [element.value for element in ctrl._array.elements]  # type: ignore[attr-defined]
+    ctrl._moops_reset_state(live[1:])  # type: ignore[attr-defined]
+
+    ctrl = build()
+    surviving = ctrl._array.elements[0]  # type: ignore[attr-defined]
+    assert surviving.elements["mode"].value == "car"
+
+
 def test_list_controls_from_nested_variant_selector_edit_updates_live_item_value(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
