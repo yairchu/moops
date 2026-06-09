@@ -289,6 +289,33 @@ def _element_at_path(root: typing.Any, path: tuple[str, ...]) -> typing.Any | No
     return current
 
 
+def _set_live_element_value(element: typing.Any, value: typing.Any) -> None:
+    if hasattr(element, "_selected_key"):
+        element._selected_key = value
+    if hasattr(element, "_value"):
+        element._value = value
+
+
+def _set_live_element_path(
+    root: typing.Any, path: tuple[str, ...], value: typing.Any
+) -> None:
+    current: typing.Any = root
+    remaining = path
+    while remaining:
+        cached = getattr(current, "_value", None)
+        if isinstance(cached, dict):
+            _set_path(typing.cast(dict[str, typing.Any], cached), remaining, value)
+        elements: typing.Any = getattr(current, "elements", None)
+        if not isinstance(elements, dict):
+            return
+        key = remaining[0]
+        if key not in elements:
+            return
+        current = typing.cast(dict[str, typing.Any], elements)[key]
+        remaining = remaining[1:]
+    _set_live_element_value(current, value)
+
+
 def _validate_item_args(
     args: _parse.ParsedArgs,
     flags: set[str],
@@ -549,7 +576,12 @@ class SubgroupListControl(InputControl):
                 element = _element_at_path(item_element, leaf.value_path)
                 if element is not None:
                     self._attach_leaf_change_handler(
-                        value_getter, idx, leaf.value_path, element, on_change
+                        value_getter,
+                        idx,
+                        leaf.value_path,
+                        item_element,
+                        element,
+                        on_change,
                     )
 
     def _attach_leaf_change_handler(
@@ -557,6 +589,7 @@ class SubgroupListControl(InputControl):
         value_getter: typing.Callable[[], list[typing.Any]],
         idx: int,
         path: tuple[str, ...],
+        item_element: typing.Any,
         element: typing.Any,
         on_change: typing.Callable[[typing.Any], None],
     ) -> None:
@@ -565,6 +598,7 @@ class SubgroupListControl(InputControl):
         def handle_change(new_value: typing.Any) -> None:
             if callable(previous_on_change):
                 previous_on_change(new_value)
+            _set_live_element_path(item_element, path, new_value)
             items = [copy.deepcopy(item) for item in value_getter()]
             if idx >= len(items):
                 return

@@ -14,6 +14,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   branch in notebook display. Previously only the top-level variant was
   variant-aware; a variant branch that was itself a mirrored subgroup
   containing another variant showed all of its inner branches at once.
+- Editing a nested variant selector inside a `Group.list` item now updates the
+  item's live value immediately. Previously the list change callback received
+  the new selector value, but the mirrored item's cached value could still hold
+  the previous branch until the next notebook rerun.
 
 ## [0.11.3] - 2026-06-09
 
