@@ -289,16 +289,20 @@ def _element_at_path(root: typing.Any, path: tuple[str, ...]) -> typing.Any | No
     return current
 
 
-def _set_live_element_value(element: typing.Any, value: typing.Any) -> None:
-    if hasattr(element, "_selected_key"):
-        element._selected_key = value
-    if hasattr(element, "_value"):
-        element._value = value
-
-
 def _set_live_element_path(
     root: typing.Any, path: tuple[str, ...], value: typing.Any
 ) -> None:
+    """Refresh the cached dict ``_value`` of each subgroup along ``path``.
+
+    marimo rebuilds a dictionary's cached ``value`` only during its update
+    cycle, so a nested leaf edit is not reflected by the enclosing subgroups
+    until the next notebook rerun. Write the new leaf value into each ancestor's
+    cache so ``element.value`` reads it immediately. The leaf element itself is
+    left alone: marimo's ``_update`` has already set its ``_value`` and (for a
+    dropdown) ``_selected_key`` from the option key before this handler runs, so
+    touching it here would only risk clobbering ``_selected_key`` with the
+    mapped value.
+    """
     current: typing.Any = root
     remaining = path
     while remaining:
@@ -313,7 +317,6 @@ def _set_live_element_path(
             return
         current = typing.cast(dict[str, typing.Any], elements)[key]
         remaining = remaining[1:]
-    _set_live_element_value(current, value)
 
 
 def _validate_item_args(
