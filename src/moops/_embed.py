@@ -160,12 +160,22 @@ class Passthrough:
         return hash(id(self.defs.get("result")))
 
     async def embed(self, defs: dict[str, typing.Any]) -> "Passthrough":
+        self._check(defs)
+        return self
+
+    def run(
+        self, defs: dict[str, typing.Any]
+    ) -> tuple[typing.Iterable[typing.Any], dict[str, typing.Any]]:
+        self._check(defs)
+        return (), self.defs
+
+    @staticmethod
+    def _check(defs: dict[str, typing.Any]) -> None:
         unexpected = defs.keys() - {"args"}
         if unexpected:
             raise ValueError(
                 f"moops.Passthrough received unexpected defs keys: {unexpected}"
             )
-        return self
 
 
 def _embed_in_script(app: _App, defs: dict[str, typing.Any]) -> typing.Any:
