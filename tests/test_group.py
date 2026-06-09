@@ -18,7 +18,7 @@ import moops
 import moops._control_mirroring as control_mirroring
 import moops.group as group_module
 from examples.composition import variant_trip
-from moops import Group, _input_map, _options, _parse
+from moops import Group, _input_map, _marimo_controls, _options, _parse
 from moops._custom_element import CustomElement
 
 
@@ -1939,6 +1939,49 @@ def test_list_controls_from_nested_variant_selector_edit_updates_live_item_value
     # mutations. It must reflect the nested selector edit immediately, not keep
     # the previous active branch until the next notebook rerun.
     assert item.value["mode-advanced"]["detail"] == "basic"
+
+
+def test_list_controls_from_mapped_dropdown_edit_keeps_selected_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A mirrored dropdown leaf whose option key differs from its mapped value
+    must keep ``_selected_key`` as the option key after a frontend edit. The
+    list change handler used to copy the on_change value (the mapped value) into
+    ``_selected_key``, corrupting the key that serialization reads back."""
+    source = Group(cli_args=["child.py"])
+    mode = source.dropdown(
+        {"slow": 1, "fast": 2},
+        value="slow",
+        option="--mode",
+        help_text="Mode",
+        allow_select_none=False,
+    )
+    child_iface = source.interface(mode)
+
+    changes: list[list[typing.Any]] = []
+    g = Group(cli_args=["script.py"])
+    monkeypatch.setattr(_options.mo, "running_in_notebook", lambda: True)
+    fake_query_params: dict[str, typing.Any] = {}
+    monkeypatch.setattr(_options.mo, "query_params", lambda: fake_query_params)
+    ctrl = g.list(
+        option="--settings",
+        item=lambda grp: grp.controls_from(child_iface, prefix="settings"),
+        help_text="Settings",
+        value=[{"mode": "slow"}],
+        on_change=changes.append,
+    )
+
+    item = ctrl._array.elements[0]  # type: ignore[attr-defined]
+    leaf = item.elements["mode"]
+    # Drive the change the way the frontend does: marimo's _update converts the
+    # option key to the mapped value and sets _selected_key to the key before
+    # firing the change handler.
+    leaf._update(["fast"])  # type: ignore[attr-defined]
+
+    assert leaf.value == 2
+    assert leaf._selected_key == "fast"  # type: ignore[attr-defined]
+    assert _marimo_controls.ctrl_value(leaf) == "fast"
+    assert item.value["mode"] == 2
 
 
 def test_list_controls_from_variant_displays_only_active_branch(
