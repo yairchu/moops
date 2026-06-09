@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- A `Passthrough` injected as an embed override now works when the embedding
+  notebook calls `moops.embed(override, ...)` (rather than `override.embed(...)`)
+  in script mode. That path runs the override via `.run()`, which `Passthrough`
+  did not implement, so it raised `AttributeError`. `Passthrough` now satisfies
+  the full embed-app interface.
+
 ## [0.11.2] - 2026-06-08
 
 ### Fixed

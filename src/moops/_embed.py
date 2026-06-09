@@ -159,15 +159,22 @@ class Passthrough:
     def __hash__(self) -> int:
         return hash(id(self.defs.get("result")))
 
-    async def embed(self, defs: dict[str, typing.Any]) -> "Passthrough":
-        self._check(defs)
+    def clone(self) -> "Passthrough":
+        # A Passthrough just forwards a fixed result, so cloning is a no-op:
+        # passthroughs forwarding the same result are interchangeable (see
+        # __eq__). Implemented to satisfy the _App protocol.
+        return self
+
+    async def embed(self, defs: dict[str, typing.Any] | None = None) -> "Passthrough":
+        self._check(defs or {})
         return self
 
     def run(
         self, defs: dict[str, typing.Any]
     ) -> tuple[typing.Iterable[typing.Any], dict[str, typing.Any]]:
         self._check(defs)
-        return (), self.defs
+        # Hand back a copy so callers can't mutate our forwarded defs.
+        return (), dict(self.defs)
 
     @staticmethod
     def _check(defs: dict[str, typing.Any]) -> None:

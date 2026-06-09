@@ -62,10 +62,9 @@ def test_passthrough_supports_script_mode_embed() -> None:
     # in script mode.  A Passthrough injected as that override must therefore
     # support .run, not just .embed; otherwise this raises
     # AttributeError: 'Passthrough' object has no attribute 'run'.
-    # A Passthrough is injected as an embed override at runtime (via marimo
-    # def injection), so it stands in for an _App without structurally
-    # satisfying the protocol -- hence the cast.
-    pt = typing.cast(typing.Any, moops.Passthrough({"result": "hello"}))
+    # Passing the Passthrough directly (no cast) also asserts, via pyright,
+    # that it structurally satisfies the _App protocol moops.embed expects.
+    pt = moops.Passthrough({"result": "hello"})
     out = asyncio.run(moops.embed(pt, defs={"args": object()}))
     assert out.defs.get("result") == "hello"
 
