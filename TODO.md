@@ -14,7 +14,7 @@ code is in good shape; these are the leftovers.
 
 ## Smells / correctness-adjacent
 
-- [ ] **`Interface.controls` annotated as a 1-tuple** — `interface.py:29`
+- [x] **`Interface.controls` annotated as a 1-tuple** — `interface.py:29`
   `controls: tuple[typing.Any]` means "tuple of exactly one element"; should be
   `tuple[typing.Any, ...]`. Strict pyright doesn't flag it because `Any`
   absorbs everything. `_embed.py`'s `typing.cast(tuple[typing.Any], ())` for

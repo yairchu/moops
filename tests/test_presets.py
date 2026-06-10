@@ -38,7 +38,7 @@ def test_preset_ui_elements_stable_across_renders(
 ) -> None:
     _mock_preset_caller(monkeypatch, tmp_path)
     presets = Presets(lambda: None, lambda _: None)
-    iface = Interface(controls=(), presets=presets, command="script.py")  # type: ignore[arg-type]
+    iface = Interface(controls=(), presets=presets, command="script.py")
     assert iface._presets_ui is not None  # type: ignore[reportPrivateUsage]
     iface._mime_()  # type: ignore[misc]
     first = iface._presets_ui  # type: ignore[reportPrivateUsage]
@@ -389,7 +389,7 @@ def test_default_preset_rename_placeholder_is_not_default() -> None:
         list=mock.Mock(return_value=["default"]),
     )
     iface = Interface(
-        controls=typing.cast(tuple[typing.Any], ()),
+        controls=(),
         presets=presets,
         active_preset="default",
         command="script.py",
@@ -410,7 +410,7 @@ def test_factory_preset_can_reset_saved_default() -> None:
         delete=delete,
     )
     iface = Interface(
-        controls=typing.cast(tuple[typing.Any], ()),
+        controls=(),
         presets=presets,
         active_preset=None,
         command="script.py",

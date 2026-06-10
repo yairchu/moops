@@ -26,7 +26,7 @@ from .presets import Presets
 class Interface:
     """Controls registered by a subgroup's interface, for passing to the parent."""
 
-    controls: tuple[typing.Any]
+    controls: tuple[typing.Any, ...]
     input_map: _input_map.InputMap = dataclasses.field(
         default_factory=_input_map.InputMap
     )

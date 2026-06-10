@@ -133,9 +133,7 @@ class Passthrough:
     def __init__(self, source: _Embed | dict[str, typing.Any]) -> None:
         source_defs = source if isinstance(source, dict) else source.defs
         self.defs: dict[str, typing.Any] = {
-            "interface": interface.Interface(
-                controls=typing.cast(tuple[typing.Any], ())
-            ),
+            "interface": interface.Interface(controls=()),
         }
         if "result" in source_defs:
             self.defs["result"] = source_defs["result"]
