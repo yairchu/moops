@@ -120,7 +120,7 @@ class FileBrowserWithInitialSelection(mo.ui.file_browser):
         raise RuntimeError("Setting the value of a UIElement is not allowed.")
 
     def _mime_(self) -> tuple[KnownMimeType, str]:  # type: ignore[override]
-        files = "\n".join({f"- `{p}`" for p in self._default})
+        files = "\n".join(f"- `{p}`" for p in self._default)
         return mo.vstack(
             [
                 mo.Html(super()._mime_()[1]),

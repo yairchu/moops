@@ -6,7 +6,7 @@ code is in good shape; these are the leftovers.
 
 ## Bugs
 
-- [ ] **Fallback file list renders in arbitrary order** — `_ui_workarounds.py:131`
+- [x] **Fallback file list renders in arbitrary order** — `_ui_workarounds.py:131`
   `FileBrowserWithInitialSelection._mime_` uses a *set* comprehension:
   `"\n".join({f"- \`{p}\`" for p in self._default})`. With multiple default
   paths the "Falling back to:" list shows in random order and silently dedups.
