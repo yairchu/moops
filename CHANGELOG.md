@@ -13,6 +13,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `Group.md` now demotes headings in indented triple-quoted markdown strings,
   matching converted `mo.md(...)` calls whose markdown content stays indented in
   the Python source.
+- `Group.md` CLI output now strips language-tagged fenced code blocks and no
+  longer mangles separate inline code spans that happen to start and end with
+  backticks, nor text containing multiple separate fenced blocks.
+- Interactive multiselect prompts now reject invalid entries immediately and
+  re-prompt instead of falling through to parse errors that leave defaults
+  unchanged.
+- Split CLI values such as `--count -.5` now parse as negative decimals,
+  matching the already-supported `--count=-.5` form.
+- Errors for options missing their value now suggest the `--option=value` form
+  when the next argument starts with a dash, such as `--tag -dev`.
 - File browser CLI fallbacks now display repeated default paths in their
   original order instead of rendering them through an unordered, deduplicating
   set.
@@ -20,16 +30,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   under optimized Python, instead of relying on `assert`.
 - Script callouts and editable commands now derive command names with platform
   path rules instead of always splitting on `/`.
-- Interactive multiselect prompts now reject invalid entries immediately and
-  re-prompt instead of falling through to parse errors that leave defaults
-  unchanged.
-- Split CLI values such as `--count -.5` now parse as negative decimals,
-  matching the already-supported `--count=-.5` form.
-- `Group.md` CLI output now strips language-tagged fenced code blocks and no
-  longer mangles separate inline code spans that happen to start and end with
-  backticks, nor text containing multiple separate fenced blocks.
-- Errors for options missing their value now suggest the `--option=value` form
-  when the next argument starts with a dash, such as `--tag -dev`.
 
 ## [0.11.4] - 2026-06-09
 
