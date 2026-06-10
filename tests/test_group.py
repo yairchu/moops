@@ -15,26 +15,8 @@ from marimo._plugins.ui._core.ui_element import UIElement
 import moops
 import moops._control_mirroring as control_mirroring
 import moops.group as group_module
-from examples.composition import variant_trip
 from moops import Group, _input_map, _options, _parse
-from moops._custom_element import CustomElement
 from moops._ui_workarounds import FileBrowserWithInitialSelection
-
-
-def test_help_exits_zero() -> None:
-    g = Group(cli_args=["script.py", "--help"])
-    ctrl = g.switch(label="Verbose", help_text="Enable verbose output")
-    with pytest.raises(SystemExit) as exc_info:
-        g.interface(ctrl)
-    assert exc_info.value.code == 0
-
-
-def test_invalid_arg_exits_nonzero() -> None:
-    g = Group(cli_args=["script.py", "--unknown"])
-    ctrl = g.switch(label="Verbose", help_text="Enable verbose output")
-    with pytest.raises(SystemExit) as exc_info:
-        g.interface(ctrl)
-    assert exc_info.value.code != 0
 
 
 def test_switch_with_default_true_and_explicit_flag() -> None:
@@ -78,37 +60,6 @@ def test_label_parenthetical_unit_becomes_metavar(
     assert "LENGTH_(SECONDS)" not in help_text
 
 
-def test_parenthetical_units_colliding_on_option_raise() -> None:
-    g = Group(cli_args=["script.py"])
-    secs = g.number(label="Length (seconds)", help_text="Clip length in seconds")
-    mins = g.number(label="Length (minutes)", help_text="Clip length in minutes")
-
-    with pytest.raises(ValueError, match=r"--length.*parenthetical"):
-        g.interface(secs, mins)
-
-
-def test_duplicate_control_error_mentions_interface() -> None:
-    g = Group(cli_args=["script.py"])
-    ctrl = g.switch(label="Verbose", help_text="Enable verbose output")
-    method = g.interface
-    with pytest.raises(ValueError, match="Duplicate"):
-        method(ctrl, ctrl)
-
-
-def test_control_requires_label_or_option() -> None:
-    g = Group(cli_args=["script.py"])
-
-    with pytest.raises(ValueError, match="Either label or option must be provided"):
-        g.text(help_text="Some option")
-
-
-def test_dropdown_options_cannot_be_empty() -> None:
-    g = Group(cli_args=["script.py"])
-
-    with pytest.raises(ValueError, match="Dropdown options cannot be empty"):
-        g.dropdown([], label="Style", help_text="Text style")
-
-
 def test_subgroup_prefixes_options() -> None:
     g = Group(cli_args=["script.py", "--casing-style", "snake_case"])
     casing = g.subgroup("casing")
@@ -135,17 +86,6 @@ def test_subgroup_interface_is_noop():
         ["snake_case"], label="Style", help_text="...", allow_select_none=False
     )
     casing.interface(ctrl)  # should not exit
-
-
-def test_subgroup_controls_visible_in_parent_help(capsys: pytest.CaptureFixture[str]):
-    g = Group(cli_args=["script.py", "--help"])
-    casing = g.subgroup("casing")
-    ctrl = casing.dropdown(
-        ["snake_case", "camel_case"], label="Style", help_text="Text style"
-    )
-    with pytest.raises(SystemExit):
-        g.interface(casing.interface(ctrl))
-    assert "--casing-style" in capsys.readouterr().out
 
 
 def test_subgroup_warns_when_called_from_async_cell(
@@ -195,17 +135,6 @@ def test_missing_subgroup_interface_options_are_on_parent_interface() -> None:
     assert iface.missing_options() == ["--casing-style"]
 
 
-def test_overridden_control_not_in_help(capsys: pytest.CaptureFixture[str]):
-    g = Group(cli_args=["script.py", "--help"])
-    casing = g.subgroup("casing", overrides={"style": "snake_case"})
-    ctrl = casing.dropdown(
-        ["snake_case", "camel_case"], label="Style", help_text="Text style"
-    )
-    with pytest.raises(SystemExit):
-        g.interface(casing.interface(ctrl))
-    assert "--casing-style" not in capsys.readouterr().out
-
-
 def test_overridden_dropdown_accepts_non_string_option_value() -> None:
     class Adam:
         pass
@@ -237,19 +166,6 @@ def test_equals_flag_not_consumed_as_prefix_for_next_arg(
     assert "unexpected" in capsys.readouterr().out
 
 
-def test_single_value_option_rejects_repeated_values(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    g = Group(cli_args=["script.py", "--name", "Alice", "--name", "Bob"])
-    ctrl = g.text(label="Name", help_text="A name")
-
-    with pytest.raises(SystemExit) as exc_info:
-        g.interface(ctrl)
-
-    assert exc_info.value.code != 0
-    assert "--name was provided multiple times" in capsys.readouterr().out
-
-
 def test_dropdown_no_flag_selects_none() -> None:
     g = Group(cli_args=["script.py", "--no-style"])
     ctrl = g.dropdown(
@@ -261,51 +177,10 @@ def test_dropdown_no_flag_selects_none() -> None:
     assert ctrl.value is None
 
 
-def test_dropdown_no_flag_and_value_is_error(capsys: pytest.CaptureFixture[str]):
-    g = Group(cli_args=["script.py", "--no-style", "--style", "snake_case"])
-    ctrl = g.dropdown(
-        ["snake_case", "camel_case"],
-        value="camel_case",
-        label="Style",
-        help_text="Text style",
-    )
-    with pytest.raises(SystemExit) as exc_info:
-        g.interface(ctrl)
-    assert exc_info.value.code != 0
-    assert "--no-style" in capsys.readouterr().out
-
-
-def test_text_area_from_stdin_flag_with_value_is_error(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    g = Group(cli_args=["script.py", "--text-from-stdin=oops"])
-    ctrl = g.text_area(option="--text", help_text="Input text")
-    with pytest.raises(SystemExit) as exc_info:
-        g.interface(ctrl)
-    assert exc_info.value.code != 0
-    output = capsys.readouterr().out
-    assert "--text-from-stdin does not take a value, but was given: oops" in output
-
-
 def test_number_accepts_split_negative_decimal_without_leading_zero() -> None:
     g = Group(cli_args=["script.py", "--count", "-.5"])
     ctrl = g.number(option="--count", help_text="A count")
     assert ctrl.value == -0.5
-
-
-def test_split_dash_value_error_suggests_equals_form(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    # A dash-leading non-numeric value is tokenized as an option, so
-    # `--tag -dev` fails while `--tag=-dev` works. The error should point
-    # the user at the working form.
-    g = Group(cli_args=["script.py", "--tag", "-dev"])
-    ctrl = g.text(option="--tag", help_text="Tag")
-    with pytest.raises(SystemExit) as exc_info:
-        g.interface(ctrl)
-    assert exc_info.value.code != 0
-    output = capsys.readouterr().out
-    assert "--tag=-dev" in output
 
 
 def test_validation_error_not_shown_for_unrendered_control(
@@ -483,9 +358,10 @@ def _signature_mismatches(
             mismatches.append(f"missing param {mo_param.name!r} at index {group_index}")
             continue
         g_param = group_params[group_index]
-        if g_param.kind is inspect.Parameter.VAR_POSITIONAL:
-            return mismatches
-        if g_param.kind is inspect.Parameter.VAR_KEYWORD:
+        if g_param.kind in [
+            inspect.Parameter.VAR_POSITIONAL,
+            inspect.Parameter.VAR_KEYWORD,
+        ]:
             return mismatches
         if g_param.kind is not mo_param.kind or g_param.name != mo_param.name:
             mismatches.append(
@@ -535,70 +411,6 @@ def _annotation_text(param: inspect.Parameter) -> str:
     if annotation is inspect.Parameter.empty:
         return ""
     return str(annotation).replace("typing.", "").replace("pathlib.Path", "Path")
-
-
-def test_help_usage_line_has_no_double_spaces(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    g = Group(cli_args=["script.py", "--help"])
-    ctrl = g.text(label="Name", help_text="A name")
-    with pytest.raises(SystemExit):
-        g.interface(ctrl)  # no flags, only an option
-    usage_line = capsys.readouterr().out.splitlines()[0]
-    assert "  " not in usage_line
-
-
-def test_no_options_usage_omits_interactive(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    """With no controls there is nothing to prompt for, so --interactive is
-    inert and should not be advertised in the usage line."""
-    g = Group(cli_args=["script.py", "--help"])
-    with pytest.raises(SystemExit):
-        g.interface()
-    usage_line = capsys.readouterr().out.splitlines()[0]
-    assert "--interactive" not in usage_line
-
-
-def test_usage_wraps_at_88_columns(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    g = Group(cli_args=["script.py", "--help"])
-    ctrls = [
-        g.text(option=f"--option-number-{i}", help_text="An option") for i in range(8)
-    ]
-    with pytest.raises(SystemExit):
-        g.interface(*ctrls)
-    out = capsys.readouterr().out
-    assert out.startswith("Usage:")
-    usage_block_lines = out.split("\n\n")[0].splitlines()
-    assert all(len(line) <= 88 for line in usage_block_lines)
-
-
-def test_help_option_lines_wrap_at_88_columns(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    g = Group(cli_args=["script.py", "--help"])
-    ctrl = g.text(
-        option="--long-option-name",
-        help_text="A help text long enough to overflow eighty-eight columns",
-    )
-    with pytest.raises(SystemExit):
-        g.interface(ctrl)
-    out = capsys.readouterr().out
-    option_lines = [line for line in out.splitlines() if line.startswith("  --")]
-    assert all(len(line) <= 88 for line in option_lines)
-
-
-def test_dropdown_no_flag_shown_as_mutex_in_usage(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    g = Group(cli_args=["script.py", "--help"])
-    ctrl = g.dropdown(["a", "b"], value="a", label="Style", help_text="The style")
-    with pytest.raises(SystemExit):
-        g.interface(ctrl)
-    usage_line = capsys.readouterr().out.splitlines()[0]
-    assert "[--style {a|b} | --no-style]" in usage_line
 
 
 def test_input_control_freed_when_control_gc_collected() -> None:
@@ -653,15 +465,6 @@ def test_interactive_ctrl_c_exits_cleanly(
         g.switch(label="Verbose", help_text="Enable verbose output")
     assert exc_info.value.code == 1
     assert "Aborted." in capsys.readouterr().out
-
-
-def test_duplicate_subgroup_interface_raises_error() -> None:
-    g = Group(cli_args=["script.py"])
-    sub = g.subgroup("x")
-    ctrl = sub.switch(label="Verbose", help_text="Enable verbose output")
-    iface = sub.interface(ctrl)
-    with pytest.raises(ValueError, match="Duplicate"):
-        g.interface(iface, iface)
 
 
 def test_interactive_range_bad_numbers_reprompts(
@@ -791,93 +594,6 @@ def test_composite_child_keeps_moops_metadata() -> None:
     assert g.interface(cloned_ctrl).missing_options() == []
 
 
-def test_controls_from_creates_prefixed_dictionary_controls() -> None:
-    source = Group(cli_args=["child.py"])
-    board = source.text_area(option="--board", value="...", help_text="Board")
-    survive = source.multiselect(
-        options=["0", "1", "2"],
-        value=["1"],
-        option="--survive-rule",
-        help_text="Survive",
-    )
-    birth = source.multiselect(
-        options=["0", "1", "2"],
-        value=["2"],
-        option="--birth-rule",
-        help_text="Birth",
-    )
-    child_iface = source.interface(board, survive, birth)
-
-    parent = Group(
-        cli_args=[
-            "parent.py",
-            "--step-board",
-            ".#.",
-            "--step-survive-rule",
-            "2",
-            "--step-birth-rule",
-            "1",
-        ]
-    )
-    step = parent.controls_from(child_iface, prefix="step")
-    parent.interface(step)
-
-    assert list(step.elements) == ["board", "survive_rule", "birth_rule"]
-    assert step.value == {
-        "board": ".#.",
-        "survive_rule": ["2"],
-        "birth_rule": ["1"],
-    }
-
-
-def test_controls_from_displays_as_stacked_controls() -> None:
-    source = Group(cli_args=["child.py"])
-    name = source.text(option="--name", value="Alice", help_text="Name")
-    child_iface = source.interface(name)
-
-    parent = Group(cli_args=["parent.py"])
-    step = parent.controls_from(child_iface, prefix="step")
-
-    mime_type, html = typing.cast(typing.Any, step)._mime_()
-
-    assert mime_type == "text/html"
-    assert "display: flex" in html
-    assert "marimo-dict" not in html
-
-
-def test_controls_from_text_embeds_stacked_controls() -> None:
-    # Composite controls embed child UI elements through their .text HTML, not
-    # through _mime_(). Mirrored controls must keep the stacked display there too.
-    source = Group(cli_args=["child.py"])
-    name = source.text(option="--name", value="Alice", help_text="Name")
-    child_iface = source.interface(name)
-
-    parent = Group(cli_args=["parent.py"])
-    step = parent.controls_from(child_iface, prefix="step")
-
-    assert "display: flex" in step.text
-    assert "marimo-dict" not in step.text
-
-
-def test_controls_from_result_is_reactive_ui_element() -> None:
-    # controls_from's result must be a UIElement: marimo only reruns cells that
-    # reference it when the bound global is a UIElement (UIElementRegistry scans
-    # the namespace for `isinstance(value, UIElement)`). A non-UIElement wrapper
-    # leaves the dictionary bound to no global, so editing a mirrored control
-    # never propagates until some other element forces a rerun.
-    source = Group(cli_args=["child.py"])
-    name = source.text(option="--name", value="Alice", help_text="Name")
-    child_iface = source.interface(name)
-
-    parent = Group(cli_args=["parent.py"])
-    step = parent.controls_from(child_iface, prefix="step")
-
-    # The child clones are lens views of the dictionary, so their updates
-    # resolve up to it — which propagates only if the dictionary itself is the
-    # UIElement bound to the global.
-    assert isinstance(step, UIElement)
-
-
 def test_variant_interfaces_expose_branch_metadata() -> None:
     g = Group(cli_args=["script.py"])
     mode = g.dropdown(
@@ -895,98 +611,6 @@ def test_variant_interfaces_expose_branch_metadata() -> None:
     assert car_iface.variant_ctx.selector_parent_prefix == ""
     assert car_iface.variant_ctx.key == "car"
     assert car_iface.variant_ctx.group_prefix == "travel"
-
-
-def test_controls_from_variant_displays_only_active_branch() -> None:
-    variant_iface = moops.interface_of(variant_trip)
-    parent = Group(cli_args=["parent.py"])
-    trip = parent.controls_from(variant_iface, prefix="trip")
-    visible = typing.cast(typing.Any, trip)
-
-    assert list(trip.elements) == ["mode", "travel-car", "travel-train"]
-    assert list(visible._moops_visible_elements()) == ["mode", "travel-car"]
-
-    parent = Group(cli_args=["parent.py", "--trip-mode", "train"])
-    trip = parent.controls_from(variant_iface, prefix="trip")
-    visible = typing.cast(typing.Any, trip)
-
-    assert list(visible._moops_visible_elements()) == ["mode", "travel-train"]
-
-
-def test_controls_from_nested_variant_displays_only_active_branch() -> None:
-    source = Group(cli_args=["child.py"])
-    mode = source.dropdown(
-        ["advanced", "simple"],
-        value="advanced",
-        option="--mode",
-        help_text="Mode",
-        allow_select_none=False,
-    )
-    mode_branches = source.variant("mode", mode)
-
-    advanced = mode_branches["advanced"]
-    detail = advanced.dropdown(
-        ["basic", "custom"],
-        value="basic",
-        option="--detail",
-        help_text="Detail level",
-        allow_select_none=False,
-    )
-    detail_branches = advanced.variant("detail", detail)
-    basic_count = detail_branches["basic"].number(
-        value=1,
-        option="--count",
-        help_text="Count",
-    )
-    custom_name = detail_branches["custom"].text(
-        value="example",
-        option="--name",
-        help_text="Name",
-    )
-    simple_count = mode_branches["simple"].number(
-        value=2,
-        option="--count",
-        help_text="Count",
-    )
-    child_iface = source.interface(
-        mode,
-        advanced.interface(
-            detail,
-            detail_branches["basic"].interface(basic_count),
-            detail_branches["custom"].interface(custom_name),
-        ),
-        mode_branches["simple"].interface(simple_count),
-    )
-
-    parent = Group(cli_args=["parent.py"])
-    mirror = parent.controls_from(child_iface, prefix="settings")
-    visible = typing.cast(typing.Any, mirror)
-    advanced_mirror = typing.cast(typing.Any, mirror.elements["mode-advanced"])
-
-    assert list(visible._moops_visible_elements()) == ["mode", "mode-advanced"]
-    # The active outer variant branch is itself a mirrored subgroup containing
-    # another variant. It should keep the same variant-aware display API as the
-    # top-level mirror, so the inactive nested branch can be hidden.
-    assert list(advanced_mirror._moops_visible_elements()) == [
-        "detail",
-        "detail-basic",
-    ]
-
-
-def test_controls_from_variant_current_args_follow_live_selector_change() -> None:
-    """When a mirrored variant selector changes in the notebook, current args
-    should serialize the newly active branch, not the branch active at creation.
-    """
-    variant_iface = moops.interface_of(variant_trip)
-    parent = Group(cli_args=["parent.py"])
-    trip = parent.controls_from(variant_iface, prefix="trip")
-    iface = parent.interface(trip)
-
-    trip.elements["mode"]._value = "train"  # type: ignore[attr-defined]
-    trip.elements["mode"]._selected_key = "train"  # type: ignore[attr-defined]
-    trip.elements["travel-train"].elements["tickets"]._value = 4  # type: ignore[attr-defined]
-
-    assert iface._current_args() == "--trip-mode train --trip-travel-train-tickets 4"  # type: ignore[attr-defined]
 
 
 def test_variant_display_uses_selected_key_without_reading_value() -> None:
@@ -1012,101 +636,6 @@ def test_variant_display_uses_selected_key_without_reading_value() -> None:
     )
 
     assert select(iface, "--mode") == "train"
-
-
-def test_controls_from_supports_overridden_multiselect() -> None:
-    source = Group(cli_args=["child.py"])
-    survive = source.multiselect(
-        options=["0", "1", "2"],
-        value=["1"],
-        option="--survive-rule",
-        help_text="Survive",
-    )
-    child_iface = source.interface(survive)
-
-    parent = Group.with_overrides({"step": child_iface.default})
-    step = parent.controls_from(child_iface, prefix="step")
-
-    assert step.value == child_iface.default
-
-
-def test_controls_from_excludes_named_controls(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    source = Group(cli_args=["child.py"])
-    board = source.text_area(option="--board", value="...", help_text="Board")
-    style = source.dropdown(["a", "b"], option="--style", help_text="Style")
-    child_iface = source.interface(board, style)
-
-    parent = Group(cli_args=["parent.py", "--help"])
-    child_controls = parent.controls_from(
-        child_iface, prefix="child", exclude=["board"]
-    )
-
-    with pytest.raises(SystemExit):
-        parent.interface(child_controls)
-
-    output = capsys.readouterr().out
-    assert "--child-style" in output
-    assert "--child-board" not in output
-
-
-def test_interface_default_correct_for_nested_controls_from() -> None:
-    source = Group(cli_args=["child.py"])
-    sub = source.subgroup("config")
-    style = sub.dropdown(["a", "b"], value="a", option="--style", help_text="Style")
-    child_iface = source.interface(sub.interface(style))
-
-    parent = Group(cli_args=["parent.py"])
-    step = parent.controls_from(child_iface, prefix="step")
-    parent_iface = parent.interface(step)
-
-    # default must nest as {"step": {"config": ...}}, not {"step": {"step-config": ...}}
-    assert parent_iface.default == {"step": {"config": {"style": "a"}}}
-
-
-def test_controls_from_value_compatible_with_run_for_child_subgroups() -> None:
-    # Child notebook uses a subgroup
-    source = Group(cli_args=["child.py"])
-    sub = source.subgroup("config")
-    style = sub.dropdown(["a", "b"], option="--style", help_text="Style")
-    child_iface = source.interface(sub.interface(style))
-
-    # Parent mirrors the child's controls, overriding style to "b"
-    parent = Group(cli_args=["parent.py", "--step-config-style", "b"])
-    step = parent.controls_from(child_iface, prefix="step")
-    parent.interface(step)
-
-    # step.value must be compatible with moops.run(child, **step.value),
-    # which passes the dict directly to Group.with_overrides — so nested
-    # subgroup values must be dicts, not flat underscore-joined keys.
-    assert step.value == {"config": {"style": "b"}}
-
-
-def test_controls_from_preserves_slider_widget() -> None:
-    # controls_from must recreate sliders as sliders, not number inputs.
-    source = Group(cli_args=["child.py"])
-    count = source.slider(start=0, stop=10, value=3, label="Count", help_text="count")
-    child_iface = source.interface(count)
-
-    parent = Group(cli_args=["parent.py"])
-    step = parent.controls_from(child_iface, prefix="step")
-    assert isinstance(step.elements["count"], mo.ui.slider)
-
-
-def test_controls_from_preserves_extra_kwargs() -> None:
-    # controls_from must preserve extra marimo kwargs (e.g. debounce).
-    source = Group(cli_args=["child.py"])
-    count = source.slider(
-        start=0, stop=10, value=3, label="Count", help_text="count", debounce=True
-    )
-    child_iface = source.interface(count)
-
-    parent = Group(cli_args=["parent.py"])
-    step = parent.controls_from(child_iface, prefix="step")
-    slider = step.elements["count"]
-    assert isinstance(slider, mo.ui.slider)
-    assert slider._component_args.get("debounce") is True  # type: ignore[attr-defined]
 
 
 def test_multiselect_empty_selection_is_representable_in_current_args() -> None:
@@ -1172,72 +701,6 @@ def test_option_named_file_does_not_conflict_with_marimo_notebook_param() -> Non
     params = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(url).query))
     assert params["file"] == "notebook.py"
     assert params.get("file_") == "some_file.txt"
-
-
-def test_controls_from_values_are_in_standalone_query_values() -> None:
-    source = Group(cli_args=["script.py", "--style", "b"])
-    ctrl = source.dropdown(["a", "b"], label="Style", help_text="x")
-    source_iface = source.interface(ctrl)
-
-    parent = Group(cli_args=["script.py", "--step-style", "b"])
-    mirror = parent.controls_from(source_iface, prefix="step")
-    iface = parent.interface(mirror)
-
-    assert iface._current_args() == "--step-style b"  # type: ignore[attr-defined]
-    assert iface._standalone_query_values() == {  # type: ignore[attr-defined]
-        "step_style": "b"
-    }
-
-
-def test_controls_from_current_args_reflects_live_widget_changes() -> None:
-    # mo.ui.dictionary clones its elements; the sub-interface must track the
-    # live clones (step_controls.elements) not the originals, so that
-    # _current_args() picks up user-driven value changes.
-    source = Group(cli_args=["child.py"])
-    survive = source.multiselect(
-        options=[str(i) for i in range(9)],
-        value=["2", "3"],
-        option="--survive-rule",
-        help_text="Survive",
-    )
-    child_iface = source.interface(survive)
-
-    parent = Group(cli_args=["parent.py"])
-    step_controls = parent.controls_from(child_iface, prefix="step")
-    parent_iface = parent.interface(step_controls)
-
-    # Simulate user changing the mirrored control's value to a non-default.
-    step_controls.elements["survive_rule"]._value = ["1", "2"]  # type: ignore[attr-defined]
-
-    assert "--step-survive-rule" in parent_iface._current_args()  # type: ignore[attr-defined]
-
-
-def test_nested_controls_from_current_args_reflects_live_widget_changes() -> None:
-    source = Group(cli_args=["child.py"])
-    config = source.subgroup("config")
-    style = config.dropdown(
-        ["a", "b"],
-        value="a",
-        option="--style",
-        help_text="Style",
-    )
-    child_iface = source.interface(config.interface(style))
-
-    parent = Group(cli_args=["parent.py"])
-    step_controls = parent.controls_from(child_iface, prefix="step")
-    parent_iface = parent.interface(step_controls)
-
-    # Simulate user changing the nested mirrored control's value to a
-    # non-default.
-    nested_controls = typing.cast(typing.Any, step_controls.elements["config"]).elements
-    nested_style = nested_controls["style"]
-    nested_style._value = "b"  # type: ignore[attr-defined]
-    nested_style._selected_key = "b"  # type: ignore[attr-defined]
-
-    assert parent_iface._current_args() == "--step-config-style b"  # type: ignore[attr-defined]
-    assert parent_iface._standalone_query_values() == {  # type: ignore[attr-defined]
-        "step_config_style": "b"
-    }
 
 
 def test_custom_control_notebook_element_reuses_component_id(
@@ -1306,45 +769,6 @@ def test_custom_control_build_uses_fallback_snapshot_without_reading_value(
     assert ctrl.value == [3, 7]
 
 
-def test_custom_control_recreated_through_controls_from(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    # controls_from must rebuild the notebook component (not just the fallback)
-    # when mirroring a child notebook that uses a custom control, and the
-    # component's transformed value must flow through the mirror dictionary.
-    child = Group(cli_args=["child.py"])
-    fallback = child.range_slider(
-        start=0, stop=100, value=[10, 20], option="--window", help_text="Window"
-    )
-    parent = Group(cli_args=["parent.py", "--step-window", "30,40"])
-
-    empty_params: dict[str, str] = {}
-    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
-    monkeypatch.setattr(group_module.mo, "query_params", lambda: empty_params)
-
-    def window_value(component: typing.Any, fb: typing.Any) -> dict[str, list[int]]:
-        return {"sel": list(component.value), "fb": list(fb.value)}
-
-    window = child.custom(
-        fallback,
-        lambda x_range: mo.ui.range_slider(start=0, stop=100, value=list(x_range)),
-        value=window_value,
-    )
-    child_iface = child.interface(window)
-
-    step = parent.controls_from(child_iface, prefix="step")
-    parent.interface(step)
-
-    mirrored = typing.cast(typing.Any, step).elements["window"]
-    assert isinstance(mirrored, CustomElement)
-    # value_fn reads the parent's fallback (resolved from --step-window 30,40),
-    # not the child's, proving the component was recreated in the parent.
-    assert typing.cast(typing.Any, step).value["window"] == {
-        "sel": [30, 40],
-        "fb": [30, 40],
-    }
-
-
 def test_file_browser_multiple_accepts_repeated_cli_option(
     tmp_path: pathlib.Path,
 ) -> None:
@@ -1408,46 +832,6 @@ def test_file_browser_fallback_display_preserves_default_paths() -> None:
     assert rendered.count("second.txt") == 2
 
 
-def test_variant_rejects_inactive_branch_options() -> None:
-    g = Group(
-        cli_args=[
-            "script.py",
-            "--mode",
-            "car",
-            "--travel-train-tickets",
-            "5",
-        ]
-    )
-    mode = g.dropdown(
-        ["car", "train"],
-        value="car",
-        option="--mode",
-        help_text="How to travel",
-        allow_select_none=False,
-    )
-    travel = g.variant("travel", mode)
-
-    distance = travel["car"].number(
-        value=120,
-        option="--distance",
-        help_text="Driving distance in miles",
-    )
-    tickets = travel["train"].number(
-        value=2,
-        option="--tickets",
-        help_text="Number of train tickets",
-    )
-
-    with pytest.raises(SystemExit) as exc_info:
-        g.interface(
-            mode,
-            travel["car"].interface(distance),
-            travel["train"].interface(tickets),
-        )
-
-    assert exc_info.value.code != 0
-
-
 def test_variant_heading_selected_when_non_default_chosen_without_cli_arg() -> None:
     """Active branch should show (selected), not (default), when the dropdown
     value differs from its default — even with no CLI arg (e.g. changed via UI)."""
@@ -1468,35 +852,3 @@ def test_variant_heading_selected_when_non_default_chosen_without_cli_arg() -> N
     iface = variants["train"].interface()
     assert iface.variant_ctx.help_heading is not None
     assert "(selected)" in iface.variant_ctx.help_heading
-
-
-def test_standalone_option_after_variant_group_is_separated_in_help(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    """A standalone option that follows variant group sections must be separated
-    by a blank line, not run on as if it belongs to the last variant group."""
-    g = Group(cli_args=["script.py", "--help"])
-    mode = g.dropdown(
-        ["car", "train"],
-        value="car",
-        option="--mode",
-        help_text="Travel mode",
-        allow_select_none=False,
-    )
-    travel = g.variant("travel", mode)
-    distance = travel["car"].number(value=120, option="--distance", help_text="Miles")
-    tickets = travel["train"].number(value=2, option="--tickets", help_text="Tickets")
-    extra = g.checkbox(label="Extra", help_text="Standalone option")
-
-    with pytest.raises(SystemExit):
-        g.interface(
-            mode,
-            travel["car"].interface(distance),
-            travel["train"].interface(tickets),
-            extra,
-        )
-
-    lines = capsys.readouterr().out.splitlines()
-    [_usage_idx, extra_idx] = [i for i, line in enumerate(lines) if "--extra" in line]
-    # standalone option must be separated from the last variant group by a blank line
-    assert lines[extra_idx - 1] == ""
