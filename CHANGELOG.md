@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `Group.md` now demotes headings in indented triple-quoted markdown strings,
+  matching converted `mo.md(...)` calls whose markdown content stays indented in
+  the Python source.
+
 ## [0.11.4] - 2026-06-09
 
 ### Fixed

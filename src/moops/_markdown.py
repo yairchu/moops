@@ -2,17 +2,34 @@ def demote_markdown_headings(text: str, levels: int) -> str:
     if levels <= 0:
         return text
 
+    margin = _common_indent_margin(text)
     fence: tuple[str, int] | None = None
     lines: list[str] = []
     for line in text.splitlines(keepends=True):
         content = line.rstrip("\r\n")
         newline = line[len(content) :]
-        fence = _update_markdown_fence(content, fence)
+        syntax = _strip_common_margin(content, margin)
+        fence = _update_markdown_fence(syntax, fence)
         lines.append(
-            content if fence is not None else _demote_markdown_heading(content, levels)
+            content
+            if fence is not None
+            else _demote_markdown_heading(content, levels, margin)
         )
         lines[-1] += newline
     return "".join(lines)
+
+
+def _common_indent_margin(text: str) -> int:
+    indents = [
+        len(line) - len(line.lstrip(" ")) for line in text.splitlines() if line.strip()
+    ]
+    return min(indents, default=0)
+
+
+def _strip_common_margin(line: str, margin: int) -> str:
+    if margin <= 0:
+        return line
+    return line[margin:] if line.startswith(" " * margin) else line.lstrip(" ")
 
 
 def _update_markdown_fence(
@@ -34,9 +51,10 @@ def _update_markdown_fence(
     return fence
 
 
-def _demote_markdown_heading(line: str, levels: int) -> str:
-    stripped = line.lstrip(" ")
-    indent = len(line) - len(stripped)
+def _demote_markdown_heading(line: str, levels: int, margin: int) -> str:
+    syntax = _strip_common_margin(line, margin)
+    stripped = syntax.lstrip(" ")
+    indent = len(syntax) - len(stripped)
     if indent > 3:
         return line
     count = len(stripped) - len(stripped.lstrip("#"))
@@ -44,4 +62,5 @@ def _demote_markdown_heading(line: str, levels: int) -> str:
         return line
     if len(stripped) > count and not stripped[count].isspace():
         return line
-    return f"{line[:indent]}{'#' * min(6, count + levels)}{stripped[count:]}"
+    prefix_len = len(line) - len(syntax) + indent
+    return f"{line[:prefix_len]}{'#' * min(6, count + levels)}{stripped[count:]}"
