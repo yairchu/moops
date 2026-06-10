@@ -371,6 +371,12 @@ def test_text_area_from_stdin_flag_with_value_is_error(
     assert "--text-from-stdin does not take a value, but was given: oops" in output
 
 
+def test_number_accepts_split_negative_decimal_without_leading_zero() -> None:
+    g = Group(cli_args=["script.py", "--count", "-.5"])
+    ctrl = g.number(option="--count", help_text="A count")
+    assert ctrl.value == -0.5
+
+
 def test_validation_error_not_shown_for_unrendered_control(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
