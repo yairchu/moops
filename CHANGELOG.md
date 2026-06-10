@@ -25,6 +25,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   unchanged.
 - Split CLI values such as `--count -.5` now parse as negative decimals,
   matching the already-supported `--count=-.5` form.
+- `Group.md` CLI output now strips language-tagged fenced code blocks and no
+  longer mangles separate inline code spans that happen to start and end with
+  backticks.
 
 ## [0.11.4] - 2026-06-09
 

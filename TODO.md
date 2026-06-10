@@ -56,7 +56,7 @@ code is in good shape; these are the leftovers.
   argument: -.5") while `--x=-.5` works. (Round-trip of formatted values is
   safe: `str()` of any float starts with `-<digit>`.) Consider mentioning the
   `=` form in the error.
-- [ ] `Group.md` CLI mode strips only bare ``` fences — ```` ```python ````
+- [x] `Group.md` CLI mode strips only bare ``` fences — ```` ```python ````
   blocks keep their fence; the single-backtick strip can mangle text with two
   separate inline code spans.
 - [x] `MultiSelectControl.prompt_interactive` doesn't validate entries against

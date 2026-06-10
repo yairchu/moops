@@ -46,6 +46,25 @@ class OutputMode(enum.Enum):
     STDOUT = "stdout"  # print text to the terminal
 
 
+def _strip_outer_markdown_fence(text: str) -> str | None:
+    first, sep, rest = text.partition("\n")
+    if not sep:
+        return None
+    stripped = first.lstrip(" ")
+    if len(first) - len(stripped) > 3:
+        return None
+    marker = stripped[0] if stripped else ""
+    if marker not in "`~":
+        return None
+    count = len(stripped) - len(stripped.lstrip(marker))
+    if count < 3:
+        return None
+    closing = marker * count
+    if not rest.endswith(f"\n{closing}"):
+        return None
+    return rest[: -len(closing) - 1]
+
+
 class Group:
     """Unified CLI argument parser and marimo UI element generator."""
 
@@ -284,9 +303,10 @@ class Group:
         if self.output_mode is OutputMode.NOTEBOOK:
             return mo.md(text)
         text = text.strip()
-        if text.startswith("```\n") and text.endswith("\n```"):
-            text = text[4:-4]
-        elif text.startswith("`") and text.endswith("`"):
+        stripped_fence = _strip_outer_markdown_fence(text)
+        if stripped_fence is not None:
+            text = stripped_fence
+        elif text.startswith("`") and text.endswith("`") and text.count("`") == 2:
             text = text[1:-1]
         print(f"{text}\n")
         return None
