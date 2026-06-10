@@ -659,7 +659,8 @@ class Group:
         if allow_select_none is None:
             allow_select_none = True
 
-        assert len(options) > 0, "Dropdown options cannot be empty"
+        if len(options) == 0:
+            raise ValueError("Dropdown options cannot be empty")
         opt = self._make_opt(label=label, option=option)
         dropdown_opts = _choice_options.option_values(options)
         value = (

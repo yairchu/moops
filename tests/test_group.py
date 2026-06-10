@@ -97,6 +97,20 @@ def test_duplicate_control_error_mentions_interface() -> None:
         method(ctrl, ctrl)
 
 
+def test_control_requires_label_or_option() -> None:
+    g = Group(cli_args=["script.py"])
+
+    with pytest.raises(ValueError, match="Either label or option must be provided"):
+        g.text(help_text="Some option")
+
+
+def test_dropdown_options_cannot_be_empty() -> None:
+    g = Group(cli_args=["script.py"])
+
+    with pytest.raises(ValueError, match="Dropdown options cannot be empty"):
+        g.dropdown([], label="Style", help_text="Text style")
+
+
 def test_subgroup_prefixes_options() -> None:
     g = Group(cli_args=["script.py", "--casing-style", "snake_case"])
     casing = g.subgroup("casing")

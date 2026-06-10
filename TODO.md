@@ -19,7 +19,7 @@ code is in good shape; these are the leftovers.
   `tuple[typing.Any, ...]`. Strict pyright doesn't flag it because `Any`
   absorbs everything. `_embed.py`'s `typing.cast(tuple[typing.Any], ())` for
   the empty Passthrough interface is a workaround for this and can go away.
-- [ ] **User-facing validation via `assert`** — `group.py:662`
+- [x] **User-facing validation via `assert`** — `group.py:662`
   (`assert len(options) > 0`) and the asserts in `_naming.OptionLabel.make`.
   Asserts vanish under `python -O` and these validate caller input, not
   internal invariants. Raise `ValueError` instead.

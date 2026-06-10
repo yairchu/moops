@@ -26,14 +26,15 @@ class OptionLabel:
 
         metavar_label = None
         if option is None:
-            assert label is not None, "Either label or option must be provided"
+            if label is None:
+                raise ValueError("Either label or option must be provided")
             option_label, metavar_label = split_label_metavar(label)
             option = f"--{prefix or ''}{option_label.lower().replace(' ', '-')}"
         else:
-            assert option.startswith("-"), f"Option must start with dash: {option}"
-            assert prefix is None or option.startswith(f"--{prefix}"), (
-                f"Option {option} must start with --{prefix}"
-            )
+            if not option.startswith("-"):
+                raise ValueError(f"Option must start with dash: {option}")
+            if prefix is not None and not option.startswith(f"--{prefix}"):
+                raise ValueError(f"Option {option} must start with --{prefix}")
             if label is None:
                 label = option_to_label(option)
         return OptionLabel(label=label, option=option, metavar_label=metavar_label)
