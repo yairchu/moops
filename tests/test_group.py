@@ -175,6 +175,37 @@ def test_subgroup_markdown_demotes_headings_in_notebooks(
     ]
 
 
+def test_subgroup_markdown_demotes_indented_converted_mo_md(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rendered: list[str] = []
+
+    def fake_md(text: str) -> mo.Html:
+        rendered.append(text)
+        return typing.cast(mo.Html, object())
+
+    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
+    monkeypatch.setattr(group_module.mo, "query_params", lambda: dict[str, str]())
+    monkeypatch.setattr(group_module.mo, "md", fake_md)
+
+    g = Group(cli_args=["script.py"])
+    sub = g.subgroup("embedded")
+
+    sub.md(
+        """
+    # Converted title
+
+    ```
+    # Not a title
+    ```
+    """
+    )
+
+    assert rendered == [
+        "\n    ## Converted title\n\n    ```\n    # Not a title\n    ```\n    "
+    ]
+
+
 def test_subgroup_markdown_demotes_headings_in_cli(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
