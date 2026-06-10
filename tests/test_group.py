@@ -20,6 +20,7 @@ import moops.group as group_module
 from examples.composition import variant_trip
 from moops import Group, _input_map, _marimo_controls, _options, _parse
 from moops._custom_element import CustomElement
+from moops._ui_workarounds import FileBrowserWithInitialSelection
 
 
 def test_help_exits_zero() -> None:
@@ -1419,6 +1420,21 @@ def test_file_browser_multiple_current_args_repeats_option(
     assert iface._current_args() == (  # type: ignore[attr-defined]
         f"--file {first} --file '{second}'"
     )
+
+
+def test_file_browser_fallback_display_preserves_default_paths() -> None:
+    ctrl = FileBrowserWithInitialSelection(
+        default=["second.txt", "first.txt", "second.txt"],
+        initial_path="",
+        label="Files",
+        multiple=True,
+    )
+
+    mime_type, rendered = ctrl._mime_()  # type: ignore[reportPrivateUsage]
+
+    assert mime_type == "text/html"
+    assert rendered.index("second.txt") < rendered.index("first.txt")
+    assert rendered.count("second.txt") == 2
 
 
 def test_variant_rejects_inactive_branch_options() -> None:
