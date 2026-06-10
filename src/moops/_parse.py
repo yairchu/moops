@@ -1,10 +1,12 @@
 import dataclasses
+import re
 import sys
 
 import marimo as mo
 
 help_flags = ["--help", "-h"]
 interactive_flag = "--interactive"
+_negative_number_token = re.compile(r"^-(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$")
 
 
 @dataclasses.dataclass
@@ -39,7 +41,7 @@ class ParsedArgs:
         unexpected: list[str] = []
         prev = None
         for arg in args:
-            is_negative_num = len(arg) > 1 and arg[0] == "-" and arg[1].isdigit()
+            is_negative_num = _is_negative_number_token(arg)
             if arg.startswith("-") and not (prev is not None and is_negative_num):
                 if "=" in arg:
                     key, value = arg.split("=", 1)
@@ -77,3 +79,7 @@ def split_argv(args: list[str] | None) -> tuple[str, list[str]]:
             args = args[-1:]
     cmd, *rest = args
     return cmd, rest
+
+
+def _is_negative_number_token(arg: str) -> bool:
+    return _negative_number_token.match(arg) is not None

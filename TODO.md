@@ -51,7 +51,7 @@ code is in good shape; these are the leftovers.
 
 ## Minor / edge cases
 
-- [ ] `_parse.from_options` / `_is_option_token` treat only `-<digit>` as a
+- [x] `_parse.from_options` / `_is_option_token` treat only `-<digit>` as a
   negative-number value, so `--x -.5` fails confusingly ("Unexpected
   argument: -.5") while `--x=-.5` works. (Round-trip of formatted values is
   safe: `str()` of any float starts with `-<digit>`.) Consider mentioning the
