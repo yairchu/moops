@@ -10,6 +10,14 @@ def option_to_label(option: str) -> str:
     return option.lstrip("-").replace("-", " ")
 
 
+def option_to_key(option: str, option_prefix: str = "") -> str:
+    """Convert a CLI option to an override/query/interface key."""
+    key = option[len(option_prefix) :].lstrip("-")
+    if key.startswith("no-"):
+        key = key[3:]
+    return key.replace("-", "_")
+
+
 @dataclasses.dataclass
 class OptionLabel:
     """Maps between UI labels and CLI option names."""

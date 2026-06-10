@@ -4,7 +4,7 @@ import typing
 
 import marimo as mo
 
-from . import _list_options, _options, _parse, _query_params
+from . import _list_options, _naming, _options, _parse, _query_params
 
 _UNSET: typing.Any = object()
 
@@ -19,10 +19,7 @@ class ValueResolver:
     default_preset_state: _parse.ParseState | None
 
     def override_key(self, option: str) -> str:
-        option = option[len(self.option_prefix) :].lstrip("-")
-        if option.startswith("no-"):
-            option = option[3:]
-        return option.replace("-", "_")
+        return _naming.option_to_key(option, self.option_prefix)
 
     def get_value(
         self,

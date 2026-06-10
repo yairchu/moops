@@ -12,6 +12,7 @@ from . import (
     _input_map,
     _list_options,
     _marimo_controls,
+    _naming,
     _options,
     _parse,
     _presets_ui,
@@ -287,10 +288,7 @@ class Interface:
         ]
 
     def _key(self, input_control: _options.InputControl) -> str:
-        option = input_control.option[len(self.option_prefix) :].lstrip("-")
-        if option.startswith("no-"):
-            option = option[3:]
-        return option.replace("-", "_")
+        return _naming.option_to_key(input_control.option, self.option_prefix)
 
     def iter_controls(
         self,

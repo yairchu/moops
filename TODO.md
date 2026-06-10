@@ -23,7 +23,7 @@ code is in good shape; these are the leftovers.
   (`assert len(options) > 0`) and the asserts in `_naming.OptionLabel.make`.
   Asserts vanish under `python -O` and these validate caller input, not
   internal invariants. Raise `ValueError` instead.
-- [ ] **Duplicated key-normalization logic that must never drift** —
+- [x] **Duplicated key-normalization logic that must never drift** —
   `_value_resolution.ValueResolver.override_key` (`_value_resolution.py:21`)
   and `Interface._key` (`interface.py:289`) implement the identical algorithm
   (strip option prefix, lstrip dashes, drop `no-`, dashes→underscores). If one
