@@ -27,7 +27,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   matching the already-supported `--count=-.5` form.
 - `Group.md` CLI output now strips language-tagged fenced code blocks and no
   longer mangles separate inline code spans that happen to start and end with
-  backticks.
+  backticks, nor text containing multiple separate fenced blocks.
+- Errors for options missing their value now suggest the `--option=value` form
+  when the next argument starts with a dash, such as `--tag -dev`.
 
 ## [0.11.4] - 2026-06-09
 

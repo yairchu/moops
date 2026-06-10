@@ -14,6 +14,10 @@ class ParsedArgs:
     options: dict[str, list[str | None]]
     unexpected: list[str]
     raw_args: list[str] = dataclasses.field(default_factory=list[str])
+    # Option still awaiting a value → the dash-leading token that followed it.
+    # Lets validation suggest the `--option=value` form when that token was
+    # probably meant as the value.
+    dash_followers: dict[str, str] = dataclasses.field(default_factory=dict[str, str])
 
     def values_for(self, option: str) -> list[str | None]:
         return self.options.get(option, [])
@@ -39,10 +43,13 @@ class ParsedArgs:
 
         options: dict[str, list[str | None]] = {}
         unexpected: list[str] = []
+        dash_followers: dict[str, str] = {}
         prev = None
         for arg in args:
             is_negative_num = _is_negative_number_token(arg)
             if arg.startswith("-") and not (prev is not None and is_negative_num):
+                if prev is not None:
+                    dash_followers.setdefault(prev, arg)
                 if "=" in arg:
                     key, value = arg.split("=", 1)
                     options.setdefault(key, []).append(value)
@@ -55,7 +62,12 @@ class ParsedArgs:
                 prev = None
             else:
                 unexpected.append(arg)
-        return cls(options=options, unexpected=unexpected, raw_args=args)
+        return cls(
+            options=options,
+            unexpected=unexpected,
+            raw_args=args,
+            dash_followers=dash_followers,
+        )
 
 
 @dataclasses.dataclass

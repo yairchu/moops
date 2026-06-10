@@ -132,9 +132,18 @@ class Interface:
             elif k in value_options:
                 if len(values) > 1 and not value_options[k].allows_repeated_values():
                     yield f"{k} was provided multiple times"
+                follower = state.args.dash_followers.get(k)
+                hint = (
+                    f" (use {k}={follower} to pass a value starting with '-')"
+                    if follower is not None
+                    and follower not in rendered
+                    and follower not in _parse.help_flags
+                    and follower != _parse.interactive_flag
+                    else ""
+                )
                 for v in values:
                     if v is None:
-                        yield f"Option {k} requires a value"
+                        yield f"Option {k} requires a value{hint}"
             elif k not in _parse.help_flags and k != _parse.interactive_flag:
                 yield f"{unexp_text}{k}"
 
