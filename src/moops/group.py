@@ -354,6 +354,27 @@ class Group:
         _terminal_graphics.emit(_terminal_graphics.to_png(fig, dpi=dpi))
         return None
 
+    def _bool_control(
+        self,
+        widget: typing.Literal["switch", "checkbox"],
+        value: bool,
+        flag: str | None,
+        *,
+        help_text: str,
+        label: str | None,
+        on_change: typing.Callable[[bool], None] | None,
+        **kwargs: typing.Any,
+    ) -> typing.Any:
+        opt = self._make_opt(label=label, option=flag, prefix="no-" if value else None)
+        input_control = _options.FlagControl(
+            option=opt.option,
+            help_text=help_text,
+            default=value,
+            widget=widget,
+            extra_kwargs=kwargs,
+        )
+        return self._register_control(opt, input_control, help_text, on_change)
+
     def switch(
         self,
         value: bool = False,
@@ -365,16 +386,15 @@ class Group:
         **kwargs: typing.Any,
     ) -> mo.ui.switch:
         """Create a switch UI element that maps to a CLI flag."""
-
-        opt = self._make_opt(label=label, option=flag, prefix="no-" if value else None)
-        input_control = _options.FlagControl(
-            option=opt.option,
+        return self._bool_control(
+            "switch",
+            value,
+            flag,
             help_text=help_text,
-            default=value,
-            widget="switch",
-            extra_kwargs=kwargs,
+            label=label,
+            on_change=on_change,
+            **kwargs,
         )
-        return self._register_control(opt, input_control, help_text, on_change)
 
     def checkbox(
         self,
@@ -387,16 +407,15 @@ class Group:
         **kwargs: typing.Any,
     ) -> mo.ui.checkbox:
         """Create a checkbox UI element that maps to a CLI flag."""
-
-        opt = self._make_opt(label=label, option=flag, prefix="no-" if value else None)
-        input_control = _options.FlagControl(
-            option=opt.option,
+        return self._bool_control(
+            "checkbox",
+            value,
+            flag,
             help_text=help_text,
-            default=value,
-            widget="checkbox",
-            extra_kwargs=kwargs,
+            label=label,
+            on_change=on_change,
+            **kwargs,
         )
-        return self._register_control(opt, input_control, help_text, on_change)
 
     def text(
         self,

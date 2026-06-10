@@ -30,7 +30,7 @@ code is in good shape; these are the leftovers.
   changes, `moops.run()` override keys and interface/query keys silently
   diverge. Extract one shared helper (e.g. in `_naming`).
 - [ ] **Sub-threshold duplication** (symilar's 5-line gate misses these):
-  - `Group.switch` / `Group.checkbox` — only the widget literal differs.
+  - ~~`Group.switch` / `Group.checkbox` — only the widget literal differs.~~
   - ~~`FileControl.create_marimo_element` / `MultiFileControl.create_marimo_element`
     — same browser_kwargs / initial_path dance.~~
   - ~~`MultiFileControl.parse_query_value` / `MultiSelectControl.parse_query_value`
