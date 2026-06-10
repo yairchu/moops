@@ -21,6 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   unchanged.
 - Interactive multiselect prompts now accept numbered replies such as `1,3`,
   matching the numbered menu they display.
+- Interactive prompts now preserve the default value instead of crashing when
+  stdin reaches EOF after an invalid reply.
 - Split CLI values such as `--count -.5` now parse as negative decimals,
   matching the already-supported `--count=-.5` form.
 - Split CLI range values such as `--range -5,10` now parse correctly, and

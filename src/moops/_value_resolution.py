@@ -96,6 +96,8 @@ class ValueResolver:
                     pass
         try:
             tokens = control.prompt_interactive(effective_default)
+        except EOFError:
+            return _UNSET
         except KeyboardInterrupt:
             print("\nAborted.")
             sys.exit(1)
