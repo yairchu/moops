@@ -19,6 +19,27 @@ def demote_markdown_headings(text: str, levels: int) -> str:
     return "".join(lines)
 
 
+def strip_outer_fence(text: str) -> str | None:
+    """Return ``text`` without the code fence wrapping all of it, else None.
+
+    A fence on the first line only counts as wrapping when it stays open
+    until the last line; text containing multiple separate fenced blocks is
+    left alone.
+    """
+    lines = text.split("\n")
+    if len(lines) < 2:
+        return None
+    fence = _update_markdown_fence(lines[0], None)
+    if fence is None:
+        return None
+    for line in lines[1:-1]:
+        if _update_markdown_fence(line, fence) is None:
+            return None
+    if _update_markdown_fence(lines[-1], fence) is not None:
+        return None
+    return "\n".join(lines[1:-1])
+
+
 def _common_indent_margin(text: str) -> int:
     indents = [
         len(line) - len(line.lstrip(" ")) for line in text.splitlines() if line.strip()
