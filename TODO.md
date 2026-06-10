@@ -65,4 +65,5 @@ code is in good shape; these are the leftovers.
 - [ ] `tests/test_group.py` (2.5k lines, 106 tests) is big enough to consider
   splitting by area (parsing, lists, variants, query params) next time it grows.
   Markdown tests have already been moved to `tests/test_markdown.py`; property
-  tests have been moved to `tests/test_properties.py`.
+  tests have been moved to `tests/test_properties.py`; plain list tests have
+  been moved to `tests/test_lists.py`.
