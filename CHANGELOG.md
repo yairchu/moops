@@ -13,6 +13,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `Group.md` now demotes headings in indented triple-quoted markdown strings,
   matching converted `mo.md(...)` calls whose markdown content stays indented in
   the Python source.
+- File browser CLI fallbacks now display repeated default paths in their
+  original order instead of rendering them through an unordered, deduplicating
+  set.
+- Invalid control definitions now raise `ValueError` consistently, including
+  under optimized Python, instead of relying on `assert`.
+- Script callouts and editable commands now derive command names with platform
+  path rules instead of always splitting on `/`.
+- Interactive multiselect prompts now reject invalid entries immediately and
+  re-prompt instead of falling through to parse errors that leave defaults
+  unchanged.
+- Split CLI values such as `--count -.5` now parse as negative decimals,
+  matching the already-supported `--count=-.5` form.
 
 ## [0.11.4] - 2026-06-09
 
