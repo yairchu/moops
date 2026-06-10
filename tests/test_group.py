@@ -574,6 +574,29 @@ def test_interactive_multiselect_accepts_numbered_choices(
     assert ctrl.value == ["a", "c"]
 
 
+def test_interactive_multiselect_eof_after_invalid_input_keeps_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = iter(["typo"])
+
+    def fake_input(_prompt: str) -> str:
+        try:
+            return next(responses)
+        except StopIteration:
+            raise EOFError from None
+
+    monkeypatch.setattr("builtins.input", fake_input)
+    g = Group(cli_args=["script.py", "--interactive"])
+    ctrl = g.multiselect(
+        ["a", "b", "c"],
+        value=["b"],
+        label="Tags",
+        help_text="Tags",
+    )
+    g.interface(ctrl)
+    assert ctrl.value == ["b"]
+
+
 def test_parse_query_value_raises_runtime_error_for_broken_control() -> None:
     """A control whose parse() returns None despite the option being present
     should raise RuntimeError, not AssertionError."""
