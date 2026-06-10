@@ -189,7 +189,7 @@ def _slider_ctrl(value: float) -> _options.InputControl:
 def _range_ctrl(pair: tuple[float, float]) -> _options.InputControl:
     return _control_from(
         lambda g: g.range_slider(
-            start=0, stop=100, value=sorted(pair), option="--opt", help_text="h"
+            start=-100, stop=100, value=sorted(pair), option="--opt", help_text="h"
         )
     )
 
@@ -237,8 +237,8 @@ _QUERY_CONTROL_STRATEGY: st.SearchStrategy[_options.InputControl] = st.one_of(
     st.builds(
         _range_ctrl,
         st.tuples(
-            st.floats(min_value=0, max_value=100),
-            st.floats(min_value=0, max_value=100),
+            st.floats(min_value=-100, max_value=100),
+            st.floats(min_value=-100, max_value=100),
         ),
     ),
     st.builds(_dropdown_ctrl, st.booleans()),

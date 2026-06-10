@@ -58,6 +58,7 @@ def test_help_option_lines_wrap_at_88_columns(
     option_lines = [line for line in out.splitlines() if line.startswith("  --")]
     assert all(len(line) <= 88 for line in option_lines)
 
+
 def test_standalone_option_after_variant_group_is_separated_in_help(
     capsys: pytest.CaptureFixture[str],
 ) -> None:

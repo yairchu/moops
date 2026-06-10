@@ -183,6 +183,18 @@ def test_number_accepts_split_negative_decimal_without_leading_zero() -> None:
     assert ctrl.value == -0.5
 
 
+def test_range_slider_accepts_split_negative_start() -> None:
+    g = Group(cli_args=["script.py", "--range", "-5,10"])
+    ctrl = g.range_slider(
+        start=-100,
+        stop=100,
+        value=[0, 10],
+        option="--range",
+        help_text="Range",
+    )
+    assert ctrl.value == [-5.0, 10.0]
+
+
 def test_validation_error_not_shown_for_unrendered_control(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
