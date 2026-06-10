@@ -815,7 +815,7 @@ class RangeControl(ValueControl):
     def format_value(self, value: typing.Any) -> list[str]:
         if self.default is not None and list(value) == self.default:
             return []
-        return [f"{self.option} {_format_range(value)}"]
+        return [option_value_token(self.option, _format_range(value))]
 
     def format_query_value(self, value: typing.Any) -> str | None:
         if self.default is not None and list(value) == self.default:
