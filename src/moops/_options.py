@@ -338,6 +338,43 @@ class TextControl(ValueControl):
         return [self.option, response] if response else []
 
 
+def _create_file_browser(
+    first_path: str,
+    default_paths: list[str],
+    *,
+    label: str,
+    multiple: bool,
+    on_change: typing.Callable[
+        [typing.Sequence[_ui_workarounds.FileBrowserFileInfo]], None
+    ],
+    extra_kwargs: dict[str, typing.Any],
+) -> typing.Any:
+    p = pathlib.Path(first_path) if first_path else None
+    initial_path = str(p.parent) if (p and p.is_file()) else first_path
+    browser_kwargs: dict[str, typing.Any] = dict(
+        initial_path=initial_path,
+        label=label,
+        multiple=multiple,
+        on_change=on_change,
+        **extra_kwargs,
+    )
+    if default_paths:
+        return _ui_workarounds.FileBrowserWithInitialSelection(
+            default=default_paths, **browser_kwargs
+        )
+    return mo.ui.file_browser(**browser_kwargs)
+
+
+def _decode_json_list(value: str) -> list[typing.Any] | None:
+    try:
+        raw: typing.Any = json.loads(value)
+    except json.JSONDecodeError:
+        raw = [value] if value else []
+    if not isinstance(raw, list):
+        return None
+    return typing.cast(list[typing.Any], raw)
+
+
 @dataclasses.dataclass
 class FileControl(TextControl):
     def create_marimo_element(
@@ -358,20 +395,14 @@ class FileControl(TextControl):
                 on_change(paths[0] if paths else "")
 
         path = str(value) if value else ""
-        p = pathlib.Path(path) if path else None
-        initial_path = str(p.parent) if (p and p.is_file()) else path
-        browser_kwargs: dict[str, typing.Any] = dict(
-            initial_path=initial_path,
+        return _create_file_browser(
+            path,
+            [path] if path else [],
             label=label,
             multiple=False,
             on_change=_on_change,
-            **self.extra_kwargs,
+            extra_kwargs=self.extra_kwargs,
         )
-        if path:
-            return _ui_workarounds.FileBrowserWithInitialSelection(
-                default=[path], **browser_kwargs
-            )
-        return mo.ui.file_browser(**browser_kwargs)
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         result = super().parse(args)
@@ -416,21 +447,14 @@ class MultiFileControl(ValueControl):
                 on_change([str(info.path) for info in infos])
 
         paths = list(value) if value else []
-        first = paths[0] if paths else ""
-        p = pathlib.Path(first) if first else None
-        initial_path = str(p.parent) if (p and p.is_file()) else first
-        browser_kwargs: dict[str, typing.Any] = dict(
-            initial_path=initial_path,
+        return _create_file_browser(
+            paths[0] if paths else "",
+            paths,
             label=label,
             multiple=True,
             on_change=_on_change,
-            **self.extra_kwargs,
+            extra_kwargs=self.extra_kwargs,
         )
-        if paths:
-            return _ui_workarounds.FileBrowserWithInitialSelection(
-                default=paths, **browser_kwargs
-            )
-        return mo.ui.file_browser(**browser_kwargs)
 
     def allows_repeated_values(self) -> bool:
         return True
@@ -449,16 +473,13 @@ class MultiFileControl(ValueControl):
         return ParseResult(paths)
 
     def parse_query_value(self, value: str) -> ParseResult | ParseError:
-        try:
-            raw: typing.Any = json.loads(value)
-        except json.JSONDecodeError:
-            raw = [value] if value else []
-        if not isinstance(raw, list):
+        raw = _decode_json_list(value)
+        if raw is None:
             return ParseError(
                 f"Query parameter for {self.option} must be a JSON list of paths"
             )
         paths: list[str] = []
-        for item in typing.cast(list[typing.Any], raw):
+        for item in raw:
             if not isinstance(item, str):
                 return ParseError(
                     f"Query parameter for {self.option} must be a JSON list of paths"
@@ -878,14 +899,11 @@ class MultiSelectControl(_NoneFlag, ValueControl):
         return ParseResult(result)
 
     def parse_query_value(self, value: str) -> ParseResult | ParseError:
-        try:
-            raw: typing.Any = json.loads(value)
-        except json.JSONDecodeError:
-            raw = [value] if value else []
-        if not isinstance(raw, list):
+        raw = _decode_json_list(value)
+        if raw is None:
             return ParseError(f"Query parameter for {self.option} must be a JSON list")
         keys: list[str] = []
-        for item in typing.cast(list[typing.Any], raw):
+        for item in raw:
             if not isinstance(item, str) or item not in self.select_opts:
                 return ParseError(
                     f"Query parameter for {self.option} must be a list of"

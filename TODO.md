@@ -31,10 +31,10 @@ code is in good shape; these are the leftovers.
   diverge. Extract one shared helper (e.g. in `_naming`).
 - [ ] **Sub-threshold duplication** (symilar's 5-line gate misses these):
   - `Group.switch` / `Group.checkbox` — only the widget literal differs.
-  - `FileControl.create_marimo_element` / `MultiFileControl.create_marimo_element`
-    — same browser_kwargs / initial_path dance.
-  - `MultiFileControl.parse_query_value` / `MultiSelectControl.parse_query_value`
-    — same JSON-list parsing shape.
+  - ~~`FileControl.create_marimo_element` / `MultiFileControl.create_marimo_element`
+    — same browser_kwargs / initial_path dance.~~
+  - ~~`MultiFileControl.parse_query_value` / `MultiSelectControl.parse_query_value`
+    — same JSON-list parsing shape.~~
   - `Interface.validate` flag/value loop vs `_list_options._validate_item_args`
     — same validation semantics implemented twice.
 
