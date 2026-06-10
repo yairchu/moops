@@ -40,12 +40,6 @@ code is in good shape; these are the leftovers.
 
 ## Maintainability risks
 
-- [ ] **Unbounded `marimo>=0.23.1` while depending on marimo privates** —
-  code imports `marimo._plugins.ui._core.ui_element`,
-  `marimo._runtime.context`, `marimo._messaging.mimetypes`, and reads/writes
-  `_value`, `_selected_key`, `_id`, `_lens`, `_on_change`, `_component_args`.
-  Any marimo release can break installed copies at runtime. Add an upper bound
-  on marimo, or a CI job against marimo pre-releases.
 - [x] **`inspect.stack()` where `currentframe()` suffices** — `group.py:233`
   (`Group.interface`) builds the full stack with source context per call;
   `inspect.currentframe().f_back` (already used in `subgroup`) is far cheaper.
@@ -70,7 +64,5 @@ code is in good shape; these are the leftovers.
 - [ ] `MultiSelectControl.prompt_interactive` doesn't validate entries against
   the choices (number/file/dropdown prompts re-prompt until valid); a typo
   surfaces later as a parse error instead.
-- [ ] `_UNSET = object()` sentinel defined independently in `_options`,
-  `_list_options`, and `_value_resolution`; could be shared.
 - [ ] `tests/test_group.py` (2.5k lines, 106 tests) is big enough to consider
   splitting by area (parsing, lists, variants, query params) next time it grows.
