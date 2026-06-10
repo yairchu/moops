@@ -96,6 +96,19 @@ def test_cli_markdown_preserves_separate_inline_code_spans(
     assert capsys.readouterr().out == "`first` and `second`\n\n"
 
 
+def test_cli_markdown_preserves_separate_fenced_blocks(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    g = Group(cli_args=["script.py"])
+
+    # Two separate fenced blocks: the first and last lines are fences, but
+    # they do not wrap the whole text, so nothing should be stripped.
+    text = "```\na = 1\n```\nprose between blocks\n```\nb = 2\n```"
+    g.md(text)
+
+    assert capsys.readouterr().out == f"{text}\n\n"
+
+
 def test_subgroup_markdown_heading_offset_is_configurable(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
