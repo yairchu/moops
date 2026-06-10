@@ -293,6 +293,21 @@ def test_number_accepts_split_negative_decimal_without_leading_zero() -> None:
     assert ctrl.value == -0.5
 
 
+def test_split_dash_value_error_suggests_equals_form(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # A dash-leading non-numeric value is tokenized as an option, so
+    # `--tag -dev` fails while `--tag=-dev` works. The error should point
+    # the user at the working form.
+    g = Group(cli_args=["script.py", "--tag", "-dev"])
+    ctrl = g.text(option="--tag", help_text="Tag")
+    with pytest.raises(SystemExit) as exc_info:
+        g.interface(ctrl)
+    assert exc_info.value.code != 0
+    output = capsys.readouterr().out
+    assert "--tag=-dev" in output
+
+
 def test_validation_error_not_shown_for_unrendered_control(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
