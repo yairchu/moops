@@ -234,6 +234,26 @@ def test_subgroup_markdown_demotes_headings_in_cli(
     )
 
 
+def test_cli_markdown_strips_language_fence(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    g = Group(cli_args=["script.py"])
+
+    g.md("```python\nprint('hello')\n```")
+
+    assert capsys.readouterr().out == "print('hello')\n\n"
+
+
+def test_cli_markdown_preserves_separate_inline_code_spans(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    g = Group(cli_args=["script.py"])
+
+    g.md("`first` and `second`")
+
+    assert capsys.readouterr().out == "`first` and `second`\n\n"
+
+
 def test_subgroup_markdown_heading_offset_is_configurable(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
