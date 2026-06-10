@@ -19,10 +19,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Interactive multiselect prompts now reject invalid entries immediately and
   re-prompt instead of falling through to parse errors that leave defaults
   unchanged.
+- Interactive multiselect prompts now accept numbered replies such as `1,3`,
+  matching the numbered menu they display.
 - Split CLI values such as `--count -.5` now parse as negative decimals,
   matching the already-supported `--count=-.5` form.
+- Split CLI range values such as `--range -5,10` now parse correctly, and
+  generated range-slider commands with negative values now round-trip.
 - Errors for options missing their value now suggest the `--option=value` form
   when the next argument starts with a dash, such as `--tag -dev`.
+- Missing-value hints now shell-quote dash-leading multi-word values, such as
+  `--tag='-d ev'`.
 - File browser CLI fallbacks now display repeated default paths in their
   original order instead of rendering them through an unordered, deduplicating
   set.
