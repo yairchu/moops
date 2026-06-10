@@ -65,6 +65,19 @@ def test_split_dash_value_error_suggests_equals_form(
     assert "--tag=-dev" in output
 
 
+def test_split_dash_value_hint_shell_quotes_multi_word_value() -> None:
+    g = Group(cli_args=["script.py"])
+    ctrl = g.text(option="--tag", help_text="Tag")
+    iface = g.interface(ctrl)
+
+    errors = iface.apply_cli_args("script.py --tag '-d ev'")
+
+    assert errors[0] == (
+        "Option --tag requires a value "
+        "(use --tag='-d ev' to pass a value starting with '-')"
+    )
+
+
 def test_variant_rejects_inactive_branch_options() -> None:
     g = Group(
         cli_args=[
