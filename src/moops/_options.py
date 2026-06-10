@@ -965,14 +965,21 @@ class MultiSelectControl(_NoneFlag, ValueControl):
             if not response:
                 return []
             parts = [p.strip() for p in response.split(",") if p.strip()]
-            invalid = [part for part in parts if part not in self.select_opts]
+            choices = list(self.select_opts)
+            selected = [
+                choices[int(part) - 1]
+                if part.isdigit() and 1 <= int(part) <= len(choices)
+                else part
+                for part in parts
+            ]
+            invalid = [part for part in selected if part not in self.select_opts]
             if invalid:
                 print(
                     f"Please choose from {list(self.select_opts)!r}; "
                     f"invalid: {invalid!r}"
                 )
                 continue
-            return [tok for part in parts for tok in (self.option, part)]
+            return [tok for part in selected for tok in (self.option, part)]
 
     def _key_for(self, value: typing.Any) -> str:
         return _choice_options.option_key(self.select_opts, value)

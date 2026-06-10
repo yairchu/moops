@@ -134,7 +134,8 @@ class Interface:
                     yield f"{k} was provided multiple times"
                 follower = state.args.dash_followers.get(k)
                 hint = (
-                    f" (use {k}={follower} to pass a value starting with '-')"
+                    f" (use {k}={shlex.quote(follower)} "
+                    "to pass a value starting with '-')"
                     if follower is not None
                     and follower not in rendered
                     and follower not in _parse.help_flags
