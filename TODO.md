@@ -64,4 +64,5 @@ code is in good shape; these are the leftovers.
   surfaces later as a parse error instead.
 - [ ] `tests/test_group.py` (2.5k lines, 106 tests) is big enough to consider
   splitting by area (parsing, lists, variants, query params) next time it grows.
-  Markdown tests have already been moved to `tests/test_markdown.py`.
+  Markdown tests have already been moved to `tests/test_markdown.py`; property
+  tests have been moved to `tests/test_properties.py`.
