@@ -1,5 +1,6 @@
 import dataclasses
 import html
+import pathlib
 import shlex
 import sys
 import typing
@@ -161,7 +162,7 @@ class Interface:
             tokens = shlex.split(text)
         except ValueError as exc:
             return (f"Could not parse arguments: {exc}",)
-        name = self.command.rsplit("/", 1)[-1]
+        name = pathlib.PurePath(self.command).name
         if tokens and tokens[0] == name:
             tokens = tokens[1:]
         args = _parse.ParsedArgs.from_options(tokens)
@@ -186,7 +187,7 @@ class Interface:
         if any(self._input_controls(active_only=True)):
             usage_parts.append("[--interactive]")
         usage_parts.append("[-h/--help]")
-        name = self.command.rsplit("/", 1)[-1]
+        name = pathlib.PurePath(self.command).name
         prefix = f"Usage: {name} "
         segments = [_text_wrap.wrap_usage(prefix, usage_parts)]
         help_lines = list(self._format_help_lines())
@@ -432,7 +433,7 @@ class Interface:
 
     def _root_panel(self) -> mo.Html:
         args = self._current_args()
-        name = self.command.rsplit("/", 1)[-1]
+        name = pathlib.PurePath(self.command).name
         missing_options = self.missing_options()
         missing_options_msg = (
             f"\nMissing options: {', '.join(f'`{opt}`' for opt in missing_options)}"

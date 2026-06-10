@@ -44,7 +44,7 @@ code is in good shape; these are the leftovers.
   (`Group.interface`) builds the full stack with source context per call;
   `inspect.currentframe().f_back` (already used in `subgroup`) is far cheaper.
   Same in `presets._stack_filename`, which indexes two frames up the stack.
-- [ ] **Unix-only path splitting** — `interface.py` `help()` and
+- [x] **Unix-only path splitting** — `interface.py` `help()` and
   `apply_cli_args()` take the command basename by splitting on `"/"`; won't
   strip directories on Windows. Use `pathlib.PurePath(...).name` if Windows
   matters.
