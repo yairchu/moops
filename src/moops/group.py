@@ -230,7 +230,13 @@ class Group:
         sync with what is actually live (handles cell reruns and deletions).
         """
 
-        caller_path = pathlib.Path(inspect.stack()[1].filename)
+        frame = inspect.currentframe()
+        if frame is None or frame.f_back is None:
+            raise RuntimeError("Could not inspect caller frame")
+        try:
+            caller_path = pathlib.Path(frame.f_back.f_code.co_filename)
+        finally:
+            del frame
         try:
             notebook_file = caller_path.resolve().relative_to(
                 pathlib.Path.cwd().resolve()

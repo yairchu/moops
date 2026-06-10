@@ -139,7 +139,13 @@ def _marimo_notebook_filename() -> pathlib.Path | None:
 
 
 def _stack_filename() -> pathlib.Path:
-    caller = pathlib.Path(inspect.stack()[2].filename)
+    frame = inspect.currentframe()
+    if frame is None or frame.f_back is None or frame.f_back.f_back is None:
+        raise RuntimeError("Could not inspect caller frame")
+    try:
+        caller = pathlib.Path(frame.f_back.f_back.f_code.co_filename)
+    finally:
+        del frame
     if caller.name.startswith("<"):
         raise ValueError("Presets filename could not be inferred; pass a filename")
     return caller

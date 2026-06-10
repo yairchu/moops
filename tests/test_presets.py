@@ -27,9 +27,7 @@ def _mock_preset_caller(
     tmp_path: pathlib.Path,
     filename: str = "notebook.py",
 ) -> None:
-    caller = mock.Mock(filename=str(tmp_path / filename))
-    frame = mock.Mock(filename=str(tmp_path / "test.py"))
-    monkeypatch.setattr("moops.presets.inspect.stack", lambda: [frame, frame, caller])
+    monkeypatch.setattr("moops.presets._stack_filename", lambda: tmp_path / filename)
 
 
 def test_preset_ui_elements_stable_across_renders(
@@ -530,8 +528,7 @@ def test_presets_prefer_marimo_notebook_filename(
 ) -> None:
     notebook = tmp_path / "notebook.py"
     generated_cell = tmp_path / "marimo_123" / "__marimo__cell_Xref__presets.py"
-    frame = mock.Mock(filename=str(generated_cell))
-    monkeypatch.setattr("moops.presets.inspect.stack", lambda: [frame, frame, frame])
+    monkeypatch.setattr("moops.presets._stack_filename", lambda: generated_cell)
     monkeypatch.setattr("moops.presets._marimo_notebook_filename", lambda: notebook)
 
     presets = Presets(lambda: None, lambda _: None)

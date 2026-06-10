@@ -46,7 +46,7 @@ code is in good shape; these are the leftovers.
   `_value`, `_selected_key`, `_id`, `_lens`, `_on_change`, `_component_args`.
   Any marimo release can break installed copies at runtime. Add an upper bound
   on marimo, or a CI job against marimo pre-releases.
-- [ ] **`inspect.stack()` where `currentframe()` suffices** — `group.py:233`
+- [x] **`inspect.stack()` where `currentframe()` suffices** — `group.py:233`
   (`Group.interface`) builds the full stack with source context per call;
   `inspect.currentframe().f_back` (already used in `subgroup`) is far cheaper.
   Same in `presets._stack_filename`, which indexes two frames up the stack.
