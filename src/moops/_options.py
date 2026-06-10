@@ -940,11 +940,21 @@ class MultiSelectControl(_NoneFlag, ValueControl):
             mark = "*" if v in default_keys else " "
             print(f"  {mark}{i}) {v}")
         default_display = f" [{', '.join(default_keys)}]" if default_keys else ""
-        response = input(f"{self.help_text} (comma-separated){default_display}: ")
-        if not response:
-            return []
-        parts = [p.strip() for p in response.split(",") if p.strip()]
-        return [tok for part in parts for tok in (self.option, part)]
+        while True:
+            response = input(
+                f"{self.help_text} (comma-separated){default_display}: "
+            ).strip()
+            if not response:
+                return []
+            parts = [p.strip() for p in response.split(",") if p.strip()]
+            invalid = [part for part in parts if part not in self.select_opts]
+            if invalid:
+                print(
+                    f"Please choose from {list(self.select_opts)!r}; "
+                    f"invalid: {invalid!r}"
+                )
+                continue
+            return [tok for part in parts for tok in (self.option, part)]
 
     def _key_for(self, value: typing.Any) -> str:
         return _choice_options.option_key(self.select_opts, value)

@@ -59,7 +59,7 @@ code is in good shape; these are the leftovers.
 - [ ] `Group.md` CLI mode strips only bare ``` fences — ```` ```python ````
   blocks keep their fence; the single-backtick strip can mangle text with two
   separate inline code spans.
-- [ ] `MultiSelectControl.prompt_interactive` doesn't validate entries against
+- [x] `MultiSelectControl.prompt_interactive` doesn't validate entries against
   the choices (number/file/dropdown prompts re-prompt until valid); a typo
   surfaces later as a parse error instead.
 - [ ] `tests/test_group.py` (2.5k lines, 106 tests) is big enough to consider
