@@ -51,8 +51,6 @@ code is in good shape; these are the leftovers.
 
 ## Minor / edge cases
 
-- [ ] `group.py:659` — `allow_select_none: bool | None = None` is immediately
-  coerced to `True`; drop the dead `None` dance and default to `True`.
 - [ ] `_parse.from_options` / `_is_option_token` treat only `-<digit>` as a
   negative-number value, so `--x -.5` fails confusingly ("Unexpected
   argument: -.5") while `--x=-.5` works. (Round-trip of formatted values is
