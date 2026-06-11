@@ -426,10 +426,6 @@ def test_command_box_wraps_long_command_like_markdown(
 ) -> None:
     """The editable command box should use the same line-split formatting the
     read-only markdown code block does.
-
-    Known failure: ``command_box`` currently shows the flat single-line command
-    (``f"{name} {args}"``), while the no-presets markdown fallback wraps long
-    commands with ``\\``-continuations via ``wrap_command``.
     """
     params: dict[str, str] = {}
     monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
