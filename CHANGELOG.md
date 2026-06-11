@@ -21,6 +21,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   on the returned object's `output`, matching notebook-mode embeds, instead of
   always returning `None`.
 
+### Fixed
+
+- `Group.graphics_supported` switches matplotlib off GUI backends when
+  returning `True` on the CLI, fixing a crash on macOS when an app that plots
+  runs in a worker thread, e.g. when embedded by another notebook (GUI
+  backends only allow figure creation on the main thread, and CLI figures are
+  only ever rasterized).
+
 ## [0.12.0] - 2026-06-11
 
 ### Added
