@@ -168,6 +168,18 @@ def test_script_callout_command_wraps_long_list_options() -> None:
     assert longest <= 72, command
 
 
+def test_script_callout_command_uses_two_space_continuation_indent() -> None:
+    from moops._text_wrap import wrap_command
+
+    command = wrap_command(
+        "script.py",
+        ["--first value", "--second value"],
+        width=20,
+    )
+
+    assert command == "script.py \\\n  --first value \\\n  --second value"
+
+
 def test_list_controls_from_variant_parses_nested_items() -> None:
     variant_iface = moops.interface_of(variant_trip)
     g = Group(

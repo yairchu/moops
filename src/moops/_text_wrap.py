@@ -55,4 +55,4 @@ def wrap_command(name: str, groups: list[str], width: int = 72) -> str:
     single_line = " ".join([quoted_name, *groups])
     if not groups or len(single_line) <= width:
         return single_line
-    return " \\\n    ".join([quoted_name, *groups])
+    return " \\\n  ".join([quoted_name, *groups])

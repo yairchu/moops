@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - CLI command block in notebook shows full command path
+- Wrapped CLI command blocks now use two-space continuation indentation.
 
 ### Fixed
 
