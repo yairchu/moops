@@ -444,16 +444,9 @@ class Interface:
     def _root_panel(self) -> mo.Html:
         args = self._current_args()
         name = pathlib.PurePath(self.command).name
+        body_items: list[typing.Any] = [mo.md("This notebook also works as a script:")]
+        command = _text_wrap.wrap_command(name, self._arg_groups())
         missing_options = self.missing_options()
-        missing_options_msg = (
-            f"\nMissing options: {', '.join(f'`{opt}`' for opt in missing_options)}"
-            if missing_options
-            else ""
-        )
-        intro = "This notebook also works as a script:"
-        usage = (
-            f"<details><summary>Usage</summary>\n\n```\n{self.help()}\n```\n</details>"
-        )
         kind = "warn" if missing_options else "info"
         if self._presets_ui is not None:
             # With presets the command line itself is editable: edit (or paste)
@@ -461,11 +454,7 @@ class Interface:
             # shows the whole command, program name included and wrapped the same
             # way as the read-only callout, so it round-trips (apply_cli_args
             # folds the `\`-continuations back together before parsing).
-            command = _text_wrap.wrap_command(name, self._arg_groups())
-            body_items: list[typing.Any] = [
-                mo.md(intro),
-                self._presets_ui.command_box(command),
-            ]
+            body_items.append(self._presets_ui.command_box(command))
             # A failed edit turns the whole callout into an alert and shows the
             # errors inline, in the same fixed-width form the CLI prints them.
             errors = self._presets_ui.pending_errors()
@@ -473,15 +462,20 @@ class Interface:
                 kind = "danger"
                 error_lines = "\n".join(f"- {error}" for error in errors)
                 body_items.append(mo.md(f"```\nArgument errors:\n{error_lines}\n```"))
-            body_items.append(mo.md(f"{usage}\n{missing_options_msg}"))
-            body: typing.Any = mo.vstack(body_items)
         else:
-            current_command = _text_wrap.wrap_command(name, self._arg_groups())
-            body = mo.md(
-                f"{intro}\n\n```\n{current_command}\n```\n\n"
-                f"{usage}\n\n{missing_options_msg}"
+            body_items.append(mo.md(f"```\n{command}\n```"))
+        missing_options_msg = (
+            f"\nMissing options: {', '.join(f'`{opt}`' for opt in missing_options)}"
+            if missing_options
+            else ""
+        )
+        body_items.append(
+            mo.md(
+                f"<details><summary>Usage</summary>\n\n```\n{self.help()}\n```\n</details>\n"
+                f"{missing_options_msg}"
             )
-        items: list[typing.Any] = [mo.callout(body, kind)]
+        )
+        items: list[typing.Any] = [mo.callout(mo.vstack(body_items), kind)]
         if self._presets_ui is not None:
             items.append(self._presets_ui.layout(args))
         return mo.vstack(items)
