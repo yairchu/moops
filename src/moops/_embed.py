@@ -105,14 +105,33 @@ async def embed(
     effect). The embedded notebook's rendered cell outputs are stacked on the
     returned object's ``output``, matching notebook-mode embeds.
 
+    When ``args`` is the only overridden definition, the embedded notebook's
+    interface also shows a CLI command that reproduces the embed's current
+    setup standalone.
+
     This also works around marimo nested embed failures in script mode,
     see https://github.com/marimo-team/marimo/issues/9572
     """
     keep = _normalize_keep(keep)
+    _record_extra_overrides(defs)
     if mo.running_in_notebook():
         _raise_if_same_cell_app(app)
         return await app.embed(defs=defs)
     return await asyncio.to_thread(_embed_in_script, app, defs or {}, keep)
+
+
+def _record_extra_overrides(defs: dict[str, typing.Any] | None) -> None:
+    """Stamp on the injected args Group which other defs were overridden.
+
+    The embedded notebook's interface offers a CLI command reproducing the
+    current setup only when ``args`` is the only override: defs injected
+    directly (e.g. a dataframe) cannot be reproduced from the command line.
+    The interface cannot detect overrides itself — marimo merges them into
+    the run's globals without a trace — so embed() records them here.
+    """
+    args = (defs or {}).get("args")
+    if args is not None and hasattr(args, "_embedded_extra_overrides"):
+        args._embedded_extra_overrides = frozenset(defs or ()) - {"args"}
 
 
 def _normalize_keep(keep: typing.Sequence[str]) -> tuple[str, ...]:

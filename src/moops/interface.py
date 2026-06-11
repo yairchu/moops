@@ -47,6 +47,9 @@ class Interface:
     variant_ctx: _variant.VariantContext = dataclasses.field(
         default_factory=_variant.VariantContext
     )
+    # Names of defs other than "args" overridden for the embed this interface
+    # renders inside; None when that is unknown (not embedded via moops.embed).
+    embedded_extra_overrides: frozenset[str] | None = None
 
     def __post_init__(self) -> None:
         seen_ids: set[int] = set()
@@ -263,6 +266,7 @@ class Interface:
         active_only: bool,
         root: "Interface | None" = None,
         active_args: _parse.ParsedArgs | None = None,
+        include_overridden: bool = False,
     ) -> typing.Iterator[_options.InputControl]:
         root = self if root is None else root
         if active_only and self._is_inactive(root, active_args=active_args):
@@ -273,10 +277,13 @@ class Interface:
                     active_only=active_only,
                     root=root,
                     active_args=active_args,
+                    include_overridden=include_overridden,
                 )
             else:
                 input_control = self.input_map.get(ctrl)
-                if input_control is not None and not self._is_overridden(input_control):
+                if input_control is not None and (
+                    include_overridden or not self._is_overridden(input_control)
+                ):
                     yield input_control
 
     def _is_inactive(
@@ -324,14 +331,16 @@ class Interface:
     def _is_overridden(self, input_control: _options.InputControl) -> bool:
         return self._key(input_control) in self.overrides
 
-    def cur_values(self) -> dict[str, typing.Any]:
+    def cur_values(self, *, include_overridden: bool = False) -> dict[str, typing.Any]:
         result: dict[str, typing.Any] = {}
         for ctrl in self.controls:
             if (iface := attached_interface(ctrl)) is not None:
-                result.update(iface.cur_values())
+                result.update(iface.cur_values(include_overridden=include_overridden))
             else:
                 input_control = self.input_map.get(ctrl)
-                if input_control is not None and not self._is_overridden(input_control):
+                if input_control is not None and (
+                    include_overridden or not self._is_overridden(input_control)
+                ):
                     result[input_control.option] = _marimo_controls.ctrl_value(ctrl)
         return result
 
@@ -350,15 +359,41 @@ class Interface:
         wrap per item. Used both for the flat ``_current_args`` string and for
         the line-wrapped command shown in the script callout.
         """
-        values = self.cur_values()
+        return [" ".join(tokens) for tokens in self._token_groups()]
+
+    def _token_groups(self, *, include_overridden: bool = False) -> list[list[str]]:
+        values = self.cur_values(include_overridden=include_overridden)
         return [
-            " ".join(tokens)
-            for input_control in self._input_controls(active_only=True)
+            tokens
+            for input_control in self._input_controls(
+                active_only=True, include_overridden=include_overridden
+            )
             if input_control.option in values
             for tokens in input_control.format_value_groups(
                 values[input_control.option]
             )
         ]
+
+    def _standalone_arg_groups(self) -> list[str]:
+        """Current CLI args spelled for running the notebook standalone.
+
+        Rewrites option tokens to drop this interface's embed prefix. Working
+        at the token level covers every control type uniformly, including
+        list anchors and ``--no-`` aux flags that embed the prefixed name.
+        Overridden controls are included: their values are fixed by the
+        embedding parent, so standalone the CLI must pass them explicitly.
+        """
+        return [
+            " ".join(self._strip_embed_prefix(token) for token in tokens)
+            for tokens in self._token_groups(include_overridden=True)
+        ]
+
+    def _strip_embed_prefix(self, token: str) -> str:
+        stem = self.option_prefix.lstrip("-")
+        for head in ("--", "--no-"):
+            if token.startswith(f"{head}{stem}-"):
+                return f"{head}{token[len(head) + len(stem) + 1 :]}"
+        return token
 
     def missing_options(self) -> list[str]:
         covered = {
@@ -393,9 +428,20 @@ class Interface:
             return mo.md("Input bundle with no notebook name")
         notebook_name = html.escape(self.notebook_name)
         href = html.escape(self._standalone_url(), quote=True)
-        return mo.md(
+        link = mo.md(
             f'<a href="{href}" target="_blank" rel="noopener">'
             f"An embedded instance of `{notebook_name}`</a>"
+        )
+        if self.embedded_extra_overrides != frozenset():
+            # None: embedded outside moops.embed, so overrides are unknown.
+            # Non-empty: the parent injected defs beyond args, so no CLI
+            # command can reproduce this setup.
+            return link
+        command = _text_wrap.wrap_command(
+            self.notebook_file, self._standalone_arg_groups()
+        )
+        return mo.vstack(
+            [link, mo.md(f"To run as a standalone script:\n```\n{command}\n```")]
         )
 
     def _standalone_url(self) -> str:

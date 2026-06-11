@@ -131,7 +131,9 @@ def test_moops_embed_rejects_app_defined_in_same_cell(
 def test_run_does_not_use_thread_outside_async_context() -> None:
     # When there is no running event loop, run() should call app.run directly,
     # not via a ThreadPoolExecutor. A thread is only needed to avoid blocking
-    # an existing event loop.
+    # an existing event loop. Use a notebook without embed cells: moops.embed
+    # legitimately offloads script-mode embeds to a thread regardless of how
+    # the parent notebook was invoked.
     thread_pool_created: list[bool] = []
     real_tpe = concurrent.futures.ThreadPoolExecutor
 
@@ -141,7 +143,7 @@ def test_run_does_not_use_thread_outside_async_context() -> None:
             super().__init__(*args, **kwargs)
 
     with unittest.mock.patch("concurrent.futures.ThreadPoolExecutor", _TrackingTPE):
-        moops.run(notebook)
+        moops.run(name_casing)
 
     assert not thread_pool_created, (
         "run() should not use a thread outside async context"

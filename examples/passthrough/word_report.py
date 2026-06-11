@@ -63,8 +63,8 @@ def _(args):
 
 
 @app.cell
-async def _(source_args, text_source_embed):
-    source_result = await text_source_embed.embed(defs={"args": source_args})
+async def _(moops, source_args, text_source_embed):
+    source_result = await moops.embed(text_source_embed, defs={"args": source_args})
     source_result.output
     return (source_result,)
 

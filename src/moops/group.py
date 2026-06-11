@@ -74,6 +74,10 @@ class Group:
         self._query_params = _query_params.QueryParams.from_notebook()
         self._preset_state = self._resolve_preset_state()
         self._parent_group: Group | None = None
+        # Set by moops.embed() on the injected args: names of defs other than
+        # "args" overridden for the embed. None means not embedded via
+        # moops.embed (or overrides unknown).
+        self._embedded_extra_overrides: frozenset[str] | None = None
         self._markdown_heading_offset = 0
         self._disabled = False
         self._variant_ctx = _variant.VariantContext()
@@ -258,6 +262,7 @@ class Group:
             extra_missing_options=extra_missing_options,
             disabled=self._disabled,
             variant_ctx=self._variant_ctx,
+            embedded_extra_overrides=self._embedded_extra_overrides,
         )
         if self._parent_group is not None:
             self._parent_group._subgroup_registry.register(iface)

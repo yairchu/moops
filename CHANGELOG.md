@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- An embedded notebook's interface summary now also shows a CLI command that
+  reproduces the embed's current setup standalone, when `args` is the only
+  definition overridden via `moops.embed` (injecting other defs suppresses the
+  command, since the CLI cannot reproduce them).
+
 ### Changed
 
 - Script-mode embeds now expose the embedded notebook's rendered cell outputs

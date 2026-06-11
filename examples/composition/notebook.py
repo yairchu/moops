@@ -7,7 +7,7 @@
 
 import marimo
 
-__generated_with = "0.23.6"
+__generated_with = "0.23.9"
 app = marimo.App(width="full")
 
 
@@ -152,8 +152,8 @@ def _(name_casing):
 
 
 @app.cell
-async def _(casing, name_casing_instance):
-    casing_result = await name_casing_instance.embed(defs={"args": casing})
+async def _(casing, moops, name_casing_instance):
+    casing_result = await moops.embed(name_casing_instance, defs={"args": casing})
     result = casing_result.defs.get("result")
     casing_result.output
     return (casing_result,)
