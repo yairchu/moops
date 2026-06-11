@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Script-mode embeds now expose the embedded notebook's rendered cell outputs
+  on the returned object's `output`, matching notebook-mode embeds, instead of
+  always returning `None`.
+
 ## [0.12.0] - 2026-06-11
 
 ### Added

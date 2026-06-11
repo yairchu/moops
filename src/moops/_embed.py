@@ -99,10 +99,11 @@ async def embed(
     Embed a marimo app, with lean script-mode embeds.
 
     In script mode, only the embedded notebook's ``result`` definition is
-    retained, so intermediate definitions and rendered outputs can be released
-    after the embed completes. Pass additional definition names in ``keep`` to
-    retain them as well (in notebook mode all definitions are exposed and
-    ``keep`` has no effect).
+    retained, so intermediate definitions can be released after the embed
+    completes. Pass additional definition names in ``keep`` to retain them as
+    well (in notebook mode all definitions are exposed and ``keep`` has no
+    effect). The embedded notebook's rendered cell outputs are stacked on the
+    returned object's ``output``, matching notebook-mode embeds.
 
     This also works around marimo nested embed failures in script mode,
     see https://github.com/marimo-team/marimo/issues/9572
@@ -158,7 +159,7 @@ class Passthrough:
         for name in ("result", *keep):
             if name in source_defs:
                 self.defs[name] = source_defs[name]
-        self.output = None
+        self.output: mo.Html | None = None
 
     def _forwarded(self) -> dict[str, typing.Any]:
         return {k: v for k, v in self.defs.items() if k != "interface"}
@@ -207,10 +208,13 @@ class Passthrough:
 
 
 def _embed_in_script(
-    app: _App, defs: dict[str, typing.Any], keep: tuple[str, ...] = ()
+    app: _App,
+    defs: dict[str, typing.Any],
+    keep: tuple[str, ...] = (),
 ) -> typing.Any:
-    _, computed_defs = app.run(defs=defs)
+    output, computed_defs = app.run(defs=defs)
     result = Passthrough(dict(computed_defs), keep=keep)
     if "interface" in computed_defs:
         result.defs["interface"] = computed_defs["interface"]
+    result.output = mo.vstack([x for x in output if x is not None])
     return result
