@@ -1,5 +1,7 @@
 """Width-aware text wrapping for CLI usage/help output and the script callout."""
 
+import shlex
+
 
 def wrap_usage(prefix: str, parts: list[str], width: int = 88) -> str:
     indent = " " * len(prefix)
@@ -49,7 +51,8 @@ def wrap_command(name: str, groups: list[str], width: int = 72) -> str:
     each option group goes on its own line joined by `` \\`` continuations, which
     remains valid copy-pasteable shell.
     """
-    single_line = " ".join([name, *groups])
+    quoted_name = shlex.quote(name)
+    single_line = " ".join([quoted_name, *groups])
     if not groups or len(single_line) <= width:
         return single_line
-    return " \\\n    ".join([name, *groups])
+    return " \\\n    ".join([quoted_name, *groups])

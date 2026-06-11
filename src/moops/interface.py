@@ -172,8 +172,8 @@ class Interface:
             tokens = shlex.split(text)
         except ValueError as exc:
             return (f"Could not parse arguments: {exc}",)
-        name = pathlib.PurePath(self.command).name
-        if tokens and tokens[0] == name:
+        commands = {self.command, pathlib.PurePath(self.command).name}
+        if tokens and tokens[0] in commands:
             tokens = tokens[1:]
         args = _parse.ParsedArgs.from_options(tokens)
         state = _parse.ParseState(args=args)
