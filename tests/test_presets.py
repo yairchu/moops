@@ -456,6 +456,33 @@ def test_command_box_wraps_long_command_like_markdown(
     assert box_value == expected
 
 
+def test_command_box_full_path_round_trips_when_applied(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The editable command box should accept the full command it displays."""
+    params: dict[str, str] = {}
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+
+    command = "/tmp/notebook.py"
+    presets = _mock_presets(
+        selected_args="",
+        default_args="",
+        get_current=mock.Mock(return_value=None),
+        args_for=mock.Mock(return_value=""),
+        list=mock.Mock(return_value=[]),
+    )
+    group = Group(cli_args=[command, "--text", "Edited"], presets=presets)
+    text = group.text(value="Default", option="--text", help_text="Input text")
+    iface = group.interface(text)
+
+    iface._mime_()  # type: ignore[misc]
+    box_value = typing.cast(typing.Any, iface)._presets_ui._command_input.value
+
+    assert box_value.startswith(command)
+    assert iface.apply_cli_args(box_value) == ()
+
+
 def test_command_box_accepts_args_for_variant_selected_by_edit() -> None:
     g = Group(cli_args=["script.py"])
     mode = g.dropdown(
