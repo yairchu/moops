@@ -89,13 +89,20 @@ def _apps_from_selector(selector: typing.Any) -> typing.Mapping[typing.Any, _App
     return typing.cast(typing.Mapping[typing.Any, _App], input_control.dropdown_opts)
 
 
-async def embed(app: _App, defs: dict[str, typing.Any] | None = None) -> typing.Any:
+async def embed(
+    app: _App,
+    defs: dict[str, typing.Any] | None = None,
+    *,
+    keep: typing.Sequence[str] = (),
+) -> typing.Any:
     """
     Embed a marimo app, with lean script-mode embeds.
 
     In script mode, only the embedded notebook's ``result`` definition is
     retained, so intermediate definitions and rendered outputs can be released
-    after the embed completes.
+    after the embed completes. Pass additional definition names in ``keep`` to
+    retain them as well (in notebook mode all definitions are exposed and
+    ``keep`` has no effect).
 
     This also works around marimo nested embed failures in script mode,
     see https://github.com/marimo-team/marimo/issues/9572
@@ -103,7 +110,7 @@ async def embed(app: _App, defs: dict[str, typing.Any] | None = None) -> typing.
     if mo.running_in_notebook():
         _raise_if_same_cell_app(app)
         return await app.embed(defs=defs)
-    return await asyncio.to_thread(_embed_in_script, app, defs or {})
+    return await asyncio.to_thread(_embed_in_script, app, defs or {}, tuple(keep))
 
 
 def _raise_if_same_cell_app(app: _App) -> None:
@@ -130,32 +137,40 @@ class Passthrough:
     Override an inner embed with the results of an existing embed.
     """
 
-    def __init__(self, source: _Embed | dict[str, typing.Any]) -> None:
+    def __init__(
+        self,
+        source: _Embed | dict[str, typing.Any],
+        *,
+        keep: typing.Sequence[str] = (),
+    ) -> None:
         source_defs = source if isinstance(source, dict) else source.defs
         self.defs: dict[str, typing.Any] = {
             "interface": interface.Interface(controls=()),
         }
-        if "result" in source_defs:
-            self.defs["result"] = source_defs["result"]
+        for name in ("result", *keep):
+            if name in source_defs:
+                self.defs[name] = source_defs[name]
         self.output = None
 
+    def _forwarded(self) -> dict[str, typing.Any]:
+        return {k: v for k, v in self.defs.items() if k != "interface"}
+
     def __eq__(self, other: object) -> bool:
-        # Passthroughs are interchangeable when they forward the same result.
+        # Passthroughs are interchangeable when they forward the same defs.
         # marimo's embed-output cache compares the `defs` it was handed (see
         # marimo's `_defs_equal`): when a Passthrough is passed as an
         # `input_instance` override and the embedding cell re-runs, a freshly
         # built Passthrough must still compare equal, or the cache always
         # misses and the embedded notebook's UI (e.g. dropdowns) resets on
-        # every interaction. Compare the forwarded result by identity to stay
+        # every interaction. Compare the forwarded defs by identity to stay
         # cheap and to avoid ambiguous element-wise `__eq__` on array results.
         if not isinstance(other, Passthrough):
             return NotImplemented
-        if ("result" in self.defs) != ("result" in other.defs):
-            return False
-        return self.defs.get("result") is other.defs.get("result")
+        mine, theirs = self._forwarded(), other._forwarded()
+        return mine.keys() == theirs.keys() and all(mine[k] is theirs[k] for k in mine)
 
     def __hash__(self) -> int:
-        return hash(id(self.defs.get("result")))
+        return hash(frozenset((k, id(v)) for k, v in self._forwarded().items()))
 
     def clone(self) -> "Passthrough":
         # A Passthrough just forwards a fixed result, so cloning is a no-op:
@@ -183,9 +198,11 @@ class Passthrough:
             )
 
 
-def _embed_in_script(app: _App, defs: dict[str, typing.Any]) -> typing.Any:
+def _embed_in_script(
+    app: _App, defs: dict[str, typing.Any], keep: tuple[str, ...] = ()
+) -> typing.Any:
     _, computed_defs = app.run(defs=defs)
-    result = Passthrough(dict(computed_defs))
+    result = Passthrough(dict(computed_defs), keep=keep)
     if "interface" in computed_defs:
         result.defs["interface"] = computed_defs["interface"]
     return result

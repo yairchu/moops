@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `moops.embed` accepts a `keep=` sequence of definition names to retain in
+  lean script-mode embeds, alongside the always-kept `result`.
+
 ### Changed
 
 - CLI command block in notebook shows full command path

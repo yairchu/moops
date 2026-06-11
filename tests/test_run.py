@@ -35,6 +35,21 @@ def test_script_mode_embed_forwards_interface() -> None:
     assert len(iface.controls) > 0
 
 
+def test_script_mode_embed_keep_retains_named_defs() -> None:
+    # Lean script-mode embeds keep only `result` by default, dropping other
+    # definitions a parent may need (e.g. a ground-truth alongside the result).
+    # `keep` opts named definitions back in.
+    async def _embed(keep: tuple[str, ...]) -> typing.Any:
+        args = moops.Group(cli_args=["script.py"])
+        return await moops.embed(name_casing.app, defs={"args": args}, keep=keep)
+
+    lean = asyncio.run(_embed(()))
+    assert "input_text" not in lean.defs
+    kept = asyncio.run(_embed(("input_text",)))
+    assert "input_text" in kept.defs
+    assert kept.defs["result"] == lean.defs["result"]
+
+
 def test_passthrough_equality_keeps_embed_cache_warm() -> None:
     # marimo's embed-output cache compares the `defs` it was handed, so two
     # Passthroughs forwarding the same result must compare equal -- otherwise a
