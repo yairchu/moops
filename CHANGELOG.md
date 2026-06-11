@@ -17,6 +17,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - CLI command block in notebook shows full command path
 
+### Fixed
+
+- `moops.embed(..., keep=...)` and `moops.Passthrough(..., keep=...)` now reject
+  a bare string instead of treating it as a sequence of single-character names.
+
 ## [0.11.5] - 2026-06-10
 
 ### Fixed

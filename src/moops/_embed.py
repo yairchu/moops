@@ -107,10 +107,17 @@ async def embed(
     This also works around marimo nested embed failures in script mode,
     see https://github.com/marimo-team/marimo/issues/9572
     """
+    keep = _normalize_keep(keep)
     if mo.running_in_notebook():
         _raise_if_same_cell_app(app)
         return await app.embed(defs=defs)
-    return await asyncio.to_thread(_embed_in_script, app, defs or {}, tuple(keep))
+    return await asyncio.to_thread(_embed_in_script, app, defs or {}, keep)
+
+
+def _normalize_keep(keep: typing.Sequence[str]) -> tuple[str, ...]:
+    if isinstance(keep, str):
+        raise TypeError("keep must be a sequence of definition names, not a string")
+    return tuple(keep)
 
 
 def _raise_if_same_cell_app(app: _App) -> None:
@@ -143,6 +150,7 @@ class Passthrough:
         *,
         keep: typing.Sequence[str] = (),
     ) -> None:
+        keep = _normalize_keep(keep)
         source_defs = source if isinstance(source, dict) else source.defs
         self.defs: dict[str, typing.Any] = {
             "interface": interface.Interface(controls=()),

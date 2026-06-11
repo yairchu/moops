@@ -50,6 +50,11 @@ def test_script_mode_embed_keep_retains_named_defs() -> None:
     assert kept.defs["result"] == lean.defs["result"]
 
 
+def test_embed_keep_rejects_bare_string() -> None:
+    with pytest.raises(TypeError, match="not a string"):
+        asyncio.run(moops.embed(name_casing.app, keep="input_text"))  # type: ignore[arg-type]
+
+
 def test_passthrough_equality_keeps_embed_cache_warm() -> None:
     # marimo's embed-output cache compares the `defs` it was handed, so two
     # Passthroughs forwarding the same result must compare equal -- otherwise a
@@ -69,6 +74,11 @@ def test_passthrough_equality_keeps_embed_cache_warm() -> None:
     assert hash(moops.Passthrough({"result": result})) == hash(
         moops.Passthrough({"result": result})
     )
+
+
+def test_passthrough_keep_rejects_bare_string() -> None:
+    with pytest.raises(TypeError, match="not a string"):
+        moops.Passthrough({"result": object()}, keep="input_text")  # type: ignore[arg-type]
 
 
 def test_passthrough_supports_script_mode_embed() -> None:
