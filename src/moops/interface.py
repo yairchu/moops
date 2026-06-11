@@ -443,9 +443,8 @@ class Interface:
 
     def _root_panel(self) -> mo.Html:
         args = self._current_args()
-        name = pathlib.PurePath(self.command).name
         body_items: list[typing.Any] = [mo.md("This notebook also works as a script:")]
-        command = _text_wrap.wrap_command(name, self._arg_groups())
+        command = _text_wrap.wrap_command(self.command, self._arg_groups())
         missing_options = self.missing_options()
         kind = "warn" if missing_options else "info"
         if self._presets_ui is not None:
