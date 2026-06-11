@@ -2,6 +2,25 @@
 
 set -ex
 
+case "${1:-}" in
+  "")
+    ;;
+  "--docs-only")
+    uv run pymarkdown --config .pymarkdown.json scan -r -e .pytest_cache -e .venv -e .claude .
+    uv run pytest -q tests/test_public_references.py tests/test_changelog.py
+    echo "Docs checks successful!"
+    exit 0
+    ;;
+  "-h" | "--help")
+    echo "Usage: bash check.sh [--docs-only]"
+    exit 0
+    ;;
+  *)
+    echo "Usage: bash check.sh [--docs-only]" >&2
+    exit 2
+    ;;
+esac
+
 uv run ruff check .
 uv run ruff format --check .
 uv run pyright

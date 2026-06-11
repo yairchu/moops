@@ -12,6 +12,8 @@ Do not call `python`, `pytest`, or other tools directly — they may not resolve
 ## After making changes
 
 Run `bash check.sh` after making changes and fix any errors before committing.
+For documentation-only or changelog-only changes, `bash check.sh --docs-only`
+runs the relevant documentation checks and is sufficient.
 
 Exception: when committing a regression test that intentionally demonstrates a
 bug before the fix, run the focused test that shows the failure instead of
