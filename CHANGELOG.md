@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-06-12
+
 ### Added
 
 - An embedded notebook's interface summary now also shows a CLI command that
