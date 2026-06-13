@@ -628,6 +628,48 @@ def test_list_standalone_query_value_round_trips(
     assert target_ctrl.value == [2.0, 5.0]
 
 
+def test_list_subgroup_query_round_trips_non_default_nested_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A non-default value in a nested (variant subgroup) list item must survive
+    the query round-trip.
+
+    Regression: serializing the list query value via the CLI display token form
+    combined an item's ``option value`` into a single token (e.g.
+    ``"--travel-car-distance 250"``), which the parser could not read back, so
+    the value collapsed to its template default on the next render.
+    """
+    iface = moops.interface_of(variant_trip)
+    edited = [
+        {
+            "mode": "car",
+            "travel-car": {"distance": 250, "gas_price": 3.75},
+            "travel-train": {"tickets": 2},
+        }
+    ]
+
+    source = Group(cli_args=["script.py"])
+    src_ctrl = source.list(
+        option="--trip",
+        item=lambda grp: grp.controls_from(iface, prefix="trip"),
+        help_text="Trip",
+        value=edited,
+    )
+    query_values = source.interface(src_ctrl)._standalone_query_values()  # type: ignore[attr-defined]
+
+    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
+    monkeypatch.setattr(group_module.mo, "query_params", lambda: query_values)
+    target = Group(cli_args=["script.py"])
+    target_ctrl = target.list(
+        option="--trip",
+        item=lambda grp: grp.controls_from(iface, prefix="trip"),
+        help_text="Trip",
+        value=[],
+    )
+
+    assert target_ctrl.value[0]["travel-car"]["distance"] == 250
+
+
 def test_list_empty_value_overrides_non_empty_default_in_query() -> None:
     """An explicitly empty list is user state, not absence of a query override."""
     g = Group(cli_args=["script.py"])
