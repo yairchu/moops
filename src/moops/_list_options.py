@@ -504,19 +504,51 @@ class SubgroupListControl(InputControl):
         return groups
 
     def format_query_value(self, value: typing.Any) -> str | None:
-        try:
-            return json.dumps(value)
-        except TypeError:
-            return None
+        # Serialize each item per leaf, keeping the dict structure but replacing
+        # each leaf value with its own control's query form (a dropdown's key,
+        # str(number), ...). This stays JSON-serializable even when a leaf value
+        # is not — e.g. a dropdown mapped to a class — where a raw json.dumps of
+        # the resolved values would raise TypeError and drop the whole param.
+        # Leaves whose query form is None (at their default) are omitted and
+        # refilled from the item template on parse.
+        items: list[dict[str, typing.Any]] = []
+        for item in value:
+            out: dict[str, typing.Any] = {}
+            for leaf in self.leaves:
+                raw = get_path(item, leaf.value_path, _UNSET)
+                if raw is _UNSET:
+                    continue
+                formatted = leaf.bare_control().format_query_value(raw)
+                if formatted is not None:
+                    _set_path(out, leaf.value_path, formatted)
+            items.append(out)
+        return json.dumps(items)
 
     def parse_query_value(self, value: str) -> ParseResult | ParseError:
         try:
-            raw_items: typing.Any = json.loads(value)
+            raw: typing.Any = json.loads(value)
         except json.JSONDecodeError:
             return ParseError(f"Query parameter for {self.option} must be a JSON list")
-        if not isinstance(raw_items, list):
+        if not isinstance(raw, list):
             return ParseError(f"Query parameter for {self.option} must be a JSON list")
-        return ParseResult(raw_items)
+        result: list[dict[str, typing.Any]] = []
+        for raw_item in raw:
+            item = copy.deepcopy(self.item_template_default)
+            if isinstance(raw_item, dict):
+                for leaf in self.leaves:
+                    stored = get_path(raw_item, leaf.value_path, _UNSET)
+                    if stored is _UNSET:
+                        continue
+                    if not isinstance(stored, str):
+                        # Legacy form stored the resolved value directly.
+                        _set_path(item, leaf.value_path, stored)
+                        continue
+                    parsed = leaf.bare_control().parse_query_value(stored)
+                    if isinstance(parsed, ParseError):
+                        return parsed
+                    _set_path(item, leaf.value_path, parsed.value)
+            result.append(item)
+        return ParseResult(result)
 
     def strategy(self) -> st.SearchStrategy:
         leaf_strategies = {

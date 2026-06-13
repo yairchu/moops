@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `Group.list` items whose values are not JSON-serializable (e.g. a dropdown
+  mapped to a class) no longer drop the whole list's query parameter. Each item
+  is now serialized per leaf via that leaf's own query form (a dropdown's key,
+  etc.), keeping the item structure, so it round-trips for both serializable and
+  mapped values. Previously the dropped query param let an active preset
+  override edits on every rerender, so editing any control reverted it.
+
 ## [0.12.1] - 2026-06-12
 
 ### Added

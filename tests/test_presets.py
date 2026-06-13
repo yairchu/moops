@@ -340,9 +340,10 @@ def test_selected_default_preset_does_not_lock_edited_subgroup_list_state(
     trips._add_btn._on_click(None)
 
     assert changes == [edited_trip]
-    assert params == {
-        "trip": ('[{"mode": "car", "distance": 120}, {"mode": "car", "distance": 120}]')
-    }
+    # Items serialize per leaf with default-valued leaves omitted; both trips
+    # are all-default, so each item is an empty dict (refilled from the template
+    # on parse).
+    assert params == {"trip": "[{}, {}]"}
 
     rerendered_group = Group(cli_args=["script.py"], presets=presets)
     rerendered_trips = rerendered_group.list(

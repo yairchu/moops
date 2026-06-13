@@ -31,12 +31,19 @@ class ValueResolver:
             return self.overrides[key]
         query_value = self._query_value(control, key)
         if self.preset_state is not None:
+            # Honor live notebook list state over the preset: if the persisted
+            # query matches the value the caller passed (so it reflects the
+            # current edited state rather than a stale param), keep it. Compare
+            # in parsed/canonical form by round-tripping `default` through the
+            # same query (de)serialization — a list's live value holds mapped
+            # objects (e.g. a dropdown's resolved value) that don't compare
+            # equal to the parsed query's key form directly.
             if (
                 _is_list_control(control)
                 and query_value is not _UNSET
-                and query_value == default
+                and query_value == self._normalized_default(control, default)
             ):
-                return query_value
+                return default
             match control.parse(self.preset_state.args):
                 case _options.ParseResult(value=v):
                     self.query_params.sync(control, key, v)
@@ -66,6 +73,26 @@ class ValueResolver:
                 case _:
                     pass
         return default
+
+    def _normalized_default(
+        self,
+        control: _options.InputControl,
+        default: typing.Any,
+    ) -> typing.Any:
+        """``default`` round-tripped through the control's query (de)serialization.
+
+        Returns it in the same parsed form a query value takes, so the two can
+        be compared directly. Returns ``_UNSET`` (which never equals a real
+        query value) when ``default`` cannot be serialized or parsed back.
+        """
+        formatted = control.format_query_value(default)
+        if formatted is None:
+            return _UNSET
+        match control.parse_query_value(formatted):
+            case _options.ParseResult(value=v):
+                return v
+            case _:
+                return _UNSET
 
     def _query_value(
         self,
