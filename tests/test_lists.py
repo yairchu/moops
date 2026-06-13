@@ -628,6 +628,68 @@ def test_list_standalone_query_value_round_trips(
     assert target_ctrl.value == [2.0, 5.0]
 
 
+def test_list_subgroup_query_round_trips_non_serializable_mapped_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A list item that maps a dropdown to a non-JSON-serializable value (e.g.
+    a class, like a torch optimizer) must still round-trip through the query
+    param.
+
+    Regression: ``SubgroupListControl.format_query_value`` json-dumped the
+    resolved item values, hit ``TypeError`` on the non-serializable value, and
+    returned ``None``, so the whole list's query param was silently dropped.
+    Under an active preset that left the preset authoritative on every rerender,
+    so editing any control snapped back to the preset value. The query
+    representation must use the dropdown KEY, like everywhere else in moops.
+    """
+
+    # Classes are not JSON-serializable (like torch.optim.Adam) and, unlike
+    # object() instances, survive deepcopy with identity so the round-trip can
+    # be asserted against them.
+    class Adam:
+        pass
+
+    class Sgd:
+        pass
+
+    mapping = {"adam": Adam, "sgd": Sgd}
+
+    source = Group(cli_args=["script.py"])
+    optimizer = source.dropdown(
+        mapping,
+        value="adam",
+        option="--optimizer",
+        help_text="Optimizer",
+        allow_select_none=False,
+    )
+    child_iface = source.interface(optimizer)
+
+    src_group = Group(cli_args=["script.py"])
+    src_ctrl = src_group.list(
+        option="--step",
+        item=lambda grp: grp.controls_from(child_iface, prefix="step"),
+        help_text="Steps",
+        value=[{"optimizer": Adam}],
+    )
+    query_values = src_group.interface(src_ctrl)._standalone_query_values()  # type: ignore[attr-defined]
+
+    # The list's query param must be present (it was silently dropped before).
+    assert "step" in query_values
+
+    # And it must hydrate back to the same mapped value.
+    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
+    monkeypatch.setattr(group_module.mo, "query_params", lambda: query_values)
+    tgt_group = Group(cli_args=["script.py"])
+    tgt_ctrl = tgt_group.list(
+        option="--step",
+        item=lambda grp: grp.controls_from(child_iface, prefix="step"),
+        help_text="Steps",
+        value=[],
+    )
+
+    assert tgt_ctrl.value == [{"optimizer": Adam}]
+
+
 def test_list_subgroup_query_round_trips_non_default_nested_value(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

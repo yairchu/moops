@@ -356,6 +356,76 @@ def test_selected_default_preset_does_not_lock_edited_subgroup_list_state(
     assert rerendered_trips.value == edited_trip
 
 
+def test_selected_preset_honors_edit_with_non_serializable_list_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Editing a control sticks even when another control in the same list item
+    holds a non-JSON-serializable value (e.g. a dropdown mapped to a class).
+
+    Regression: the list's query param could not serialize the mapped class and
+    was dropped, so under an active preset every edit reverted to the preset
+    value -- the 'changing a control regenerates the old value' bug.
+    """
+
+    class Adam:
+        pass
+
+    class Sgd:
+        pass
+
+    params: dict[str, str] = {}
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops._list_options.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+
+    presets = _mock_presets(
+        selected_args="--step --optimizer adam --mult 1.0",
+        default_args="--step --optimizer adam --mult 1.0",
+        get_current=mock.Mock(return_value="default"),
+    )
+
+    def build(
+        value: list[dict[str, typing.Any]],
+        on_change: typing.Callable[[list[typing.Any]], None],
+    ) -> typing.Any:
+        template = Group(cli_args=["template.py"])
+        optimizer = template.dropdown(
+            {"adam": Adam, "sgd": Sgd},
+            value="adam",
+            option="--optimizer",
+            help_text="Optimizer",
+            allow_select_none=False,
+        )
+        mult = template.number(value=1.0, option="--mult", help_text="Mult")
+        template_iface = template.interface(optimizer, mult)
+        g = Group(cli_args=["script.py"], presets=presets)
+        return g.list(
+            option="--step",
+            item=lambda grp: grp.controls_from(template_iface, prefix="step"),
+            help_text="Steps",
+            value=value,
+            on_change=on_change,
+        )
+
+    changes: list[list[dict[str, typing.Any]]] = []
+    steps = build([{"optimizer": Adam, "mult": 1.0}], changes.append)
+
+    # Edit the mult control on the live item, the way the frontend does.
+    item = steps._array.elements[0]  # type: ignore[attr-defined]
+    item.elements["mult"]._on_change(0.5)  # type: ignore[attr-defined]
+
+    # The list's query param must now be written (it was silently dropped) ...
+    assert "step" in params
+    # ... and the edit recorded.
+    assert changes[-1][0]["mult"] == 0.5
+
+    # Re-render with the edited live state under the same active preset: the
+    # edit must not snap back to the preset's mult of 1.0.
+    rerendered = build(changes[-1], lambda _: None)
+    assert rerendered.value[0]["mult"] == 0.5
+    assert rerendered.value[0]["optimizer"] is Adam
+
+
 def test_empty_save_name_saves_default_preset() -> None:
     save = mock.Mock()
     presets = _mock_presets(
