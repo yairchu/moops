@@ -24,12 +24,13 @@ classifiers = [
 ]
 dependencies = [
     "marimo>=0.23.1",
-    "tabulate>=0.10.0",
 ]
 
 [project.optional-dependencies]
 # Interface.strategy() builds a Hypothesis strategy; only needed for testing.
 test = ["hypothesis"]
+# Group.table() uses pandas.to_markdown(), which requires tabulate for CLI output.
+table = ["tabulate>=0.10.0"]
 
 [project.urls]
 Homepage = "https://github.com/yairchu/moops"

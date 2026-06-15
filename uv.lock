@@ -949,10 +949,12 @@ version = "0.12.2"
 source = { editable = "." }
 dependencies = [
     { name = "marimo" },
-    { name = "tabulate" },
 ]
 
 [package.optional-dependencies]
+table = [
+    { name = "tabulate" },
+]
 test = [
     { name = "hypothesis" },
 ]
@@ -976,9 +978,9 @@ dev = [
 requires-dist = [
     { name = "hypothesis", marker = "extra == 'test'" },
     { name = "marimo", specifier = ">=0.23.1" },
-    { name = "tabulate", specifier = ">=0.10.0" },
+    { name = "tabulate", marker = "extra == 'table'", specifier = ">=0.10.0" },
 ]
-provides-extras = ["test"]
+provides-extras = ["test", "table"]
 
 [package.metadata.requires-dev]
 dev = [

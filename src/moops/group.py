@@ -394,7 +394,16 @@ class Group:
                 if column in data:
                     data[column] = data[column].map(format_value)
         if hasattr(data, "to_markdown"):
-            print(data.to_markdown(index=False))
+            try:
+                print(data.to_markdown(index=False))
+            except ImportError:
+                import warnings
+
+                warnings.warn(
+                    "Install tabulate for formatted table output: pip install tabulate",
+                    stacklevel=2,
+                )
+                print(data)
         else:
             print(data)
         print()
