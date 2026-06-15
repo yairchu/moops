@@ -109,6 +109,23 @@ def test_empty_interface_omits_usage_block() -> None:
     assert "details" not in rendered
 
 
+def test_missing_options_shown_even_with_no_active_controls() -> None:
+    # A control registered with option= but not passed to interface() should
+    # still be reported in the rendered callout even when there are no other
+    # active controls (no active controls caused the message to be dropped).
+    g = Group(cli_args=["script.py"])
+    casing = g.subgroup("casing")
+    ctrl = casing.dropdown(
+        ["snake_case", "camel_case"], label="Style", help_text="Text style"
+    )
+    _sub_iface = casing.interface(ctrl)
+    with pytest.warns(UserWarning, match="--casing-style"):
+        iface = g.interface()
+    assert iface.missing_options() == ["--casing-style"]
+    rendered = iface._mime_()[1]  # type: ignore[misc]
+    assert "--casing-style" in rendered
+
+
 def test_short_usage_is_not_wrapped_in_disclosure() -> None:
     g = Group(cli_args=["script.py"])
     iface = g.interface(g.text(label="Name", help_text="A name"))
