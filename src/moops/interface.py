@@ -531,6 +531,8 @@ class Interface:
                 )
             )
             body_items.append(mo.md(f"{usage}{missing_options_msg}"))
+        elif missing_options_msg:
+            body_items.append(mo.md(missing_options_msg))
         items: list[typing.Any] = [mo.callout(mo.vstack(body_items), kind)]
         if self._presets_ui is not None:
             items.append(self._presets_ui.layout(args))
