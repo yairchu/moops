@@ -6,6 +6,10 @@ import marimo as mo
 from . import _options, _variant, interface, workarounds
 
 
+class _Embed(typing.Protocol):
+    defs: typing.Mapping[str, typing.Any]
+
+
 class _App(typing.Protocol):
     def clone(self) -> "_App": ...
 
@@ -162,15 +166,12 @@ class Passthrough:
 
     def __init__(
         self,
-        source: typing.Any,
+        source: _Embed | dict[str, typing.Any],
         *,
         keep: typing.Sequence[str] = (),
     ) -> None:
         keep = _normalize_keep(keep)
-        source_defs = typing.cast(
-            typing.Mapping[str, typing.Any],
-            source if isinstance(source, dict) else source.defs,
-        )
+        source_defs = source if isinstance(source, dict) else source.defs
         self.defs: dict[str, typing.Any] = {
             "interface": interface.Interface(controls=()),
         }
