@@ -299,6 +299,37 @@ def test_selected_default_preset_does_not_override_edited_list_state(
     assert params == {"factor": "[2.0, 1.0]"}
 
 
+def test_selected_default_preset_does_not_restore_cleared_list_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    params: dict[str, str] = {}
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+    presets = _mock_presets(
+        selected_args="--factor 2",
+        default_args="--factor 2",
+        get_current=mock.Mock(return_value="default"),
+    )
+    changes: list[list[float]] = []
+
+    def build(value: list[float]) -> typing.Any:
+        group = Group(cli_args=["script.py"], presets=presets)
+        return group.list(
+            option="--factor",
+            item=lambda g: g.number(value=1.0, option="--factor", help_text="Factor"),
+            help_text="Factors",
+            value=value,
+            on_change=changes.append,
+        )
+
+    factors = build([2.0])
+    factors._moops_reset_state([])  # type: ignore[attr-defined]
+
+    assert changes == [[]]
+    assert params == {"factor": "[]"}
+    assert build(changes[-1]).value == []
+
+
 def test_selected_default_preset_does_not_lock_edited_subgroup_list_state(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
