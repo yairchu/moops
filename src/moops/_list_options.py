@@ -785,8 +785,6 @@ class ListControl(InputControl):
 
     def format_query_value(self, value: typing.Any) -> str | None:
         items = list(value)
-        if not items and not self.default:
-            return None
         return json.dumps([self.item_control.format_query_value(v) for v in items])
 
     def parse_query_value(self, value: str) -> ParseResult | ParseError:

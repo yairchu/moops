@@ -18,6 +18,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Clearing a `Group.list` to empty while a preset is active now persists the
+  empty list in query parameters, instead of dropping the parameter and letting
+  the preset restore the old items on rerender.
 - `Group.list` items whose values are not JSON-serializable (e.g. a dropdown
   mapped to a class) no longer drop the whole list's query parameter. Each item
   is now serialized per leaf via that leaf's own query form (a dropdown's key,
