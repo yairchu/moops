@@ -532,7 +532,7 @@ class SubgroupListControl(InputControl):
         if not isinstance(raw, list):
             return ParseError(f"Query parameter for {self.option} must be a JSON list")
         result: list[dict[str, typing.Any]] = []
-        for raw_item in raw:
+        for raw_item in typing.cast(list[typing.Any], raw):
             item = copy.deepcopy(self.item_template_default)
             if isinstance(raw_item, dict):
                 for leaf in self.leaves:
