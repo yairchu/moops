@@ -103,6 +103,26 @@ def test_no_options_usage_omits_interactive(
     assert "--interactive" not in usage_line
 
 
+def test_short_usage_is_not_wrapped_in_disclosure() -> None:
+    iface = Group(cli_args=["script.py"]).interface()
+
+    rendered = iface._mime_()[1]  # type: ignore[misc]
+    assert "details" not in rendered
+    assert "Usage: script.py [-h/--help]" in rendered
+
+
+def test_long_usage_disclosure_stays_closed() -> None:
+    g = Group(cli_args=["script.py"])
+    ctrls = [
+        g.text(option=f"--option-number-{i}", help_text="An option") for i in range(4)
+    ]
+    iface = g.interface(*ctrls)
+
+    rendered = iface._mime_()[1]  # type: ignore[misc]
+    assert "details open" not in rendered
+    assert "details" in rendered
+
+
 def test_usage_wraps_at_88_columns(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
