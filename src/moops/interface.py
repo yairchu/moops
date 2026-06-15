@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import html
+import os
 import pathlib
 import shlex
 import sys
@@ -179,6 +180,8 @@ class Interface:
             tokens = shlex.split(text)
         except ValueError as exc:
             return (f"Could not parse arguments: {exc}",)
+        if tokens[:2] == ["uv", "run"]:
+            tokens = tokens[2:]
         commands = {self.command, pathlib.PurePath(self.command).name}
         if tokens and tokens[0] in commands:
             tokens = tokens[1:]
@@ -443,9 +446,7 @@ class Interface:
             # Non-empty: the parent injected defs beyond args, so no CLI
             # command can reproduce this setup.
             return link
-        command = _text_wrap.wrap_command(
-            self.notebook_file, self._standalone_arg_groups()
-        )
+        command = _wrap_command(self.notebook_file, self._standalone_arg_groups())
         return mo.vstack(
             [link, mo.md(f"To run as a standalone script:\n```\n{command}\n```")]
         )
@@ -496,7 +497,7 @@ class Interface:
     def _root_panel(self) -> mo.Html:
         args = self._current_args()
         body_items: list[typing.Any] = [mo.md("This notebook also works as a script:")]
-        command = _text_wrap.wrap_command(self.command, self._arg_groups())
+        command = _wrap_command(self.command, self._arg_groups())
         missing_options = self.missing_options()
         kind = "warn" if missing_options else "info"
         if self._presets_ui is not None:
@@ -619,6 +620,21 @@ def attached_interface(ctrl: typing.Any) -> Interface | None:
     iface = getattr(ctrl, "_moops_interface", None)
     assert iface is None or isinstance(iface, Interface)
     return iface
+
+
+def _wrap_command(command: str, groups: list[str]) -> str:
+    if _should_use_uv_run(command):
+        return _text_wrap.wrap_command("uv", [f"run {shlex.quote(command)}", *groups])
+    return _text_wrap.wrap_command(command, groups)
+
+
+def _should_use_uv_run(command: str) -> bool:
+    path = pathlib.Path(command)
+    return (
+        "UV_RUN_RECURSION_DEPTH" in os.environ
+        and path.is_file()
+        and not os.access(path, os.X_OK)
+    )
 
 
 def _reset_value(

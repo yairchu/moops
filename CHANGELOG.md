@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Notebook CLI command blocks now include `uv run` when rendered from a
+  `uv run marimo ...` session and the target notebook file is not executable.
+
 ## [0.13.0] - 2026-06-15 - CLI table output
 
 ### Added
