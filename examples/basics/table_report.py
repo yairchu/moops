@@ -56,7 +56,7 @@ def _(args, report):
     _ratios = ["score", "error"]
     args.table(
         report,
-        format_mapping=dict.fromkeys(_ratios, "{:.1%}".format),
+        format_mapping=dict.fromkeys(_ratios, "{:.1%}"),
         show_data_types=False,
         selection=None,
     )
