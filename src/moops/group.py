@@ -393,8 +393,8 @@ class Group:
             for column, format_value in format_mapping.items():
                 if column in data:
                     data[column] = data[column].map(format_value)
-        if hasattr(data, "to_string"):
-            print(data.to_string(index=False))
+        if hasattr(data, "to_markdown"):
+            print(data.to_markdown(index=False))
         else:
             print(data)
         print()

@@ -24,6 +24,7 @@ classifiers = [
 ]
 dependencies = [
     "marimo>=0.23.1",
+    "tabulate>=0.10.0",
 ]
 
 [project.optional-dependencies]
