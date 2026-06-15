@@ -6,9 +6,11 @@ import json
 import typing
 
 import marimo as mo
-from hypothesis import strategies as st
 
 from . import _options, _parse, _variant
+
+if typing.TYPE_CHECKING:
+    from hypothesis import strategies as st
 
 InputControl = _options.InputControl
 ParseError = _options.ParseError
@@ -551,6 +553,8 @@ class SubgroupListControl(InputControl):
         return ParseResult(result)
 
     def strategy(self) -> st.SearchStrategy:
+        from hypothesis import strategies as st
+
         leaf_strategies = {
             leaf.value_path: leaf.bare_control().strategy() for leaf in self.leaves
         }
@@ -834,6 +838,8 @@ class ListControl(InputControl):
         return [_options.option_value_token(self.item_control.option, query_value)]
 
     def strategy(self) -> st.SearchStrategy:
+        from hypothesis import strategies as st
+
         return st.lists(self.item_control.strategy())
 
     def create_marimo_element(

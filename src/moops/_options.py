@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import contextlib
 import dataclasses
@@ -9,9 +11,11 @@ import sys
 import typing
 
 import marimo as mo
-from hypothesis import strategies as st
 
 from . import _choice_options, _custom_element, _parse, _ui_workarounds
+
+if typing.TYPE_CHECKING:
+    from hypothesis import strategies as st
 
 Numeric = int | float
 
@@ -68,7 +72,7 @@ class InputControl(abc.ABC):
         """Whether this control accepts repeated CLI values for the same option."""
         return False
 
-    def with_option(self, option: str) -> "InputControl":
+    def with_option(self, option: str) -> InputControl:
         """Return a copy of this control with a different option name.
 
         Used by ``controls_from`` to re-prefix a mirrored control. Subclasses
@@ -223,6 +227,8 @@ class FlagControl(InputControl):
                 )
 
     def strategy(self) -> st.SearchStrategy:
+        from hypothesis import strategies as st
+
         return st.booleans()
 
     def format_usage_parts(self) -> list[str]:
@@ -320,6 +326,8 @@ class TextControl(ValueControl):
         return None if res is None else ParseResult(res)
 
     def strategy(self) -> st.SearchStrategy:
+        from hypothesis import strategies as st
+
         return st.text()
 
     def format_help_lines(self) -> list[str]:
@@ -490,6 +498,8 @@ class MultiFileControl(ValueControl):
         return ParseResult(paths)
 
     def strategy(self) -> st.SearchStrategy:
+        from hypothesis import strategies as st
+
         return st.lists(st.text())
 
     def format_usage_parts(self) -> list[str]:
@@ -569,6 +579,8 @@ class TextAreaControl(ValueControl):
         return None if res is None else ParseResult(res)
 
     def strategy(self) -> st.SearchStrategy:
+        from hypothesis import strategies as st
+
         return st.text()
 
     def format_usage_parts(self) -> list[str]:
@@ -655,6 +667,8 @@ class NumberControl(_NoneFlag, ValueControl):
         return super().parse_query_value(value)
 
     def strategy(self) -> st.SearchStrategy:
+        from hypothesis import strategies as st
+
         numbers = st.integers() | st.floats(allow_nan=False, allow_infinity=False)
         return st.one_of(st.none(), numbers) if self._is_none_capable else numbers
 
@@ -716,7 +730,7 @@ class RangeControl(ValueControl):
         steps: typing.Sequence[Numeric] | None,
         step: Numeric | None = None,
         extra_kwargs: dict[str, typing.Any] | None = None,
-    ) -> "RangeControl":
+    ) -> RangeControl:
         return cls(
             option=option,
             metavar=metavar,
@@ -790,11 +804,15 @@ class RangeControl(ValueControl):
         return ParseResult(parsed)
 
     def strategy(self) -> st.SearchStrategy:
+        from hypothesis import strategies as st
+
         return st.tuples(self._number_strategy(), self._number_strategy()).map(
             lambda pair: sorted(pair)
         )
 
     def _number_strategy(self) -> st.SearchStrategy[Numeric]:
+        from hypothesis import strategies as st
+
         if self.allowed_values is not None:
             return st.sampled_from(self.allowed_values)
         if self.start is not None and self.stop is not None:
@@ -913,6 +931,8 @@ class MultiSelectControl(_NoneFlag, ValueControl):
         return ParseResult([self.select_opts[item] for item in keys])
 
     def strategy(self) -> st.SearchStrategy:
+        from hypothesis import strategies as st
+
         if not self.select_opts:
             return st.just([])
         return st.lists(st.sampled_from(list(self.select_opts.values())), unique=True)
@@ -1052,6 +1072,8 @@ class DropdownControl(_NoneFlag, InputControl):
         return ParseResult(key)
 
     def strategy(self) -> st.SearchStrategy:
+        from hypothesis import strategies as st
+
         return st.sampled_from(
             [None, *self.dropdown_opts.keys()]
             if self.supports_none
@@ -1169,7 +1191,7 @@ class CustomControl(InputControl):
         inner: InputControl,
         build: typing.Callable[[typing.Any], typing.Any],
         value_fn: _custom_element.CustomValueFn | None,
-    ) -> "CustomControl":
+    ) -> CustomControl:
         return cls(
             option=inner.option,
             help_text=inner.help_text,
@@ -1179,7 +1201,7 @@ class CustomControl(InputControl):
             value_fn=value_fn,
         )
 
-    def with_option(self, option: str) -> "CustomControl":
+    def with_option(self, option: str) -> CustomControl:
         inner = self.inner.with_option(option)
         return dataclasses.replace(
             self, option=option, inner=inner, default=inner.default

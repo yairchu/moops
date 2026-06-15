@@ -152,6 +152,8 @@ x_range = args.custom(
 
 `moops.interface_of` returns the notebook's `Interface`, from which `.strategy()` generates a [Hypothesis](https://hypothesis.readthedocs.io/) strategy that produces valid `moops.run` kwargs by introspecting the notebook's interface — dropdowns yield their allowed keys, switches yield booleans, and text fields yield arbitrary strings.
 
+Hypothesis is an optional dependency, since it is only needed for `.strategy()`; install it with `pip install moops[test]` (or just `pip install hypothesis`).
+
 ```python
 from examples.composition import name_casing
 

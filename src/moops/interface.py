@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 import html
 import pathlib
@@ -7,7 +9,6 @@ import typing
 import urllib.parse
 
 import marimo as mo
-from hypothesis import strategies as st
 
 from . import (
     _input_map,
@@ -22,6 +23,9 @@ from . import (
     _variant,
 )
 from .presets import Presets
+
+if typing.TYPE_CHECKING:
+    from hypothesis import strategies as st
 
 
 @dataclasses.dataclass
@@ -253,6 +257,8 @@ class Interface:
         return result
 
     def strategy(self) -> st.SearchStrategy[dict[str, typing.Any]]:
+        from hypothesis import strategies as st
+
         strategies: dict[str, st.SearchStrategy[typing.Any]] = {
             name: ctrl_or_sub.strategy() for name, ctrl_or_sub in self.iter_controls()
         }
@@ -264,7 +270,7 @@ class Interface:
         self,
         *,
         active_only: bool,
-        root: "Interface | None" = None,
+        root: Interface | None = None,
         active_args: _parse.ParsedArgs | None = None,
         include_overridden: bool = False,
     ) -> typing.Iterator[_options.InputControl]:
@@ -288,7 +294,7 @@ class Interface:
 
     def _is_inactive(
         self,
-        root: "Interface",
+        root: Interface,
         *,
         active_args: _parse.ParsedArgs | None = None,
     ) -> bool:
@@ -310,7 +316,7 @@ class Interface:
 
     def iter_controls(
         self,
-    ) -> typing.Iterator[tuple[str, "Interface | _options.InputControl"]]:
+    ) -> typing.Iterator[tuple[str, Interface | _options.InputControl]]:
         """Yield one entry per top-level control, preserving subgroup structure.
 
         Yields ``(name, sub_iface)`` for subgroup controls and
@@ -460,7 +466,7 @@ class Interface:
                 self._add_query_value(values, ctrl, self.input_map)
         return values
 
-    def _controls_from_query_values(self, sub_iface: "Interface") -> dict[str, str]:
+    def _controls_from_query_values(self, sub_iface: Interface) -> dict[str, str]:
         """Collect standalone query values for a controls_from mirror.
 
         Uses this interface's key scheme (our option_prefix) so the resulting

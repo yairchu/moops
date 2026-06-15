@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Hypothesis is now an optional dependency instead of a hard runtime
+  requirement. It is only needed for `Interface.strategy()` (property-based
+  testing); install it with `pip install moops[test]` or `pip install
+  hypothesis`. Importing `moops` and all non-`strategy()` functionality no
+  longer pulls in Hypothesis.
+
 ### Fixed
 
 - `Group.list` items whose values are not JSON-serializable (e.g. a dropdown

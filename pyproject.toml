@@ -24,8 +24,11 @@ classifiers = [
 ]
 dependencies = [
     "marimo>=0.23.1",
-    "hypothesis",
 ]
+
+[project.optional-dependencies]
+# Interface.strategy() builds a Hypothesis strategy; only needed for testing.
+test = ["hypothesis"]
 
 [project.urls]
 Homepage = "https://github.com/yairchu/moops"
@@ -34,6 +37,7 @@ Issues = "https://github.com/yairchu/moops/issues"
 
 [dependency-groups]
 dev = [
+    "hypothesis",
     "ruff>=0.1.0",
     "pyright>=1.1.409",
     "pytest>=9.0.3",

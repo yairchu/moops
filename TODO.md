@@ -6,12 +6,14 @@ Ranked biggest cut first. Tags: `native` (platform/dep already does it),
 `shrink` (same logic, fewer lines), `yagni` (abstraction with one use),
 `stdlib` (hand-rolled thing the stdlib ships).
 
-- `native:` `hypothesis` is a hard runtime dependency but only backs
+- [x] `native:` `hypothesis` is a hard runtime dependency but only backs
   `Interface.strategy()`, a property-testing helper. Move it to an optional
   `[dependency-groups]`/extra and lazy-import at the 3 `from hypothesis import
   strategies` sites (`_options.py:12`, `interface.py:10`, `_list_options.py:9`)
   so plain CLI/notebook users don't pull a test framework. (`pyproject.toml:31`)
-  **-1 runtime dep.**
+  **-1 runtime dep.** Done in d19756e — moved to `[project.optional-dependencies]
+  test` + dev group, deferred under `TYPE_CHECKING`, lazy-imported per
+  `strategy()` body.
 - `shrink:` `CustomControl`'s 11 pure-delegation methods
   (`options`/`flags`/`allows_repeated_values`/`parse`/`parse_query_value`/
   `format_query_value`/`strategy`/`format_usage_parts`/`format_help_lines`/

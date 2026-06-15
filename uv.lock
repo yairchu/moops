@@ -878,12 +878,17 @@ name = "moops"
 version = "0.12.1"
 source = { editable = "." }
 dependencies = [
-    { name = "hypothesis" },
     { name = "marimo" },
+]
+
+[package.optional-dependencies]
+test = [
+    { name = "hypothesis" },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "hypothesis" },
     { name = "matplotlib" },
     { name = "pylint" },
     { name = "pymarkdownlnt" },
@@ -897,12 +902,14 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "hypothesis" },
+    { name = "hypothesis", marker = "extra == 'test'" },
     { name = "marimo", specifier = ">=0.23.1" },
 ]
+provides-extras = ["test"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "hypothesis" },
     { name = "matplotlib", specifier = ">=3.10.9" },
     { name = "pylint", specifier = ">=3.0" },
     { name = "pymarkdownlnt", specifier = ">=0.9.37" },
