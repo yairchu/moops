@@ -22,10 +22,6 @@ Numeric = int | float
 _UNSET: typing.Any = object()
 
 
-def _empty_cli_opts() -> dict[str, str]:
-    return {}
-
-
 def option_value_token(option: str, value: str) -> str:
     """Serialize an ``option value`` pair as one CLI token string.
 
@@ -56,8 +52,8 @@ class InputControl(abc.ABC):
     option: str
     help_text: str
     default: typing.Any
-    extra_kwargs: dict[str, typing.Any] = dataclasses.field(  # type: ignore[assignment]
-        default_factory=dict, kw_only=True
+    extra_kwargs: dict[str, typing.Any] = dataclasses.field(
+        default_factory=dict[str, typing.Any], kw_only=True
     )
     # Set by Group.custom(): a factory that builds a notebook-only component
     # from this control's resolved value, and a value_fn mapping
@@ -1046,7 +1042,7 @@ class DropdownControl(_NoneFlag, InputControl):
     dropdown_opts: dict[str, typing.Any]
     supports_none: bool
     default: str | None
-    cli_opts: dict[str, str] = dataclasses.field(default_factory=_empty_cli_opts)
+    cli_opts: dict[str, str] = dataclasses.field(default_factory=dict[str, str])
 
     def __post_init__(self) -> None:
         if not self.cli_opts:
