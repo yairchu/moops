@@ -520,16 +520,17 @@ class Interface:
             if missing_options
             else ""
         )
-        help_text = self.help()
-        usage = (
-            f"```\n{help_text}\n```\n"
-            if len(help_text.splitlines()) <= 3
-            else (
-                f"<details><summary>Usage</summary>\n\n"
-                f"```\n{help_text}\n```\n</details>\n"
+        if any(self._input_controls(active_only=True)):
+            help_text = self.help()
+            usage = (
+                f"```\n{help_text}\n```\n"
+                if len(help_text.splitlines()) <= 3
+                else (
+                    f"<details><summary>Usage</summary>\n\n"
+                    f"```\n{help_text}\n```\n</details>\n"
+                )
             )
-        )
-        body_items.append(mo.md(f"{usage}{missing_options_msg}"))
+            body_items.append(mo.md(f"{usage}{missing_options_msg}"))
         items: list[typing.Any] = [mo.callout(mo.vstack(body_items), kind)]
         if self._presets_ui is not None:
             items.append(self._presets_ui.layout(args))

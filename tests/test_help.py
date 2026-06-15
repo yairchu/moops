@@ -110,11 +110,12 @@ def test_empty_interface_omits_usage_block() -> None:
 
 
 def test_short_usage_is_not_wrapped_in_disclosure() -> None:
-    iface = Group(cli_args=["script.py"]).interface()
+    g = Group(cli_args=["script.py"])
+    iface = g.interface(g.text(label="Name", help_text="A name"))
 
     rendered = iface._mime_()[1]  # type: ignore[misc]
     assert "details" not in rendered
-    assert "Usage: script.py [-h/--help]" in rendered
+    assert "Usage:" in rendered
 
 
 def test_long_usage_disclosure_stays_closed() -> None:
