@@ -520,12 +520,16 @@ class Interface:
             if missing_options
             else ""
         )
-        body_items.append(
-            mo.md(
-                f"<details><summary>Usage</summary>\n\n```\n{self.help()}\n```\n</details>\n"
-                f"{missing_options_msg}"
+        help_text = self.help()
+        usage = (
+            f"```\n{help_text}\n```\n"
+            if len(help_text.splitlines()) <= 3
+            else (
+                f"<details><summary>Usage</summary>\n\n"
+                f"```\n{help_text}\n```\n</details>\n"
             )
         )
+        body_items.append(mo.md(f"{usage}{missing_options_msg}"))
         items: list[typing.Any] = [mo.callout(mo.vstack(body_items), kind)]
         if self._presets_ui is not None:
             items.append(self._presets_ui.layout(args))
