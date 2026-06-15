@@ -392,7 +392,8 @@ class Group:
             data = data.copy()
             for column, format_value in format_mapping.items():
                 if column in data:
-                    data[column] = data[column].map(format_value)
+                    fn = format_value if callable(format_value) else format_value.format
+                    data[column] = data[column].map(fn)
         if hasattr(data, "to_markdown"):
             try:
                 print(data.to_markdown(index=False))
