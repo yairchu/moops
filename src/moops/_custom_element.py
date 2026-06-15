@@ -6,19 +6,10 @@ from marimo._plugins.ui._core.ui_element import UIElement
 
 from . import _ui_workarounds
 
-
-class CustomValueSource(typing.Protocol):
-    @property
-    def value(self) -> typing.Any: ...
+CustomValueFn = typing.Callable[[typing.Any, typing.Any], typing.Any]
 
 
-CustomValueFn = typing.Callable[[CustomValueSource, CustomValueSource], typing.Any]
-
-
-def _default_custom_value(
-    component: CustomValueSource, fallback: CustomValueSource
-) -> typing.Any:
-    del fallback
+def _default_value_fn(component: typing.Any, _fallback: typing.Any) -> typing.Any:
     return component.value
 
 
@@ -46,7 +37,7 @@ class CustomElement(UIElement[typing.Any, typing.Any]):
             raise TypeError("custom controls must build a marimo UIElement")
         self._component: UIElement[typing.Any, typing.Any] = component
         self._fallback = fallback
-        self._value_fn = value_fn or _default_custom_value
+        self._value_fn = value_fn or _default_value_fn
         # Deliberately skip super().__init__(): we reuse the wrapped component's
         # identity so marimo's reactive DAG treats this as the same element.
         # Calling super().__init__() would register a new element and ID.
