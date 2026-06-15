@@ -415,6 +415,12 @@ def _decode_json_list(value: str) -> list[typing.Any] | None:
     return typing.cast(list[typing.Any], raw)
 
 
+def _missing_path_error(value: str) -> ParseError | None:
+    if value and not pathlib.Path(value).exists():
+        return ParseError(f"File not found: {value!r}")
+    return None
+
+
 @dataclasses.dataclass
 class FileControl(TextControl):
     def create_marimo_element(
@@ -447,9 +453,8 @@ class FileControl(TextControl):
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         result = super().parse(args)
         match result:
-            case ParseResult(value=v) if v and not pathlib.Path(v).exists():
-                # Empty string means no file selected; skip existence check.
-                return ParseError(f"File not found: {v!r}")
+            case ParseResult(value=v):
+                return _missing_path_error(v) or result
             case _:
                 pass
         return result
@@ -460,8 +465,8 @@ class FileControl(TextControl):
             if not result:
                 return result
             v = result[1]
-            if v and not pathlib.Path(v).exists():
-                print(f"File not found: {v!r}")
+            if err := _missing_path_error(v):
+                print(err.message)
                 continue
             return result
 
@@ -507,8 +512,8 @@ class MultiFileControl(ValueControl):
         for value in values:
             if value is None:
                 return ParseError(f"Option {self.option} requires a value")
-            if value and not pathlib.Path(value).exists():
-                return ParseError(f"File not found: {value!r}")
+            if err := _missing_path_error(value):
+                return err
             paths.append(value)
         return ParseResult(paths)
 
@@ -524,8 +529,8 @@ class MultiFileControl(ValueControl):
                 return ParseError(
                     f"Query parameter for {self.option} must be a JSON list of paths"
                 )
-            if item and not pathlib.Path(item).exists():
-                return ParseError(f"File not found: {item!r}")
+            if err := _missing_path_error(item):
+                return err
             paths.append(item)
         return ParseResult(paths)
 
@@ -564,9 +569,9 @@ class MultiFileControl(ValueControl):
             if not response:
                 return []
             paths = [part.strip() for part in response.split(",") if part.strip()]
-            missing = [path for path in paths if not pathlib.Path(path).exists()]
-            if missing:
-                print(f"File not found: {missing[0]!r}")
+            errors = [err for path in paths if (err := _missing_path_error(path))]
+            if errors:
+                print(errors[0].message)
                 continue
             return [tok for path in paths for tok in (self.option, path)]
 

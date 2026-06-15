@@ -52,7 +52,6 @@ class LockedMultiselect(UIElement[str, list[str]]):
 
     def __init__(self, value: list[str], label_html: str) -> None:
         self._locked_value = list(value)
-        self._label_html = label_html
         _chips = "".join(
             f'<span style="background:var(--sky-2,#dbeafe);border-radius:4px;'
             f'padding:2px 8px;margin:2px;display:inline-block">{v}</span>'

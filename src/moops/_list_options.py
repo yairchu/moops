@@ -19,30 +19,6 @@ ParseResult = _options.ParseResult
 _UNSET: typing.Any = object()
 
 
-class _ListUIOwner(typing.Protocol):
-    def current_items(self) -> list[typing.Any]: ...
-
-    def default_item(self) -> typing.Any: ...
-
-    def set_items(self, items: list[typing.Any]) -> None: ...
-
-
-@dataclasses.dataclass(frozen=True)
-class _CallbackListUIOwner:
-    value_getter: typing.Callable[[], list[typing.Any]]
-    make_default: typing.Callable[[], typing.Any]
-    on_change: typing.Callable[[typing.Any], None]
-
-    def current_items(self) -> list[typing.Any]:
-        return self.value_getter()
-
-    def default_item(self) -> typing.Any:
-        return self.make_default()
-
-    def set_items(self, items: list[typing.Any]) -> None:
-        self.on_change(items)
-
-
 class _ListUI:
     """Notebook UI wrapper for a list control.
 
@@ -79,7 +55,9 @@ class _ListUI:
 def _build_list_ui(
     elements: list[typing.Any],
     *,
-    owner: _ListUIOwner,
+    current_items: typing.Callable[[], list[typing.Any]],
+    default_item: typing.Callable[[], typing.Any],
+    set_items: typing.Callable[[list[typing.Any]], None],
 ) -> tuple[typing.Any, typing.Any]:
     """Build the notebook list layout with per-item controls.
 
@@ -95,21 +73,21 @@ def _build_list_ui(
     """
 
     def insert_at(idx: int) -> None:
-        current = owner.current_items()
-        owner.set_items([*current[:idx], owner.default_item(), *current[idx:]])
+        current = current_items()
+        set_items([*current[:idx], default_item(), *current[idx:]])
 
     def remove_at(idx: int) -> None:
-        current = owner.current_items()
+        current = current_items()
         if 0 <= idx < len(current):
-            owner.set_items([*current[:idx], *current[idx + 1 :]])
+            set_items([*current[:idx], *current[idx + 1 :]])
 
     def move(idx: int, delta: int) -> None:
-        current = owner.current_items()
+        current = current_items()
         target = idx + delta
         if 0 <= idx < len(current) and 0 <= target < len(current):
             reordered = list(current)
             reordered[idx], reordered[target] = reordered[target], reordered[idx]
-            owner.set_items(reordered)
+            set_items(reordered)
 
     count = len(elements)
     rows: list[typing.Any] = []
@@ -145,7 +123,7 @@ def _build_list_ui(
 
     add_btn = mo.ui.button(
         label="+ Append",
-        on_click=lambda _: insert_at(len(owner.current_items())),
+        on_click=lambda _: insert_at(len(current_items())),
     )
     rows.append(add_btn)
     return mo.vstack(rows), add_btn
@@ -588,11 +566,9 @@ class SubgroupListControl(InputControl):
 
             display, add_btn = _build_list_ui(
                 elements,
-                owner=_CallbackListUIOwner(
-                    value_getter=value_getter,
-                    make_default=lambda: copy.deepcopy(self.item_template_default),
-                    on_change=on_change,
-                ),
+                current_items=value_getter,
+                default_item=lambda: copy.deepcopy(self.item_template_default),
+                set_items=on_change,
             )
             return _ListUI(
                 _ElementList(elements),
@@ -880,11 +856,9 @@ class ListControl(InputControl):
 
             display, add_btn = _build_list_ui(
                 elements,
-                owner=_CallbackListUIOwner(
-                    value_getter=value_getter,
-                    make_default=lambda: copy.deepcopy(self.item_control.default),
-                    on_change=on_change,
-                ),
+                current_items=value_getter,
+                default_item=lambda: copy.deepcopy(self.item_control.default),
+                set_items=on_change,
             )
             return _ListUI(
                 array,

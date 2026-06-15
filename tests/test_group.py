@@ -13,8 +13,8 @@ import pytest
 from marimo._plugins.ui._core.ui_element import UIElement
 
 import moops
-import moops._control_mirroring as control_mirroring
 import moops.group as group_module
+import moops.interface as interface_module
 from moops import Group, _input_map, _options, _parse
 from moops._ui_workarounds import FileBrowserWithInitialSelection
 
@@ -685,12 +685,7 @@ def test_variant_display_uses_selected_key_without_reading_value() -> None:
 
     ctrl = GuardedValueControl()
     iface = moops.Interface((ctrl,))
-    select = typing.cast(
-        typing.Callable[[moops.Interface, str], typing.Any],
-        typing.cast(typing.Any, control_mirroring)._selected_value_for_option,
-    )
-
-    assert select(iface, "--mode") == "train"
+    assert interface_module.selected_value_for_option(iface, "--mode") == "train"
 
 
 def test_multiselect_empty_selection_is_representable_in_current_args() -> None:

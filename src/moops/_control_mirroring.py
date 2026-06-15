@@ -80,7 +80,7 @@ class VariantAwareDictionary(mo.ui.dictionary):
         result: dict[str, typing.Any] = {}
         rendered_variant_groups: set[tuple[str, str]] = set()
         for name, element in self.elements.items():
-            sub_iface = _attached_interface(element)
+            sub_iface = interface.attached_interface(element)
             if sub_iface is None or sub_iface.variant_ctx.group_prefix is None:
                 result[name] = element
                 continue
@@ -116,7 +116,7 @@ def _display_element(element: typing.Any) -> typing.Any:
         visible = typing.cast(dict[str, typing.Any], visible_elements())
         return mo.vstack([_display_element(child) for child in visible.values()])
     elements = getattr(element, "elements", None)
-    if isinstance(elements, dict) and _attached_interface(element) is not None:
+    if isinstance(elements, dict) and interface.attached_interface(element) is not None:
         typed_elements = typing.cast(dict[str, typing.Any], elements)
         return mo.vstack([_display_element(child) for child in typed_elements.values()])
     return element
@@ -129,12 +129,12 @@ def _active_variant_element(
 ) -> tuple[str, typing.Any] | None:
     selector_option = variant_iface.variant_ctx.selector_option
     variant_group_prefix = variant_iface.variant_ctx.group_prefix
-    selected = _selected_value_for_option(root_iface, selector_option)
+    selected = interface.selected_value_for_option(root_iface, selector_option)
     if selected is None:
         return None
     selected_key = _variant.key_text(selected)
     for name, element in elements.items():
-        sub_iface = _attached_interface(element)
+        sub_iface = interface.attached_interface(element)
         if (
             sub_iface is not None
             and sub_iface.variant_ctx.selector_option == selector_option
@@ -143,16 +143,6 @@ def _active_variant_element(
         ):
             return name, element
     return None
-
-
-def _selected_value_for_option(
-    iface: interface.Interface, selector_option: str | None
-) -> typing.Any:
-    return interface.selected_value_for_option(iface, selector_option)
-
-
-def _attached_interface(ctrl: typing.Any) -> interface.Interface | None:
-    return interface.attached_interface(ctrl)
 
 
 def _apply_mirrored_variant_ctx(
@@ -196,19 +186,8 @@ def _create_control(
     iface: interface.Interface,
     input_control: _options.InputControl,
 ) -> typing.Any:
-    return _create_from_input_control(
-        group,
-        input_control,
-        _interface_utils.unprefixed_option(iface, input_control.option),
-    )
-
-
-def _create_from_input_control(
-    group: typing.Any,
-    input_control: _options.InputControl,
-    display_option: str,
-) -> typing.Any:
     """Create a marimo element from an existing InputControl."""
+    display_option = _interface_utils.unprefixed_option(iface, input_control.option)
     opt = group._make_opt(label=None, option=display_option)
     cloned = input_control.with_option(opt.option)
     return group._register_control(opt, cloned, cloned.help_text, None)
