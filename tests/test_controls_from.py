@@ -293,6 +293,30 @@ def test_controls_from_value_compatible_with_run_for_child_subgroups() -> None:
     assert step.value == {"config": {"style": "b"}}
 
 
+def test_controls_from_preserves_explicit_label() -> None:
+    # A control whose explicit label differs from its option name (a short
+    # option carrying a fuller label) must keep that label when mirrored via
+    # controls_from. Otherwise the mirror derives the displayed label from the
+    # option name, so a mirrored "--count" shows "count" instead of its real
+    # "Maximum item count" label.
+    source = Group(cli_args=["child.py"])
+    count = source.slider(
+        start=0,
+        stop=10,
+        value=3,
+        label="Maximum item count",
+        option="--count",
+        help_text="how many items",
+    )
+    child_iface = source.interface(count)
+
+    parent = Group(cli_args=["parent.py"])
+    mirror = parent.controls_from(child_iface, prefix="step")
+
+    mirrored = mirror.elements["count"]
+    assert "Maximum item count" in typing.cast(typing.Any, mirrored).text
+
+
 def test_controls_from_preserves_slider_widget() -> None:
     # controls_from must recreate sliders as sliders, not number inputs.
     source = Group(cli_args=["child.py"])
