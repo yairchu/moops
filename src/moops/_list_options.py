@@ -559,10 +559,11 @@ class SubgroupListControl(InputControl):
         items = [copy.deepcopy(item) for item in value]
         elements = [self.item_builder(i, item) for i, item in enumerate(items)]
         if on_change is not None and mo.running_in_notebook():
-            self._attach_item_change_handlers(elements, on_change)
 
             def value_getter() -> list[typing.Any]:
                 return [element.value for element in elements]
+
+            self._attach_item_change_handlers(elements, on_change, value_getter)
 
             display, add_btn = _build_list_ui(
                 elements,
@@ -582,10 +583,8 @@ class SubgroupListControl(InputControl):
         self,
         item_elements: list[typing.Any],
         on_change: typing.Callable[[typing.Any], None],
+        value_getter: typing.Callable[[], list[typing.Any]],
     ) -> None:
-        def value_getter() -> list[typing.Any]:
-            return [element.value for element in item_elements]
-
         for idx, item_element in enumerate(item_elements):
             for leaf in self.leaves:
                 element = _element_at_path(item_element, leaf.value_path)
