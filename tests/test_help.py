@@ -103,6 +103,12 @@ def test_no_options_usage_omits_interactive(
     assert "--interactive" not in usage_line
 
 
+def test_empty_interface_omits_usage_block() -> None:
+    rendered = Group(cli_args=["script.py"]).interface()._mime_()[1]  # type: ignore[misc]
+    assert "Usage:" not in rendered
+    assert "details" not in rendered
+
+
 def test_short_usage_is_not_wrapped_in_disclosure() -> None:
     iface = Group(cli_args=["script.py"]).interface()
 
