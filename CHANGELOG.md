@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `Group.table()` now works on the CLI: it prints the table using
+  `pandas.to_markdown()` when pandas is available, with a plain `print(data)`
+  fallback otherwise.
+
+### Fixed
+
+- `missing_options_msg` is no longer silently dropped when the interface has
+  no active controls.
+- The usage disclosure in the CLI callout is now collapsible only for longer
+  help text; short usage (≤ 3 lines) is shown inline instead.
+- The `Usage:` block is no longer emitted for empty interfaces (no controls).
+
 ## [0.12.2] - 2026-06-15
 
 ### Changed
