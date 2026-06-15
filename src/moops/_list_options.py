@@ -864,7 +864,7 @@ class ListControl(InputControl):
             return handler
 
         elements = [
-            self.item_control.create_marimo_element(
+            self.item_control.make_element(
                 v,
                 label=f"{label} [{i + 1}]",
                 disabled=disabled,

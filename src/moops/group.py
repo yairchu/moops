@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import enum
 import inspect
 import pathlib
@@ -651,7 +652,9 @@ class Group:
         inner = self._input_map.get(fallback)
         if inner is None:
             raise ValueError("fallback must be a control created by this Group")
-        custom_control = _options.CustomControl.wrap(inner, build, value)
+        custom_control = dataclasses.replace(
+            inner, custom_build=build, custom_value_fn=value
+        )
         fallback_value = fallback._value
         element = (
             CustomElement(build(fallback_value), fallback, value)
@@ -931,7 +934,7 @@ class Group:
         on_change: typing.Callable[[typing.Any], None] | None,
     ) -> typing.Any:
         reset_state = self._value_resolver.query_on_change(input_control, on_change)
-        control = input_control.create_marimo_element(
+        control = input_control.make_element(
             self._value_resolver.get_value(input_control, input_control.default),
             label=opt.label_with_tooltip(help_text),
             disabled=self._value_resolver.is_overridden(opt.option) or self._disabled,

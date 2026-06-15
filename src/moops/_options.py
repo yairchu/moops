@@ -59,6 +59,17 @@ class InputControl(abc.ABC):
     extra_kwargs: dict[str, typing.Any] = dataclasses.field(  # type: ignore[assignment]
         default_factory=dict, kw_only=True
     )
+    # Set by Group.custom(): a factory that builds a notebook-only component
+    # from this control's resolved value, and a value_fn mapping
+    # (component, fallback) to the control's value shape. When set, make_element
+    # wraps the control's own element in a CustomElement in notebooks; the
+    # control keeps all its CLI/parse/help behavior as the fallback.
+    custom_build: typing.Callable[[typing.Any], typing.Any] | None = dataclasses.field(
+        default=None, kw_only=True
+    )
+    custom_value_fn: _custom_element.CustomValueFn | None = dataclasses.field(
+        default=None, kw_only=True
+    )
 
     def options(self) -> set[str]:
         """Value options for this control."""
@@ -138,6 +149,31 @@ class InputControl(abc.ABC):
         disabled: bool = False,
     ) -> typing.Any:
         """Create the marimo UI element for this control."""
+
+    def make_element(
+        self,
+        value: typing.Any,
+        label: str,
+        *,
+        on_change: typing.Callable[[typing.Any], None] | None = None,
+        disabled: bool = False,
+    ) -> typing.Any:
+        """Create this control's element, applying any Group.custom() wrapper.
+
+        Ordinary controls just return ``create_marimo_element``; a control set up
+        by ``Group.custom()`` wraps that element in a ``CustomElement`` (notebook
+        only) so it renders a bespoke component while keeping this control's CLI
+        fallback. Use this instead of ``create_marimo_element`` wherever an
+        element is built from a control that may carry a custom wrapper.
+        """
+        element = self.create_marimo_element(
+            value, label, on_change=on_change, disabled=disabled
+        )
+        if self.custom_build is None or not mo.running_in_notebook():
+            return element
+        return _custom_element.CustomElement(
+            self.custom_build(value), element, self.custom_value_fn
+        )
 
     @abc.abstractmethod
     def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
@@ -1158,102 +1194,6 @@ class DropdownControl(_NoneFlag, InputControl):
             (cli for cli, option_key in self.cli_opts.items() if option_key == key),
             "" if value is None else str(value),
         )
-
-
-@dataclasses.dataclass
-class CustomControl(InputControl):
-    """A notebook-only component paired with a CLI-compatible fallback control.
-
-    ``inner`` is the fallback control that supplies all CLI behavior (parsing,
-    help, defaults, query format). ``build`` constructs the notebook component
-    from the fallback's live marimo element; it is only called in notebooks.
-    ``value_fn`` maps ``(component, fallback)`` to the fallback-shaped value.
-
-    Because all CLI behavior lives in ``inner`` and the component is rebuilt by
-    ``create_marimo_element``, ``controls_from`` recreates the component when it
-    mirrors this control into a parent notebook.
-    """
-
-    inner: InputControl
-    build: typing.Callable[[typing.Any], typing.Any]
-    value_fn: _custom_element.CustomValueFn | None = None
-
-    # ``build`` receives the fallback's resolved *value* (a snapshot), not the
-    # live element. controls_from creates the fallback and calls build in one
-    # cell, and marimo forbids reading a UIElement's ``.value`` in the cell that
-    # created it -- so build must not touch the element. ``value_fn`` does
-    # receive the element, but it runs later (when the parent reads the mirror
-    # dictionary's value), in a different cell, where ``.value`` is allowed.
-
-    @classmethod
-    def wrap(
-        cls,
-        inner: InputControl,
-        build: typing.Callable[[typing.Any], typing.Any],
-        value_fn: _custom_element.CustomValueFn | None,
-    ) -> CustomControl:
-        return cls(
-            option=inner.option,
-            help_text=inner.help_text,
-            default=inner.default,
-            inner=inner,
-            build=build,
-            value_fn=value_fn,
-        )
-
-    def with_option(self, option: str) -> CustomControl:
-        inner = self.inner.with_option(option)
-        return dataclasses.replace(
-            self, option=option, inner=inner, default=inner.default
-        )
-
-    def options(self) -> set[str]:
-        return self.inner.options()
-
-    def flags(self) -> set[str]:
-        return self.inner.flags()
-
-    def allows_repeated_values(self) -> bool:
-        return self.inner.allows_repeated_values()
-
-    def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
-        return self.inner.parse(args)
-
-    def parse_query_value(self, value: str) -> ParseResult | ParseError:
-        return self.inner.parse_query_value(value)
-
-    def format_query_value(self, value: typing.Any) -> str | None:
-        return self.inner.format_query_value(value)
-
-    def strategy(self) -> st.SearchStrategy:
-        return self.inner.strategy()
-
-    def format_usage_parts(self) -> list[str]:
-        return self.inner.format_usage_parts()
-
-    def format_help_lines(self) -> list[str]:
-        return self.inner.format_help_lines()
-
-    def format_value(self, value: typing.Any) -> list[str]:
-        return self.inner.format_value(value)
-
-    def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
-        return self.inner.prompt_interactive(effective_default)
-
-    def create_marimo_element(
-        self,
-        value: typing.Any,
-        label: str,
-        *,
-        on_change: typing.Callable[[typing.Any], None] | None = None,
-        disabled: bool = False,
-    ) -> typing.Any:
-        fallback = self.inner.create_marimo_element(
-            value, label, on_change=on_change, disabled=disabled
-        )
-        if not mo.running_in_notebook():
-            return fallback
-        return _custom_element.CustomElement(self.build(value), fallback, self.value_fn)
 
 
 def _parse_number(option: str, value: str) -> ParseResult | ParseError:

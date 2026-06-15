@@ -14,14 +14,16 @@ Ranked biggest cut first. Tags: `native` (platform/dep already does it),
   **-1 runtime dep.** Done in d19756e — moved to `[project.optional-dependencies]
   test` + dev group, deferred under `TYPE_CHECKING`, lazy-imported per
   `strategy()` body.
-- `shrink:` `CustomControl`'s 11 pure-delegation methods
+- [x] `shrink:` `CustomControl`'s 11 pure-delegation methods
   (`options`/`flags`/`allows_repeated_values`/`parse`/`parse_query_value`/
   `format_query_value`/`strategy`/`format_usage_parts`/`format_help_lines`/
   `format_value`/`prompt_interactive`) each just `return self.inner.<same>(...)`.
-  Replace with `__getattr__` delegation to `inner`, keeping only
-  `wrap`/`with_option`/`create_marimo_element` (the only method with real
-  logic). (`_options.py:1187-1220`) **~30 lines.** Medium confidence —
-  `__getattr__` on a dataclass+ABC needs care; verify pyright stays happy.
+  ~~Replace with `__getattr__` delegation to `inner`~~ — not possible: 7 of the
+  delegations implement `@abstractmethod`s, so `__getattr__` can't satisfy the
+  ABC. Done better in 5f03c7e: deleted `CustomControl` entirely; `InputControl`
+  gained optional `custom_build`/`custom_value_fn` fields + a `make_element`
+  template method, and `Group.custom()` sets those on the fallback via
+  `dataclasses.replace`. **−57 lines** (more than the ~30 estimated).
 - `yagni:` `Protocol` enum with `NONE = "none"  # room for ITERM / SIXEL
   backends later` — two values, every use is `is Protocol.KITTY` /
   `is Protocol.NONE`. Collapse `detect()` to return a `bool` ("terminal supports
