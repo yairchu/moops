@@ -12,6 +12,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Notebook CLI command blocks now include `uv run` when rendered from a
   `uv run marimo ...` session and the target notebook file is not executable.
+- Switch and checkbox controls now work as `variant()` selectors in the
+  `controls_from` mirroring path (e.g. pipeline step controls). Resolving the
+  active branch read the selector's `.value`, tripping marimo's "value accessed
+  in its creating cell" guard on the freshly-cloned widget; dropdowns were
+  unaffected because they expose `_selected_key`. `selected_key()` now falls
+  back to the raw cached `_value`.
 
 ## [0.13.0] - 2026-06-15 - CLI table output
 

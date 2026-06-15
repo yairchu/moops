@@ -26,6 +26,12 @@ class VariantContext:
 def selected_key(selector: typing.Any) -> typing.Any:
     if hasattr(selector, "_selected_key"):
         return selector._selected_key
+    # A switch/checkbox used as a variant selector has no `_selected_key`. In
+    # the controls_from mirroring path the selector is a freshly-cloned widget,
+    # so reading `.value` trips marimo's "value accessed in its creating cell"
+    # guard; the raw cached `_value` holds the same value without the guard.
+    if hasattr(selector, "_value"):
+        return selector._value
     return selector.value
 
 
