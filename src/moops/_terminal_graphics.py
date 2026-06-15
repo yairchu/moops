@@ -9,46 +9,36 @@ dependency on a plotting library.
 from __future__ import annotations
 
 import base64
-import enum
 import io
 import os
 import sys
 import typing
 
 
-class Protocol(enum.Enum):
-    """Terminal image protocol detected for the current stdout."""
-
-    KITTY = "kitty"
-    NONE = "none"  # room for ITERM / SIXEL backends later
-
-
 def detect(
     env: typing.Mapping[str, str] | None = None,
     stream: typing.IO[str] | None = None,
-) -> Protocol:
+) -> bool:
     """Best-effort detection of inline-image support for ``stream``.
 
-    Returns ``Protocol.NONE`` whenever stdout is not a terminal (piped or
-    redirected), so escape sequences never leak into captured output. Terminal
-    identification is by environment variable; this covers kitty, Ghostty,
-    WezTerm, and Konsole, all of which speak the Kitty graphics protocol.
+    Returns ``False`` whenever stdout is not a terminal (piped or redirected),
+    so escape sequences never leak into captured output. Terminal identification
+    is by environment variable; this covers kitty, Ghostty, WezTerm, and
+    Konsole, all of which speak the Kitty graphics protocol.
     """
     env = os.environ if env is None else env
     out = sys.stdout if stream is None else stream
     if out is None or not (hasattr(out, "isatty") and out.isatty()):
-        return Protocol.NONE
+        return False
     term = env.get("TERM", "")
-    if (
+    return (
         "KITTY_WINDOW_ID" in env
         or "kitty" in term
         or term == "xterm-ghostty"
         or "GHOSTTY_BIN_DIR" in env
         or env.get("TERM_PROGRAM") == "WezTerm"
         or "KONSOLE_VERSION" in env
-    ):
-        return Protocol.KITTY
-    return Protocol.NONE
+    )
 
 
 def to_png(fig: typing.Any, *, dpi: int | None = None) -> bytes:
@@ -102,7 +92,7 @@ def emit(png: bytes, *, stream: typing.IO[str] | None = None) -> None:
     fallback (e.g. ASCII art) when they want one.
     """
     out = sys.stdout if stream is None else stream
-    if out is not None and detect(stream=out) is Protocol.KITTY:
+    if out is not None and detect(stream=out):
         out.write(kitty_sequence(png) + "\n")
         out.flush()
     else:

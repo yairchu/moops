@@ -57,16 +57,16 @@ class _FakeTTY(io.StringIO):
         return True
 
 
-def _fixed(protocol: tg.Protocol) -> typing.Callable[..., tg.Protocol]:
-    def detect(**_: typing.Any) -> tg.Protocol:
-        return protocol
+def _fixed(supported: bool) -> typing.Callable[..., bool]:
+    def detect(**_: typing.Any) -> bool:
+        return supported
 
     return detect
 
 
 def test_detect_requires_a_terminal() -> None:
     not_a_tty = io.StringIO()
-    assert tg.detect(env={"TERM": "xterm-kitty"}, stream=not_a_tty) is tg.Protocol.NONE
+    assert not tg.detect(env={"TERM": "xterm-kitty"}, stream=not_a_tty)
 
 
 def test_detect_identifies_kitty_family() -> None:
@@ -78,14 +78,14 @@ def test_detect_identifies_kitty_family() -> None:
         {"KONSOLE_VERSION": "240400"},
     ]
     for env in cases:
-        assert tg.detect(env=env, stream=_FakeTTY()) is tg.Protocol.KITTY, env
-    assert tg.detect(env={"TERM": "dumb"}, stream=_FakeTTY()) is tg.Protocol.NONE
+        assert tg.detect(env=env, stream=_FakeTTY()), env
+    assert not tg.detect(env={"TERM": "dumb"}, stream=_FakeTTY())
 
 
 def test_emit_skips_escapes_when_unsupported(
     monkeypatch: typing.Any, capsys: typing.Any
 ) -> None:
-    monkeypatch.setattr(tg, "detect", _fixed(tg.Protocol.NONE))
+    monkeypatch.setattr(tg, "detect", _fixed(False))
     stream = _FakeTTY()
     tg.emit(b"png-bytes", stream=stream)
     assert stream.getvalue() == ""  # no escape sequence leaked to the stream
@@ -93,7 +93,7 @@ def test_emit_skips_escapes_when_unsupported(
 
 
 def test_emit_writes_sequence_when_supported(monkeypatch: typing.Any) -> None:
-    monkeypatch.setattr(tg, "detect", _fixed(tg.Protocol.KITTY))
+    monkeypatch.setattr(tg, "detect", _fixed(True))
     stream = _FakeTTY()
     tg.emit(b"png-bytes", stream=stream)
     assert stream.getvalue() == tg.kitty_sequence(b"png-bytes") + "\n"

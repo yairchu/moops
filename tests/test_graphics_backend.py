@@ -47,8 +47,8 @@ def test_graphics_supported_enables_worker_thread_figures(
         pytest.skip("MacOSX backend unavailable (no GUI session)")
     try:
 
-        def _kitty(**_: typing.Any) -> _terminal_graphics.Protocol:
-            return _terminal_graphics.Protocol.KITTY
+        def _kitty(**_: typing.Any) -> bool:
+            return True
 
         monkeypatch.setattr(_terminal_graphics, "detect", _kitty)
         assert _cli_group().graphics_supported
@@ -77,7 +77,7 @@ from moops import _terminal_graphics
 
 assert "matplotlib" not in sys.modules
 
-_terminal_graphics.detect = lambda **_: _terminal_graphics.Protocol.KITTY
+_terminal_graphics.detect = lambda **_: True
 g = moops.Group(cli_args=["script.py"])
 g.output_mode = moops.OutputMode.STDOUT
 assert g.graphics_supported

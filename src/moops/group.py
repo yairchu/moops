@@ -340,7 +340,7 @@ class Group:
             return True
         if self.output_mode is None:
             return False
-        if _terminal_graphics.detect() is _terminal_graphics.Protocol.NONE:
+        if not _terminal_graphics.detect():
             return False
         _ensure_nongui_matplotlib()
         return True
