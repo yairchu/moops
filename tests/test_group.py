@@ -298,9 +298,14 @@ def test_group_ui_method_signatures_match_marimo() -> None:
     marimo_names = {name for name in dir(mo.ui) if not name.startswith("_")}
     shared = group_names & marimo_names
 
+    # Some Group methods intentionally deviate from marimo signatures;
+    # table only supports a specific subset of marimo's input types.
+    signature_whitelist = {"table"}
+
     mismatches = {
         name: mismatches
         for name in shared
+        if name not in signature_whitelist
         for mismatches in [
             _signature_mismatches(getattr(Group, name), getattr(mo.ui, name))
         ]

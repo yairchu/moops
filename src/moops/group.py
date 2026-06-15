@@ -371,6 +371,35 @@ class Group:
         _terminal_graphics.emit(_terminal_graphics.to_png(fig, dpi=dpi))
         return None
 
+    def table(
+        self,
+        data: typing.Any,
+        **kwargs: typing.Any,
+    ) -> typing.Any | None:
+        """Display tabular data in notebooks or plain text in CLI."""
+
+        if self.is_interface_query or self.output_mode is None:
+            return None
+        if self.output_mode is OutputMode.NOTEBOOK:
+            return mo.ui.table(data, **kwargs)
+        format_mapping = kwargs.get("format_mapping", {})
+        if format_mapping:
+            if not hasattr(data, "copy"):
+                raise NotImplementedError(
+                    "format_mapping is only supported for data types "
+                    "with a copy() method, such as pandas DataFrames"
+                )
+            data = data.copy()
+            for column, format_value in format_mapping.items():
+                if column in data:
+                    data[column] = data[column].map(format_value)
+        if hasattr(data, "to_string"):
+            print(data.to_string(index=False))
+        else:
+            print(data)
+        print()
+        return None
+
     def _bool_control(
         self,
         widget: typing.Literal["switch", "checkbox"],
