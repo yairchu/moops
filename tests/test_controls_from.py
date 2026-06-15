@@ -114,6 +114,40 @@ def test_controls_from_variant_displays_only_active_branch() -> None:
     assert list(visible._moops_visible_elements()) == ["mode", "travel-train"]
 
 
+def test_controls_from_variant_supports_switch_selector(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A switch/checkbox is a valid variant selector (_variant.keys accepts
+    # FlagControl), but in the controls_from mirroring path the selector is a
+    # freshly-cloned widget, so finding the active branch by reading its
+    # `.value` trips marimo's "value accessed in its creating cell" guard --
+    # dropdowns dodge it via `_selected_key`, switches have none. Regression:
+    # selected_key must read the raw `_value`, so switch-driven variants render
+    # (e.g. in pipeline step controls), not raise.
+    source = Group(cli_args=["child.py"])
+    enable = source.switch(value=False, flag="--enable", help_text="Enable")
+    branches = source.variant("opt", enable)
+    count = branches[True].number(value=1, option="--count", help_text="Count")
+    child_iface = source.interface(enable, branches[True].interface(count))
+
+    parent = Group(cli_args=["parent.py"])
+    mirror = parent.controls_from(child_iface, prefix="step")
+    visible = typing.cast(typing.Any, mirror)
+
+    # Simulate marimo's creating-cell guard: reading any widget's `.value`
+    # raises. The fix must resolve the selector without touching `.value`.
+    def guarded_value(self: typing.Any) -> typing.Any:
+        raise RuntimeError(
+            "Accessing the value of a UIElement in the cell that created it"
+        )
+
+    monkeypatch.setattr(UIElement, "value", property(guarded_value))
+
+    # Selector is off (default False), so the True-branch controls stay hidden;
+    # the call must succeed rather than raise on the switch's guarded `.value`.
+    assert list(visible._moops_visible_elements()) == ["enable"]
+
+
 def test_controls_from_nested_variant_displays_only_active_branch() -> None:
     source = Group(cli_args=["child.py"])
     mode = source.dropdown(
