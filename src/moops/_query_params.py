@@ -8,21 +8,16 @@ from . import _options
 _MARIMO_RESERVED_PARAMS = frozenset({"file"})
 
 
-class QueryParamStore(typing.Protocol):
-    def __iter__(self) -> typing.Iterator[typing.Any]: ...
-
-    def __setitem__(self, key: str, value: str) -> None: ...
-
-    def get(self, key: str) -> typing.Any: ...
-
-
 def escape_url_key(key: str) -> str:
     return f"{key}_" if key in _MARIMO_RESERVED_PARAMS else key
 
 
 @dataclasses.dataclass
 class QueryParams:
-    params: QueryParamStore | None
+    # marimo's query-params object (mo.query_params()), or None outside a
+    # notebook. Duck-typed: get / __setitem__ / __iter__, plus an optional
+    # remove() used when clearing a key.
+    params: typing.Any
     prefix: str = ""
 
     @classmethod
@@ -100,8 +95,6 @@ class QueryParams:
             if callable(remove):
                 remove(key)
             else:
-                typing.cast(typing.MutableMapping[str, typing.Any], params).pop(
-                    key, None
-                )
+                params.pop(key, None)
         else:
             params[key] = value
