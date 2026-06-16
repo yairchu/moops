@@ -468,13 +468,7 @@ class Interface:
         """
         values: dict[str, str] = {}
         for ctrl in self.controls:
-            if isinstance(ctrl, Interface):
-                segment = ctrl._query_segment_below(self.query_params.prefix)
-                child = (
-                    f"{prefix}.{segment}" if prefix and segment else segment or prefix
-                )
-                values.update(ctrl._standalone_query_values(child))
-            elif (sub_iface := attached_interface(ctrl)) is not None:
+            if (sub_iface := attached_interface(ctrl)) is not None:
                 segment = sub_iface._query_segment_below(self.query_params.prefix)
                 child = (
                     f"{prefix}.{segment}" if prefix and segment else segment or prefix
