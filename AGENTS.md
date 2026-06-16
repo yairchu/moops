@@ -37,6 +37,8 @@ focused test that fails because of the documented bug.
 When a small follow-up is needed for an unpushed commit, amend the commit instead
 of adding a separate follow-up commit, unless the follow-up documents a failing
 bug or should otherwise stand alone for review.
+Before amending, verify the target commit is not already pushed or tagged. Never
+amend a pushed or tagged commit; make a separate follow-up commit instead.
 
 ## Release handoff
 
