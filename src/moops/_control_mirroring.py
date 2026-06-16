@@ -188,7 +188,7 @@ def _create_control(
 ) -> typing.Any:
     """Create a marimo element from an existing InputControl."""
     display_option = _interface_utils.unprefixed_option(iface, input_control.option)
-    opt = group._make_opt(label=None, option=display_option)
+    opt = group._make_opt(label=input_control.label, option=display_option)
     cloned = input_control.with_option(opt.option)
     return group._register_control(opt, cloned, cloned.help_text, None)
 

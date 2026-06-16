@@ -972,6 +972,7 @@ class Group:
         help_text: str,
         on_change: typing.Callable[[typing.Any], None] | None,
     ) -> typing.Any:
+        input_control.label = opt.label
         reset_state = self._value_resolver.query_on_change(input_control, on_change)
         control = input_control.make_element(
             self._value_resolver.get_value(input_control, input_control.default),

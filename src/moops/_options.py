@@ -52,6 +52,10 @@ class InputControl(abc.ABC):
     option: str
     help_text: str
     default: typing.Any
+    # Resolved display label, stashed at registration so controls_from can
+    # mirror it. None until registered; the mirror falls back to the option
+    # name. Travels through with_option's dataclasses.replace.
+    label: str | None = dataclasses.field(default=None, kw_only=True)
     extra_kwargs: dict[str, typing.Any] = dataclasses.field(
         default_factory=dict[str, typing.Any], kw_only=True
     )
