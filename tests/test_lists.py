@@ -870,3 +870,45 @@ def test_interactive_list_controls_from_prompts_for_items(
     g.interface(ctrl)
 
     assert ctrl.value == [{"name": "Alice", "age": 30}]
+
+
+def test_file_browser_in_list_round_trips(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A file_browser mirrored into an args.list item must round-trip. Its widget
+    value is a tuple of file infos, but the list serializes each item leaf as a
+    string (FileControl inherits TextControl.format_value), so rebuilding the
+    list from the captured value raises AttributeError on the tuple. A
+    file_browser works standalone (ctrl_value normalizes it to a path); the list
+    path does not.
+    """
+
+    def fake_query_params() -> dict[str, str]:
+        return {}
+
+    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
+    monkeypatch.setattr(group_module.mo, "query_params", fake_query_params)
+
+    source = Group(cli_args=["child.py"])
+    browser = source.file_browser(
+        option="--state", multiple=False, help_text="State file"
+    )
+    child_iface = source.interface(browser)
+
+    parent = Group(cli_args=["parent.py"])
+    steps = parent.list(
+        option="--step",
+        item=lambda grp: grp.controls_from(child_iface, prefix="step"),
+        help_text="Steps",
+        value=[{}],
+    )
+
+    # Adding/editing an item rebuilds the list from its captured value, where the
+    # mirrored file_browser leaf holds its tuple value — this must not raise.
+    other = Group(cli_args=["parent.py"])
+    other.list(
+        option="--step",
+        item=lambda grp: grp.controls_from(child_iface, prefix="step"),
+        help_text="Steps",
+        value=steps.value,
+    )
