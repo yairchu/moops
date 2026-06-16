@@ -235,6 +235,42 @@ def test_unbounded_number_none_value_round_trips() -> None:
     assert target_count.value is None
 
 
+def test_subgroup_control_standalone_query_round_trips(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A control inside a subgroup must round-trip through standalone query
+    params. The standalone URL has to key such a control by its subgroup path
+    (the same key the subgroup reads back via QueryParams), not a flat leaf key,
+    or opening the URL silently drops the value. Top-level controls already
+    round-trip; subgroup ones (e.g. an embedded notebook's controls) do not.
+    """
+    source = Group(cli_args=["script.py", "--sub-mode", "b"])
+    sub = source.subgroup("sub")
+    mode = sub.dropdown(
+        ["a", "b"],
+        value="a",
+        option="--mode",
+        help_text="Mode",
+        allow_select_none=False,
+    )
+    query_values = source.interface(sub.interface(mode))._standalone_query_values()  # type: ignore[reportPrivateUsage]
+
+    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
+    monkeypatch.setattr(group_module.mo, "query_params", lambda: query_values)
+
+    target = Group(cli_args=["script.py"])
+    target_sub = target.subgroup("sub")
+    target_mode = target_sub.dropdown(
+        ["a", "b"],
+        value="a",
+        option="--mode",
+        help_text="Mode",
+        allow_select_none=False,
+    )
+
+    assert target_mode.value == "b"
+
+
 def test_unbounded_number_none_value_standalone_query_round_trips(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
