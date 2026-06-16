@@ -228,7 +228,10 @@ def test_overridden_control_is_disabled() -> None:
     assert input_text._component_args["disabled"] is True  # type: ignore
 
 
-def test_embedded_summary_links_to_current_standalone_query_params() -> None:
+def test_embedded_summary_links_to_current_standalone_query_params(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("moops.interface._running_in_edit_mode", lambda: True)
     args = moops.Group(cli_args=["script.py", "--no-casing-style"])
     casing = args.subgroup("casing", overrides={"text": "hello world"})
     result = asyncio.run(name_casing.app.embed(defs={"args": casing}))

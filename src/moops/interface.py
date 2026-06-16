@@ -436,19 +436,22 @@ class Interface:
         if not self.notebook_name:
             return mo.md("Input bundle with no notebook name")
         notebook_name = html.escape(self.notebook_name)
-        href = html.escape(self._standalone_url(), quote=True)
-        link = mo.md(
-            f'<a href="{href}" target="_blank" rel="noopener">'
-            f"An embedded instance of `{notebook_name}`</a>"
-        )
+        label = f"An embedded instance of `{notebook_name}`"
+        if _running_in_edit_mode():
+            href = html.escape(self._standalone_url(), quote=True)
+            heading: mo.Html = mo.md(
+                f'<a href="{href}" target="_blank" rel="noopener">{label}</a>'
+            )
+        else:
+            heading = mo.md(label)
         if self.embedded_extra_overrides != frozenset():
             # None: embedded outside moops.embed, so overrides are unknown.
             # Non-empty: the parent injected defs beyond args, so no CLI
             # command can reproduce this setup.
-            return link
+            return heading
         command = _wrap_command(self.notebook_file, self._standalone_arg_groups())
         return mo.vstack(
-            [link, mo.md(f"To run as a standalone script:\n```\n{command}\n```")]
+            [heading, mo.md(f"To run as a standalone script:\n```\n{command}\n```")]
         )
 
     def _standalone_url(self) -> str:
@@ -718,3 +721,25 @@ def _collect_usage_placeholders(
     for ctrl in iface.controls:
         if sub_iface := attached_interface(ctrl):
             _collect_usage_placeholders(sub_iface, result)
+
+
+def _running_in_edit_mode() -> bool:
+    """Return True only when running inside a marimo *edit* session.
+
+    ``mo.running_in_notebook()`` is True for both ``marimo edit`` and
+    ``marimo run``, but links to ``/?file=...`` only work in edit sessions.
+    """
+    if not mo.running_in_notebook():
+        return False
+    try:
+        from marimo._runtime.context import get_context
+        from marimo._runtime.context.kernel_context import KernelRuntimeContext
+        from marimo._session.model import SessionMode
+
+        ctx = get_context()
+        return (
+            isinstance(ctx, KernelRuntimeContext)
+            and ctx.session_mode == SessionMode.EDIT
+        )
+    except Exception:
+        return False
