@@ -358,6 +358,32 @@ def test_controls_from_values_are_in_standalone_query_values() -> None:
     }
 
 
+def test_controls_from_standalone_query_values_hydrate_mirror(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = Group(cli_args=["child.py"])
+    ctrl = source.dropdown(
+        ["a", "b"],
+        value="a",
+        option="--style",
+        help_text="Style",
+        allow_select_none=False,
+    )
+    child_iface = source.interface(ctrl)
+
+    parent = Group(cli_args=["parent.py", "--step-style", "b"])
+    mirror = parent.controls_from(child_iface, prefix="step")
+    query_values = parent.interface(mirror)._standalone_query_values()  # type: ignore[attr-defined]
+
+    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
+    monkeypatch.setattr(group_module.mo, "query_params", lambda: query_values)
+
+    target = Group(cli_args=["parent.py"])
+    target_mirror = target.controls_from(child_iface, prefix="step")
+
+    assert target_mirror.value == {"style": "b"}
+
+
 def test_controls_from_current_args_reflects_live_widget_changes() -> None:
     # mo.ui.dictionary clones its elements; the sub-interface must track the
     # live clones (step_controls.elements) not the originals, so that
