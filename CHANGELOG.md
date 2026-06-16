@@ -13,6 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `controls_from` now preserves a control's explicit label instead of deriving
   the mirrored label from the option name (e.g. a `--count` control labelled
   "Maximum item count" kept showing "count" when mirrored).
+- Standalone URLs now round-trip controls inside a subgroup. The URL keyed such
+  a control by its flat leaf option, but the subgroup reads it back under its
+  dotted path (e.g. `sub.mode`), so opening the URL silently dropped subgroup
+  values; only top-level controls survived.
 
 ## [0.13.1] - 2026-06-16
 

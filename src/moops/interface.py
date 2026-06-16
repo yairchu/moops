@@ -456,18 +456,42 @@ class Interface:
         query = urllib.parse.urlencode({"file": self.notebook_file, **values})
         return f"/?{query}"
 
-    def _standalone_query_values(self) -> dict[str, str]:
+    def _standalone_query_values(self, prefix: str = "") -> dict[str, str]:
+        """Query params reproducing this notebook's state when run standalone.
+
+        ``prefix`` is the dotted query-param path of this interface relative to
+        the standalone root (empty at the root). A real subgroup keeps its
+        segment so its controls round-trip under the same dotted key the
+        subgroup reads back (e.g. ``sub.mode``); the embedded-summary link calls
+        this on the subgroup itself, so there ``prefix`` is empty and its
+        controls go flat, matching the embedded notebook running as root.
+        """
         values: dict[str, str] = {}
         for ctrl in self.controls:
             if isinstance(ctrl, Interface):
-                values.update(ctrl._standalone_query_values())
+                segment = ctrl._query_segment_below(self.query_params.prefix)
+                child = (
+                    f"{prefix}.{segment}" if prefix and segment else segment or prefix
+                )
+                values.update(ctrl._standalone_query_values(child))
             elif (sub_iface := attached_interface(ctrl)) is not None:
-                values.update(self._controls_from_query_values(sub_iface))
+                values.update(self._controls_from_query_values(sub_iface, prefix))
             else:
-                self._add_query_value(values, ctrl, self.input_map)
+                self._add_query_value(values, ctrl, self.input_map, prefix)
         return values
 
-    def _controls_from_query_values(self, sub_iface: Interface) -> dict[str, str]:
+    def _query_segment_below(self, parent_prefix: str) -> str:
+        """This interface's dotted query path relative to ``parent_prefix``."""
+        prefix = self.query_params.prefix
+        if parent_prefix and prefix.startswith(f"{parent_prefix}."):
+            return prefix[len(parent_prefix) + 1 :]
+        if parent_prefix and prefix == parent_prefix:
+            return ""
+        return prefix
+
+    def _controls_from_query_values(
+        self, sub_iface: Interface, prefix: str = ""
+    ) -> dict[str, str]:
         """Collect standalone query values for a controls_from mirror.
 
         Uses this interface's key scheme (our option_prefix) so the resulting
@@ -476,9 +500,9 @@ class Interface:
         values: dict[str, str] = {}
         for ctrl in sub_iface.controls:
             if (nested := attached_interface(ctrl)) is not None:
-                values.update(self._controls_from_query_values(nested))
+                values.update(self._controls_from_query_values(nested, prefix))
             else:
-                self._add_query_value(values, ctrl, sub_iface.input_map)
+                self._add_query_value(values, ctrl, sub_iface.input_map, prefix)
         return values
 
     def _add_query_value(
@@ -486,13 +510,16 @@ class Interface:
         values: dict[str, str],
         ctrl: typing.Any,
         input_map: _input_map.InputMap,
+        prefix: str = "",
     ) -> None:
         input_control = input_map.get(ctrl)
         if input_control is None:
             return
         value = input_control.format_query_value(_marimo_controls.ctrl_value(ctrl))
         if value is not None:
-            values[_query_params.escape_url_key(self._key(input_control))] = value
+            leaf = self._key(input_control)
+            full = f"{prefix}.{leaf}" if prefix else leaf
+            values[_query_params.escape_url_key(full)] = value
 
     def _root_panel(self) -> mo.Html:
         args = self._current_args()
