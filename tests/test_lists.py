@@ -1,3 +1,4 @@
+import pathlib
 import shlex
 import typing
 
@@ -7,6 +8,7 @@ import moops
 import moops._marimo_controls as _marimo_controls
 import moops._options as _options
 import moops.group as group_module
+import moops.interface as interface_module
 from examples.composition import variant_trip
 from moops import Group
 
@@ -178,6 +180,22 @@ def test_script_callout_command_uses_two_space_continuation_indent() -> None:
     )
 
     assert command == "script.py \\\n  --first value \\\n  --second value"
+
+
+def test_uv_run_script_callout_keeps_runner_with_path(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: pathlib.Path,
+) -> None:
+    script = tmp_path / "notebook.py"
+    script.write_text("")
+    monkeypatch.setenv("UV_RUN_RECURSION_DEPTH", "1")
+
+    command = interface_module._wrap_command(  # type: ignore[reportPrivateUsage]
+        str(script),
+        ["--first value", "--second value"],
+    )
+
+    assert command.startswith(f"uv run {shlex.quote(str(script))} \\\n")
 
 
 def test_list_controls_from_variant_parses_nested_items() -> None:

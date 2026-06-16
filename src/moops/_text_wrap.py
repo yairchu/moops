@@ -44,14 +44,16 @@ def wrap_help_line(line: str, width: int = 88) -> list[str]:
     return result
 
 
-def wrap_command(name: str, groups: list[str], width: int = 72) -> str:
+def wrap_command(
+    name: str, groups: list[str], width: int = 72, *, quote_name: bool = True
+) -> str:
     """Render a script command, wrapping long lines with shell continuations.
 
     Short commands stay on one line. When the single-line form exceeds ``width``,
     each option group goes on its own line joined by `` \\`` continuations, which
     remains valid copy-pasteable shell.
     """
-    quoted_name = shlex.quote(name)
+    quoted_name = shlex.quote(name) if quote_name else name
     single_line = " ".join([quoted_name, *groups])
     if not groups or len(single_line) <= width:
         return single_line

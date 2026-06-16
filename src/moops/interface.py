@@ -633,7 +633,9 @@ def attached_interface(ctrl: typing.Any) -> Interface | None:
 
 def _wrap_command(command: str, groups: list[str]) -> str:
     if _should_use_uv_run(command):
-        return _text_wrap.wrap_command("uv", [f"run {shlex.quote(command)}", *groups])
+        return _text_wrap.wrap_command(
+            f"uv run {shlex.quote(command)}", groups, quote_name=False
+        )
     return _text_wrap.wrap_command(command, groups)
 
 
