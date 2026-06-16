@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   a control by its flat leaf option, but the subgroup reads it back under its
   dotted path (e.g. `sub.mode`), so opening the URL silently dropped subgroup
   values; only top-level controls survived.
+- Standalone URLs now round-trip `controls_from` mirrors, whose query params
+  must use the mirrored subgroup's dotted path (e.g. `step.style`) rather than
+  the flat CLI-derived key.
 
 ## [0.13.1] - 2026-06-16
 

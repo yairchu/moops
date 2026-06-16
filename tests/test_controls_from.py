@@ -354,7 +354,7 @@ def test_controls_from_values_are_in_standalone_query_values() -> None:
 
     assert iface._current_args() == "--step-style b"  # type: ignore[attr-defined]
     assert iface._standalone_query_values() == {  # type: ignore[attr-defined]
-        "step_style": "b"
+        "step.style": "b"
     }
 
 
@@ -431,7 +431,7 @@ def test_nested_controls_from_current_args_reflects_live_widget_changes() -> Non
 
     assert parent_iface._current_args() == "--step-config-style b"  # type: ignore[attr-defined]
     assert parent_iface._standalone_query_values() == {  # type: ignore[attr-defined]
-        "step_config_style": "b"
+        "step.config.style": "b"
     }
 
 

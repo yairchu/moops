@@ -475,7 +475,11 @@ class Interface:
                 )
                 values.update(ctrl._standalone_query_values(child))
             elif (sub_iface := attached_interface(ctrl)) is not None:
-                values.update(self._controls_from_query_values(sub_iface, prefix))
+                segment = sub_iface._query_segment_below(self.query_params.prefix)
+                child = (
+                    f"{prefix}.{segment}" if prefix and segment else segment or prefix
+                )
+                values.update(sub_iface._standalone_query_values(child))
             else:
                 self._add_query_value(values, ctrl, self.input_map, prefix)
         return values
@@ -488,22 +492,6 @@ class Interface:
         if parent_prefix and prefix == parent_prefix:
             return ""
         return prefix
-
-    def _controls_from_query_values(
-        self, sub_iface: Interface, prefix: str = ""
-    ) -> dict[str, str]:
-        """Collect standalone query values for a controls_from mirror.
-
-        Uses this interface's key scheme (our option_prefix) so the resulting
-        URL params match the parent notebook's parameter namespace.
-        """
-        values: dict[str, str] = {}
-        for ctrl in sub_iface.controls:
-            if (nested := attached_interface(ctrl)) is not None:
-                values.update(self._controls_from_query_values(nested, prefix))
-            else:
-                self._add_query_value(values, ctrl, sub_iface.input_map, prefix)
-        return values
 
     def _add_query_value(
         self,
