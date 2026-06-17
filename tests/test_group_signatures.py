@@ -10,21 +10,25 @@ def test_group_ui_method_signatures_match_marimo() -> None:
     group_names = {
         name for name, _ in inspect.getmembers(Group, predicate=inspect.isfunction)
     }
-    marimo_names = {name for name in dir(mo.ui) if not name.startswith("_")}
-    shared = group_names & marimo_names
+    marimo_ui_names = {name for name in dir(mo.ui) if not name.startswith("_")}
+    marimo_status_names = {name for name in dir(mo.status) if not name.startswith("_")}
+    shared = group_names & (marimo_ui_names | marimo_status_names)
 
-    # Some Group methods intentionally deviate from marimo signatures;
-    # table only supports a specific subset of marimo's input types.
-    signature_whitelist = {"table"}
+    # Some Group methods intentionally deviate from marimo signatures.
+    signature_exceptions = {
+        "table": "Table accepts only a subset of marimo's input types.",
+    }
 
     mismatches = {
         name: mismatches
         for name in shared
-        if name not in signature_whitelist
         for mismatches in [
-            _signature_mismatches(getattr(Group, name), getattr(mo.ui, name))
+            _signature_mismatches(
+                getattr(Group, name),
+                getattr(mo.ui if name in marimo_ui_names else mo.status, name),
+            )
         ]
-        if mismatches
+        if name not in signature_exceptions and mismatches
     }
 
     assert not mismatches, "\n".join(
