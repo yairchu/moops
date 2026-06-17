@@ -171,7 +171,7 @@ def test_name_casing_preserves_alphanumeric_count(kwargs):
 
 The `examples/` directory is grouped by topic:
 
-* `basics/` — small notebooks covering options, flags, and file inputs
+* `basics/` — small notebooks covering options, flags, file inputs, and status output
 * `custom_controls/` — `args.custom()` and mirroring it via `controls_from`
 * `composition/` — embedding and varying notebooks (`embed`, `variant_embed`)
 * `game_of_life/` — a worked multi-notebook example

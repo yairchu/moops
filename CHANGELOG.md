@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - List controls in notebooks now include a per-item duplicate button.
+- `Group.progress_bar()` and `Group.spinner()` now mirror marimo status
+  displays in notebooks, use `tqdm` on the CLI when installed with
+  `moops[status]`, and otherwise fall back to plain status lines.
 
 ## [0.13.3] - 2026-06-17
 

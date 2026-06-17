@@ -21,6 +21,7 @@ from . import (
     _parse,
     _preset_state,
     _query_params,
+    _status,
     _terminal_graphics,
     _value_resolution,
     _variant,
@@ -409,6 +410,58 @@ class Group:
             print(data)
         print()
         return None
+
+    def progress_bar(
+        self,
+        collection: typing.Any = None,
+        *,
+        title: str | None = None,
+        subtitle: str | None = None,
+        completion_title: str | None = None,
+        completion_subtitle: str | None = None,
+        total: int | None = None,
+        show_rate: bool = True,
+        show_eta: bool = True,
+        remove_on_exit: bool = False,
+        disabled: bool = False,
+    ) -> typing.Any:
+        """Show progress in notebooks or plain status lines on the CLI."""
+        disabled = disabled or self.is_interface_query or self.output_mode is None
+        if self.output_mode is OutputMode.NOTEBOOK:
+            progress_bar = mo.status.progress_bar
+        else:
+            progress_bar = _status.ProgressBar
+        return progress_bar(  # pyright: ignore[reportCallIssue]
+            collection,
+            title=title,
+            subtitle=subtitle,
+            completion_title=completion_title,
+            completion_subtitle=completion_subtitle,
+            total=total,
+            show_rate=show_rate,
+            show_eta=show_eta,
+            remove_on_exit=remove_on_exit,
+            disabled=disabled,
+        )
+
+    def spinner(
+        self,
+        title: str | None = None,
+        subtitle: str | None = None,
+        remove_on_exit: bool = True,
+    ) -> typing.Any:
+        """Show a spinner in notebooks or a plain status line on the CLI."""
+        if self.is_interface_query or self.output_mode is None:
+            return _status.DisabledSpinner()
+        return (
+            mo.status.spinner
+            if self.output_mode is OutputMode.NOTEBOOK
+            else _status.Spinner
+        )(
+            title=title,
+            subtitle=subtitle,
+            remove_on_exit=remove_on_exit,
+        )
 
     def _bool_control(
         self,

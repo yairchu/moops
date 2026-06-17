@@ -31,6 +31,8 @@ dependencies = [
 test = ["hypothesis"]
 # Group.table() uses pandas.to_markdown(), which requires tabulate for CLI output.
 table = ["tabulate>=0.10.0"]
+# Group.progress_bar() and Group.spinner() use tqdm on the CLI when installed.
+status = ["tqdm>=4.67.1"]
 
 [project.urls]
 Homepage = "https://github.com/yairchu/moops"
@@ -47,6 +49,7 @@ dev = [
     "pylint>=3.0",
     "pymarkdownlnt>=0.9.37",
     "matplotlib>=3.10.9",
+    "tqdm>=4.67.1",
     "xarray>=2025.6.1",
 ]
 
