@@ -22,6 +22,14 @@ Using `moops`, both implementations are merged into one.
 
 Now your notebook doubles as a CLI script
 
+## Agent-assisted migrations
+
+If you use a coding agent, moops includes an agent skill for migrating existing
+marimo notebooks: [`migrate-marimo-to-moops`](skills/migrate-marimo-to-moops/SKILL.md).
+
+Install or point your agent at that skill, then ask it to migrate a notebook to
+moops while preserving the notebook's behavior.
+
 ## Running notebooks from Python
 
 Notebooks can also be called from Python with `moops.run`.

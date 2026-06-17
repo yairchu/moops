@@ -38,6 +38,7 @@ status = ["tqdm>=4.67.1"]
 Homepage = "https://github.com/yairchu/moops"
 Repository = "https://github.com/yairchu/moops"
 Issues = "https://github.com/yairchu/moops/issues"
+"Agent skill" = "https://github.com/yairchu/moops/tree/main/skills/migrate-marimo-to-moops"
 
 [dependency-groups]
 dev = [
