@@ -81,6 +81,13 @@ def _build_list_ui(
         if 0 <= idx < len(current):
             set_items([*current[:idx], *current[idx + 1 :]])
 
+    def duplicate_at(idx: int) -> None:
+        current = current_items()
+        if 0 <= idx < len(current):
+            set_items(
+                [*current[: idx + 1], copy.deepcopy(current[idx]), *current[idx + 1 :]]
+            )
+
     def move(idx: int, delta: int) -> None:
         current = current_items()
         target = idx + delta
@@ -96,6 +103,11 @@ def _build_list_ui(
             label="+",
             tooltip="Insert an item here",
             on_click=lambda _, idx=i: insert_at(idx),
+        )
+        duplicate_btn = mo.ui.button(
+            label="⧉",
+            tooltip="Duplicate this item",
+            on_click=lambda _, idx=i: duplicate_at(idx),
         )
         up_btn = mo.ui.button(
             label="↑",
@@ -116,7 +128,7 @@ def _build_list_ui(
             on_click=lambda _, idx=i: remove_at(idx),
         )
         controls = mo.hstack(
-            [insert_btn, up_btn, down_btn, item_remove_btn],
+            [insert_btn, duplicate_btn, up_btn, down_btn, item_remove_btn],
             justify="start",
         )
         rows.append(mo.vstack([controls, element]))
