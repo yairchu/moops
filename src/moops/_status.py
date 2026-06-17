@@ -57,6 +57,7 @@ class ProgressBar(typing.Generic[S]):
         disabled: bool = False,
         **kwargs: typing.Any,
     ) -> None:
+        explicit_total = total is not None
         if collection is not None and total is None:
             if not isinstance(collection, collections.abc.Sized):
                 raise TypeError("Cannot determine length; pass total")
@@ -70,6 +71,9 @@ class ProgressBar(typing.Generic[S]):
         self._completion_subtitle = completion_subtitle
         self._total = total
         self._current = 0
+        self._step = (
+            collection.step if explicit_total and isinstance(collection, range) else 1
+        )
         self._disabled = disabled
         self._closed = False
         self._bar = (
@@ -93,7 +97,7 @@ class ProgressBar(typing.Generic[S]):
         try:
             for item in self._collection:
                 yield item
-                self.update()
+                self.update(increment=self._step)
         finally:
             self.close()
 

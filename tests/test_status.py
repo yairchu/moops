@@ -4,11 +4,14 @@ import moops
 from moops import _status
 
 
-def test_silenced_progress_bar_accepts_unsized_iterators() -> None:
+def test_silenced_progress_bar_suppresses_output(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     g = moops.Group(cli_args=["script.py"])
     g.output_mode = None
 
-    assert list(g.progress_bar(iter([1, 2]))) == [1, 2]
+    assert list(g.progress_bar([1, 2])) == [1, 2]
+    assert capsys.readouterr().out == ""
 
 
 def test_cli_progress_bar_range_uses_range_step(
