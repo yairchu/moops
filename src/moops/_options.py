@@ -425,6 +425,24 @@ def _missing_path_error(value: str) -> ParseError | None:
     return None
 
 
+def _file_browser_paths(value: typing.Any) -> list[str]:
+    if not value:
+        return []
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, pathlib.Path):
+        return [str(value)]
+    if isinstance(value, typing.Sequence):
+        items = typing.cast(typing.Sequence[object], value)
+        return [
+            str(item.path)
+            if isinstance(item, _ui_workarounds.FileBrowserFileInfo)
+            else str(item)
+            for item in items
+        ]
+    return [str(value)]
+
+
 @dataclasses.dataclass
 class FileControl(TextControl):
     def create_marimo_element(
@@ -473,6 +491,14 @@ class FileControl(TextControl):
                 print(err.message)
                 continue
             return result
+
+    def format_value(self, value: typing.Any) -> list[str]:
+        paths = _file_browser_paths(value)
+        return super().format_value(paths[0] if paths else "")
+
+    def format_query_value(self, value: typing.Any) -> str | None:
+        paths = _file_browser_paths(value)
+        return super().format_query_value(paths[0] if paths else "")
 
 
 @dataclasses.dataclass
@@ -554,13 +580,13 @@ class MultiFileControl(ValueControl):
         return [line]
 
     def format_value(self, value: typing.Any) -> list[str]:
-        values = list(value)
+        values = _file_browser_paths(value)
         if values == self.default:
             return []
         return [option_value_token(self.option, v) for v in values]
 
     def format_query_value(self, value: typing.Any) -> str | None:
-        values = list(value)
+        values = _file_browser_paths(value)
         return None if values == self.default else json.dumps(values)
 
     def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:

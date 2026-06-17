@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- `file_browser` controls mirrored into `Group.list(..., controls_from(...))`
+  items now round-trip notebook file selections when list items are rebuilt.
 - Wrapped script callouts that use `uv run` now keep `uv run <script>` together
   on the first line instead of wrapping after just `uv`.
 
