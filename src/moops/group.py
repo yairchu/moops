@@ -34,6 +34,7 @@ from ._ui_workarounds import FileBrowserWithInitialSelection
 from .presets import Presets
 
 Numeric = int | float
+S = typing.TypeVar("S")
 
 
 class OutputMode(enum.Enum):
@@ -413,35 +414,24 @@ class Group:
 
     def progress_bar(
         self,
-        collection: typing.Any = None,
+        collection: typing.Collection[S]
+        | typing.Iterator[S]
+        | typing.AsyncIterable[S]
+        | None = None,
         *,
-        title: str | None = None,
-        subtitle: str | None = None,
-        completion_title: str | None = None,
-        completion_subtitle: str | None = None,
-        total: int | None = None,
-        show_rate: bool = True,
-        show_eta: bool = True,
-        remove_on_exit: bool = False,
         disabled: bool = False,
+        **kwargs: typing.Any,
     ) -> typing.Any:
         """Show progress in notebooks or plain status lines on the CLI."""
-        disabled = disabled or self.is_interface_query or self.output_mode is None
-        if self.output_mode is OutputMode.NOTEBOOK:
-            progress_bar = mo.status.progress_bar
-        else:
-            progress_bar = _status.ProgressBar
-        return progress_bar(  # pyright: ignore[reportCallIssue]
+        return typing.cast(
+            typing.Any,
+            mo.status.progress_bar
+            if self.output_mode is OutputMode.NOTEBOOK
+            else _status.ProgressBar,
+        )(
             collection,
-            title=title,
-            subtitle=subtitle,
-            completion_title=completion_title,
-            completion_subtitle=completion_subtitle,
-            total=total,
-            show_rate=show_rate,
-            show_eta=show_eta,
-            remove_on_exit=remove_on_exit,
-            disabled=disabled,
+            disabled=disabled or self.is_interface_query or self.output_mode is None,
+            **kwargs,
         )
 
     def spinner(

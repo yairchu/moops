@@ -53,12 +53,10 @@ class ProgressBar(typing.Generic[S]):
         completion_title: str | None = None,
         completion_subtitle: str | None = None,
         total: int | None = None,
-        show_rate: bool = True,
-        show_eta: bool = True,
         remove_on_exit: bool = False,
         disabled: bool = False,
+        **kwargs: typing.Any,
     ) -> None:
-        del show_rate, show_eta
         if collection is not None and total is None:
             if not isinstance(collection, collections.abc.Sized):
                 raise TypeError("Cannot determine length; pass total")
