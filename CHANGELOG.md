@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.13.5] - 2026-06-22 - Dataclass controls
+
 ### Added
 
 - `Group.dataclass()` can now generate controls and CLI options for defaulted
