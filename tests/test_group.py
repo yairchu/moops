@@ -59,6 +59,24 @@ def test_label_parenthetical_unit_becomes_metavar(
     assert "LENGTH_(SECONDS)" not in help_text
 
 
+def test_dataclass_default_true_bool_help_describes_disabled_flag(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    @dataclasses.dataclass
+    class Config:
+        include_summary: bool = True
+
+    g = Group(cli_args=["script.py", "--help"])
+    config = g.dataclass(Config)
+
+    with pytest.raises(SystemExit) as exc_info:
+        g.interface(*config.elements.values())
+
+    assert exc_info.value.code == 0
+    help_text = capsys.readouterr().out
+    assert "--no-include-summary: Disable include summary" in help_text
+
+
 def test_subgroup_prefixes_options() -> None:
     g = Group(cli_args=["script.py", "--casing-style", "snake_case"])
     casing = g.subgroup("casing")
