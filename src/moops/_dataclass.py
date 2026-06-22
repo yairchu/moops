@@ -49,7 +49,15 @@ def _control_for_field(
     default: typing.Any,
 ) -> typing.Any:
     label = str(field.metadata.get("label", field.name.replace("_", " ")))
-    help_text = str(field.metadata.get("help_text", field.metadata.get("help", label)))
+    help_text = str(
+        field.metadata.get(
+            "help_text",
+            field.metadata.get(
+                "help",
+                f"Disable {label}" if default is True else label,
+            ),
+        )
+    )
     kwargs = {
         key: field.metadata[key]
         for key in ("option", "start", "stop", "step")
