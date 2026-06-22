@@ -603,6 +603,14 @@ def test_dataclass_bool_field_option_metadata_has_clear_error() -> None:
         g.dataclass(config_cls)
 
 
+def test_dataclass_optional_bool_none_default_has_clear_error() -> None:
+    config_cls = dataclasses.make_dataclass("Config", [("enabled", bool | None, None)])
+    g = Group(cli_args=["script.py"])
+
+    with pytest.raises(TypeError, match="enabled"):
+        g.dataclass(config_cls)
+
+
 def test_custom_control_build_uses_fallback_snapshot_without_reading_value(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
