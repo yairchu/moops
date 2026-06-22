@@ -561,6 +561,30 @@ def test_dataclass_result_is_reactive_ui_element() -> None:
     assert isinstance(config, UIElement)
 
 
+def test_dataclass_bool_field_option_metadata_has_clear_error() -> None:
+    config_cls = dataclasses.make_dataclass(
+        "Config",
+        [
+            (
+                "verbose",
+                bool,
+                dataclasses.field(
+                    default=True,
+                    metadata={
+                        "option": "--verbose",
+                        "help_text": "Enable verbose output",
+                    },
+                ),
+            )
+        ],
+    )
+
+    g = Group(cli_args=["script.py"])
+
+    with pytest.raises(TypeError, match=r"uses flag=.*not option="):
+        g.dataclass(config_cls)
+
+
 def test_custom_control_build_uses_fallback_snapshot_without_reading_value(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

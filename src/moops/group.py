@@ -466,6 +466,8 @@ class Group:
         on_change: typing.Callable[[bool], None] | None,
         **kwargs: typing.Any,
     ) -> typing.Any:
+        if "option" in kwargs:
+            raise TypeError(f"Group.{widget}() uses flag= for CLI flags, not option=")
         opt = self._make_opt(label=label, option=flag, prefix="no-" if value else None)
         input_control = _options.FlagControl(
             option=opt.option,
