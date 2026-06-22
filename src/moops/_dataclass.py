@@ -52,10 +52,7 @@ def _control_for_field(
     help_text = str(
         field.metadata.get(
             "help_text",
-            field.metadata.get(
-                "help",
-                f"Disable {label}" if default is True else label,
-            ),
+            f"Disable {label}" if default is True else label,
         )
     )
     kwargs = {
