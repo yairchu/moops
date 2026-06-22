@@ -65,6 +65,10 @@ def _control_for_field(
     }
     typ = _simple_type(annotation, default)
     if typ is bool:
+        if default is None:
+            raise TypeError(
+                f"Cannot infer a moops control for dataclass field {field.name!r}"
+            )
         return group.switch(value=default, label=label, help_text=help_text, **kwargs)
     if typ is str:
         return group.text(value=default, label=label, help_text=help_text, **kwargs)
