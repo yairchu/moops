@@ -547,6 +547,20 @@ def test_custom_control_notebook_element_reuses_component_id(
     assert typing.cast(typing.Any, ctrl).value == [2, 8]
 
 
+def test_dataclass_result_is_reactive_ui_element() -> None:
+    # Dataclass controls are created dynamically, so the returned object must
+    # itself be a UIElement. Otherwise marimo has no bound UIElement global to
+    # rerun downstream cells when a generated field control changes.
+    @dataclasses.dataclass
+    class Config:
+        name: str = "Ada"
+
+    g = Group(cli_args=["script.py"])
+    config = g.dataclass(Config)
+
+    assert isinstance(config, UIElement)
+
+
 def test_custom_control_build_uses_fallback_snapshot_without_reading_value(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

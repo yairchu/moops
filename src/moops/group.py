@@ -28,6 +28,7 @@ from . import (
     interface,
 )
 from ._custom_element import CustomElement, CustomValueFn
+from ._dataclass import controls_for_dataclass as _dataclass_controls
 from ._run_button import run_button
 from ._subgroup_registry import SubgroupRegistry
 from ._ui_workarounds import FileBrowserWithInitialSelection
@@ -35,6 +36,7 @@ from .presets import Presets
 
 Numeric = int | float
 S = typing.TypeVar("S")
+T = typing.TypeVar("T")
 
 
 class OutputMode(enum.Enum):
@@ -877,6 +879,14 @@ class Group:
         return _control_mirroring.controls_from(
             self, iface, prefix=prefix, exclude=exclude
         )
+
+    def dataclass(
+        self,
+        cls: type[T],
+        /,
+    ) -> mo.ui.dictionary:
+        """Create controls for defaulted dataclass fields."""
+        return _dataclass_controls(self, cls)
 
     def list(
         self,
