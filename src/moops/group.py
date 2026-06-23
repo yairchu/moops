@@ -939,6 +939,8 @@ class Group:
         # its own empty args and input_map.
         probe = type(self)(["_probe"])
         probe.option = self.option
+        probe._query_params = _query_params.QueryParams(params=None)
+        probe._value_resolver = probe._make_value_resolver()
         probe_ctrl = item(probe)
         item_template = interface.attached_interface(probe_ctrl)
         if item_template is None:
