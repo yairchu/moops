@@ -730,21 +730,19 @@ class NumberControl(_NoneFlag, ValueControl):
             return None
         match _parse_number(self.option, value):
             case ParseResult(value=num):
-                return self._validate_bounds(num, value)
+                if self.start is not None and num < self.start:
+                    return ParseError(
+                        f"Option {self.option} value must be at least "
+                        f"{self.start}, got: {value!r}"
+                    )
+                if self.stop is not None and num > self.stop:
+                    return ParseError(
+                        f"Option {self.option} value must be at most "
+                        f"{self.stop}, got: {value!r}"
+                    )
+                return ParseResult(num)
             case ParseError() as err:
                 return err
-
-    def _validate_bounds(self, value: Numeric, raw: str) -> ParseResult | ParseError:
-        if self.start is not None and value < self.start:
-            return ParseError(
-                f"Option {self.option} value must be at least "
-                f"{self.start}, got: {raw!r}"
-            )
-        if self.stop is not None and value > self.stop:
-            return ParseError(
-                f"Option {self.option} value must be at most {self.stop}, got: {raw!r}"
-            )
-        return ParseResult(value)
 
     def parse_query_value(self, value: str) -> ParseResult | ParseError:
         if not value and self._is_none_capable:
