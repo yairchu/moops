@@ -726,7 +726,25 @@ class NumberControl(_NoneFlag, ValueControl):
         if (none_result := self._parse_none_flag(args, None)) is not None:
             return none_result
         value = args.value_for(self.option)
-        return None if value is None else _parse_number(self.option, value)
+        if value is None:
+            return None
+        match _parse_number(self.option, value):
+            case ParseResult(value=num):
+                return self._validate_bounds(num, value)
+            case ParseError() as err:
+                return err
+
+    def _validate_bounds(self, value: Numeric, raw: str) -> ParseResult | ParseError:
+        if self.start is not None and value < self.start:
+            return ParseError(
+                f"Option {self.option} value must be at least "
+                f"{self.start}, got: {raw!r}"
+            )
+        if self.stop is not None and value > self.stop:
+            return ParseError(
+                f"Option {self.option} value must be at most {self.stop}, got: {raw!r}"
+            )
+        return ParseResult(value)
 
     def parse_query_value(self, value: str) -> ParseResult | ParseError:
         if not value and self._is_none_capable:
@@ -736,7 +754,15 @@ class NumberControl(_NoneFlag, ValueControl):
     def strategy(self) -> st.SearchStrategy:
         from hypothesis import strategies as st
 
-        numbers = st.integers() | st.floats(allow_nan=False, allow_infinity=False)
+        if self.start is not None or self.stop is not None:
+            numbers = st.floats(
+                min_value=None if self.start is None else float(self.start),
+                max_value=None if self.stop is None else float(self.stop),
+                allow_nan=False,
+                allow_infinity=False,
+            )
+        else:
+            numbers = st.integers() | st.floats(allow_nan=False, allow_infinity=False)
         return st.one_of(st.none(), numbers) if self._is_none_capable else numbers
 
     def format_usage_parts(self) -> list[str]:
