@@ -344,6 +344,21 @@ def test_unbounded_number_allow_none_false_rejects_empty_query(
     }
 
 
+def test_out_of_range_slider_query_uses_default_and_reports_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
+    monkeypatch.setattr(group_module.mo, "query_params", lambda: {"count": "12"})
+
+    g = Group(cli_args=["script.py"])
+    count = g.slider(start=0, stop=10, value=3, option="--count", help_text="Count")
+
+    assert count.value == 3
+    assert g._state.validation_errors == {  # type: ignore[reportPrivateUsage]
+        "--count": "Option --count value must be at most 10, got: '12'"
+    }
+
+
 def test_input_control_freed_when_control_gc_collected() -> None:
     g = Group(cli_args=["script.py"])
     ctrl = g.slider(start=0, stop=10, value=3, label="Count", help_text="A count")
