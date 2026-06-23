@@ -1,6 +1,7 @@
 import dataclasses
 import sys
 import typing
+import warnings
 
 import marimo as mo
 
@@ -105,6 +106,8 @@ class ValueResolver:
         match control.parse_query_value(raw):
             case _options.ParseError(message=msg):
                 self.state.validation_errors[control.option] = msg
+                if mo.running_in_notebook():
+                    warnings.warn(msg, stacklevel=5)
                 return _UNSET
             case _options.ParseResult(value=v):
                 return v
