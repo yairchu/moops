@@ -331,12 +331,13 @@ def test_unbounded_number_allow_none_false_rejects_empty_query(
     monkeypatch.setattr(group_module.mo, "query_params", lambda: {"count": ""})
 
     target = Group(cli_args=["script.py"])
-    target_count = target.number(
-        value=5.0,
-        option="--count",
-        help_text="Count",
-        allow_none=False,
-    )
+    with pytest.warns(UserWarning, match="Option --count expects a number, got: ''"):
+        target_count = target.number(
+            value=5.0,
+            option="--count",
+            help_text="Count",
+            allow_none=False,
+        )
 
     assert target_count.value == 5.0
     assert target._state.validation_errors == {  # type: ignore[reportPrivateUsage]

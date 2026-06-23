@@ -636,12 +636,18 @@ def test_list_standalone_query_value_round_trips(
     monkeypatch.setattr(group_module.mo, "query_params", lambda: query_values)
 
     target = Group(cli_args=["script.py"])
-    target_ctrl = target.list(
-        option="--factor",
-        item=lambda grp: grp.number(value=1.0, option="--factor", help_text="Factor"),
-        help_text="Factors",
-        value=[],
-    )
+    with pytest.warns(
+        UserWarning,
+        match=r"Option --factor expects a number, got: '\[\"2\.0\", \"5\.0\"\]'",
+    ):
+        target_ctrl = target.list(
+            option="--factor",
+            item=lambda grp: grp.number(
+                value=1.0, option="--factor", help_text="Factor"
+            ),
+            help_text="Factors",
+            value=[],
+        )
 
     assert target_ctrl.value == [2.0, 5.0]
 

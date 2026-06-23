@@ -221,13 +221,17 @@ def test_reset_button_clears_list_notebook_state(
         select=select,
     )
     group = Group(cli_args=["script.py"], presets=presets)
-    factors = group.list(
-        option="--factor",
-        item=lambda g: g.number(value=1.0, option="--factor", help_text="Factor"),
-        help_text="Factors",
-        value=[1.0],
-        on_change=changes.append,
-    )
+    with pytest.warns(
+        UserWarning,
+        match=r"Option --factor expects a number, got: '\[1\.0\]'",
+    ):
+        factors = group.list(
+            option="--factor",
+            item=lambda g: g.number(value=1.0, option="--factor", help_text="Factor"),
+            help_text="Factors",
+            value=[1.0],
+            on_change=changes.append,
+        )
     iface = group.interface(factors)
     presets_ui = typing.cast(typing.Any, iface)._presets_ui
     presets_ui.layout(iface._current_args())  # type: ignore[reportPrivateUsage]
@@ -287,13 +291,17 @@ def test_selected_default_preset_does_not_override_edited_list_state(
         get_current=mock.Mock(return_value="default"),
     )
     group = Group(cli_args=["script.py"], presets=presets)
-    factors = group.list(
-        option="--factor",
-        item=lambda g: g.number(value=1.0, option="--factor", help_text="Factor"),
-        help_text="Factors",
-        value=[2.0, 1.0],
-        on_change=lambda _: None,
-    )
+    with pytest.warns(
+        UserWarning,
+        match=r"Option --factor expects a number, got: '\[2\.0, 1\.0\]'",
+    ):
+        factors = group.list(
+            option="--factor",
+            item=lambda g: g.number(value=1.0, option="--factor", help_text="Factor"),
+            help_text="Factors",
+            value=[2.0, 1.0],
+            on_change=lambda _: None,
+        )
 
     assert factors.value == [2.0, 1.0]
     assert params == {"factor": "[2.0, 1.0]"}
@@ -327,7 +335,11 @@ def test_selected_default_preset_does_not_restore_cleared_list_state(
 
     assert changes == [[]]
     assert params == {"factor": "[]"}
-    assert build(changes[-1]).value == []
+    with pytest.warns(
+        UserWarning,
+        match=r"Option --factor expects a number, got: '\[\]'",
+    ):
+        assert build(changes[-1]).value == []
 
 
 def test_selected_default_preset_does_not_lock_edited_subgroup_list_state(
