@@ -282,6 +282,30 @@ def test_list_controls_from_current_args_round_trips_default_item() -> None:
     assert iface._current_args() == "--trip"  # type: ignore[attr-defined]
 
 
+def test_list_controls_from_mapped_dropdown_omits_default_item_options() -> None:
+    source = Group(cli_args=["child.py"])
+    mode = source.dropdown(
+        {"car": "Car", "train": "Train"},
+        value="train",
+        option="--mode",
+        help_text="Mode",
+        allow_select_none=False,
+    )
+    child_iface = source.interface(mode)
+
+    g = Group(cli_args=["script.py"])
+    ctrl = g.list(
+        option="--trip",
+        item=lambda grp: grp.controls_from(child_iface, prefix="trip"),
+        help_text="Trips",
+        value=[child_iface.default],
+    )
+
+    iface = g.interface(ctrl)
+
+    assert iface._current_args() == "--trip"  # type: ignore[attr-defined]
+
+
 def test_list_controls_from_seeded_items_are_editable() -> None:
     variant_iface = moops.interface_of(variant_trip)
     g = Group(cli_args=["script.py"])
