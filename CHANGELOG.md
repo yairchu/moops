@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.13.7] - 2026-06-29 - Dropdown default validation
+
 ### Fixed
 
 - Dropdown controls now reject defaults that are not one of their options before

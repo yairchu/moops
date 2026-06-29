@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "moops"
-version = "0.13.6"
+version = "0.13.7"
 description = "Write Marimo notebooks that also work as CLI scripts, with unified UI controls"
 license = "MIT"
 readme = "README.md"
@@ -50,6 +50,7 @@ dev = [
     "pylint>=3.0",
     "pymarkdownlnt>=0.9.37",
     "matplotlib>=3.10.9",
+    "tabulate>=0.10.0",
     "tqdm>=4.67.1",
     "xarray>=2025.6.1",
 ]
