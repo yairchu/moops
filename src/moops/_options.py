@@ -1184,7 +1184,7 @@ class DropdownControl(_NoneFlag, InputControl):
         return [line, *self._help_no_flag_line(f"Set {self.option} to none")]
 
     def format_value(self, value: typing.Any) -> list[str]:
-        if value == self.default:
+        if self._is_default(value):
             return []
         if value is None:
             assert self._no_flag
@@ -1192,9 +1192,16 @@ class DropdownControl(_NoneFlag, InputControl):
         return [option_value_token(self.option, self._key_for_cli(value))]
 
     def format_query_value(self, value: typing.Any) -> str | None:
-        if value == self.default:
+        if self._is_default(value):
             return None
         return self._key_for_cli(value)
+
+    def _is_default(self, value: typing.Any) -> bool:
+        return value == self.default or (
+            value is not None
+            and self.default is not None
+            and self._key_for_cli(value) == self._key_for_cli(self.default)
+        )
 
     def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
         d = self.default if effective_default is _UNSET else effective_default

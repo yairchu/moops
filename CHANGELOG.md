@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Dropdown controls now reject defaults that are not one of their options before
   notebook widget construction.
+- `controls_from` list items now omit redundant default dropdown options when
+  the dropdown uses distinct option keys and display values.
 
 ## [0.13.6] - 2026-06-23 - Bounded control validation
 
