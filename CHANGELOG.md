@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Dropdown controls now reject defaults that are not one of their options before
+  notebook widget construction.
+
 ## [0.13.6] - 2026-06-23 - Bounded control validation
 
 ### Fixed

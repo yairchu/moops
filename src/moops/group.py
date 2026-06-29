@@ -820,6 +820,10 @@ class Group:
             if value is not None
             else None
         )
+        if value is not None and value not in dropdown_opts:
+            raise ValueError(
+                f"Dropdown value must be one of {list(dropdown_opts)!r}, got: {value!r}"
+            )
         if value is None and not allow_select_none:
             value, *_ = [*dropdown_opts]
         input_control = _options.DropdownControl(
