@@ -199,8 +199,7 @@ class Interface:
         errors = tuple(self.validate(state, active_args=args))
         if errors:
             return errors
-        # TODO: refresh top-level variant help state from args too; disabled
-        # branch flags are currently fixed at interface construction time.
+        self._refresh_variant_disabled(args)
         for input_control in self._input_controls(active_only=True, active_args=args):
             if isinstance(input_control, _list_options.SubgroupListControl):
                 input_control.refresh_active_variant_keys(args.raw_args)
@@ -314,6 +313,22 @@ class Interface:
             if selected is not None:
                 return ctx.key != _variant.key_text(selected)
         return self.disabled
+
+    def _refresh_variant_disabled(
+        self,
+        active_args: _parse.ParsedArgs,
+        root: Interface | None = None,
+    ) -> None:
+        root = self if root is None else root
+        for ctrl in self.controls:
+            sub_iface = attached_interface(ctrl)
+            if sub_iface is None:
+                continue
+            if sub_iface.variant_ctx.key is not None:
+                sub_iface.disabled = sub_iface._is_inactive(
+                    root, active_args=active_args
+                )
+            sub_iface._refresh_variant_disabled(active_args, root)
 
     def input_options(self) -> list[str]:
         return [
