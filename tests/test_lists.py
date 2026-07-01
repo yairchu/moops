@@ -294,6 +294,36 @@ def test_list_help_updates_after_command_box_changes_active_variant_branch() -> 
     assert "Options for --mode car" in iface.help()
 
 
+def test_list_help_follows_live_item_selector_change() -> None:
+    variant_iface = moops.interface_of(variant_trip)
+    g = Group(cli_args=["script.py"])
+    ctrl = g.list(
+        option="--trip",
+        item=lambda grp: grp.controls_from(variant_iface, prefix="trip"),
+        help_text="Trips",
+        value=[
+            {
+                "mode": "car",
+                "travel-car": {"distance": 120, "gas_price": 3.75},
+                "travel-train": {"tickets": 4},
+            }
+        ],
+    )
+    iface = g.interface(ctrl)
+
+    ctrl._value = [
+        {
+            "mode": "train",
+            "travel-car": {"distance": 120, "gas_price": 3.75},
+            "travel-train": {"tickets": 4},
+        }
+    ]
+    help_text = iface.help()
+
+    assert "Options for --mode train" in help_text
+    assert "Options for --mode car" not in help_text
+
+
 def test_list_help_shows_options_for_seeded_item_variant_branch() -> None:
     variant_iface = moops.interface_of(variant_trip)
     g = Group(cli_args=["script.py"])
