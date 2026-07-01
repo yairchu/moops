@@ -416,6 +416,11 @@ class SubgroupListControl(InputControl):
     def allows_repeated_values(self) -> bool:
         return True
 
+    def refresh_active_variant_keys(self, raw_args: list[str]) -> None:
+        self.active_variant_keys = active_variant_keys_from_args(
+            self.leaves, raw_args, self.option
+        )
+
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         if err := self._validate_item_placement(args.raw_args):
             return err
