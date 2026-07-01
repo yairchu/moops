@@ -350,6 +350,42 @@ def _leaf_was_provided(args: _parse.ParsedArgs, leaf: SubgroupListLeaf) -> str |
     )
 
 
+def active_variant_keys_from_args(
+    leaves: tuple[SubgroupListLeaf, ...],
+    raw_args: list[str],
+    list_option: str,
+) -> dict[str, frozenset[str]]:
+    """Return {selector_bare_option: frozenset of active keys} parsed from raw_args."""
+    selector_options = {
+        leaf.variant_selector_bare_option
+        for leaf in leaves
+        if leaf.variant_selector_bare_option is not None
+    }
+    if not selector_options:
+        return {}
+    item_options = {opt for leaf in leaves for opt in leaf.bare_control().options()}
+    item_flags = {flag for leaf in leaves for flag in leaf.bare_control().flags()}
+    segments = _segment_by_anchor(
+        raw_args, list_option, item_options=item_options, item_flags=item_flags
+    )
+    if not segments:
+        return {}
+    result: dict[str, set[str]] = {}
+    for segment in segments:
+        item_args = _parse.ParsedArgs.from_options(segment)
+        for leaf in leaves:
+            if leaf.bare_option not in selector_options:
+                continue
+            match leaf.bare_control().parse(item_args):
+                case ParseResult(value=value):
+                    result.setdefault(leaf.bare_option, set()).add(
+                        _variant.key_text(value)
+                    )
+                case _:
+                    pass
+    return {k: frozenset(v) for k, v in result.items()}
+
+
 @dataclasses.dataclass
 class SubgroupListControl(InputControl):
     """A list whose items are mirrored subgroup interfaces."""
@@ -358,6 +394,9 @@ class SubgroupListControl(InputControl):
     leaves: tuple[SubgroupListLeaf, ...]
     item_builder: typing.Callable[[int, dict[str, typing.Any]], typing.Any]
     default: list[dict[str, typing.Any]]
+    active_variant_keys: dict[str, frozenset[str]] = dataclasses.field(
+        default_factory=dict[str, frozenset[str]], kw_only=True
+    )
 
     def options(self) -> set[str]:
         return {
@@ -457,23 +496,58 @@ class SubgroupListControl(InputControl):
         selected = get_path(item_value, selector_path, _UNSET)
         return selected is _UNSET or leaf.variant_key == _variant.key_text(selected)
 
+    def _default_variant_key(self, selector_bare_option: str) -> str | None:
+        for leaf in self.leaves:
+            if leaf.bare_option == selector_bare_option:
+                return _variant.key_text(leaf.bare_control().default)
+        return None
+
+    def _visible_for_help(self, leaf: SubgroupListLeaf) -> bool:
+        selector = leaf.variant_selector_bare_option
+        key = leaf.variant_key
+        if selector is None or key is None:
+            return True
+        active = self.active_variant_keys.get(selector)
+        if active is not None:
+            return key in active
+        default_key = self._default_variant_key(selector)
+        return default_key is None or key == default_key
+
     def format_usage_parts(self) -> list[str]:
         inner = " ".join(
             part
             for leaf in self.leaves
+            if self._visible_for_help(leaf)
             for part in leaf.bare_control().format_usage_parts()
         )
         return [f"[{self.option} {inner} ...]"]
 
     def format_help_lines(self) -> list[str]:
-        return [
-            f"  {self.option}: Add an item (repeat to add more)",
-            *[
-                f"{line} (per item)"
-                for leaf in self.leaves
-                for line in leaf.bare_control().format_help_lines()
-            ],
-        ]
+        result = [f"  {self.option}: Add an item (repeat to add more)"]
+        for leaf in self.leaves:
+            if leaf.variant_selector_bare_option is None:
+                for line in leaf.bare_control().format_help_lines():
+                    result.append(f"{line} (per item)")
+        seen: set[tuple[str, str]] = set()
+        for leaf in self.leaves:
+            if leaf.variant_selector_bare_option is None or leaf.variant_key is None:
+                continue
+            if not self._visible_for_help(leaf):
+                continue
+            group_key = (leaf.variant_selector_bare_option, leaf.variant_key)
+            if group_key not in seen:
+                seen.add(group_key)
+                heading = _variant.help_heading(
+                    leaf.variant_selector_bare_option, leaf.variant_key
+                )
+                if leaf.variant_key == self._default_variant_key(
+                    leaf.variant_selector_bare_option
+                ):
+                    heading += " (default)"
+                result.append("")
+                result.append(f"{heading} (per item):")
+            result.extend(leaf.bare_control().format_help_lines())
+        return result
 
     def format_value(self, value: typing.Any) -> list[str]:
         return [token for group in self.format_value_groups(value) for token in group]

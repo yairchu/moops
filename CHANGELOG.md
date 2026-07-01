@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - `--help` output now shows only the active (selected or default) variant branch
   options, hiding inactive branches that would otherwise add noise.
+- List `--help` output groups variant item options under labelled sections (e.g.
+  `Options for --mode car (default) (per item):`) and shows only the sections
+  relevant to modes mentioned in the command line, defaulting to the default
+  mode when no items are specified.
 
 ## [0.13.7] - 2026-06-29 - Dropdown default validation
 

@@ -1013,6 +1013,9 @@ class Group:
             item_template_default=item_template.default,
             leaves=leaves,
             item_builder=item_builder,
+            active_variant_keys=_list_options.active_variant_keys_from_args(
+                leaves, self._state.args.raw_args, opt.option
+            ),
         )
         return self._register_control(opt, list_input_ctrl, help_text, on_change)
 
