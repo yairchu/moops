@@ -219,13 +219,16 @@ class Interface:
             segments.append("\n".join(help_lines))
         return "\n\n".join(segments)
 
-    def _format_help_lines(self) -> typing.Iterator[str]:
+    def _format_help_lines(self, root: Interface | None = None) -> typing.Iterator[str]:
+        root = self if root is None else root
         prev_was_group_with_content = False
         for ctrl in self.controls:
             if (sub_iface := attached_interface(ctrl)) is not None:
-                if sub_iface.variant_ctx.key is not None and sub_iface.disabled:
+                if sub_iface.variant_ctx.key is not None and sub_iface._is_inactive(
+                    root
+                ):
                     continue
-                lines = list(sub_iface._format_help_lines())
+                lines = list(sub_iface._format_help_lines(root))
                 if lines and sub_iface.variant_ctx.help_heading:
                     yield ""
                     yield f"{sub_iface.variant_ctx.help_heading}:"
@@ -234,6 +237,12 @@ class Interface:
             else:
                 input_control = self.input_map.get(ctrl)
                 if input_control is not None and not self._is_overridden(input_control):
+                    if isinstance(input_control, _list_options.SubgroupListControl):
+                        value = _marimo_controls.ctrl_value(ctrl)
+                        if value or not _list_help_shows_all_variant_keys(
+                            input_control
+                        ):
+                            input_control.refresh_active_variant_keys_from_value(value)
                     if prev_was_group_with_content:
                         yield ""
                     for help_line in input_control.format_help_lines():
@@ -617,14 +626,13 @@ class Interface:
         args: _parse.ParsedArgs,
     ) -> None:
         input_control = self.input_map.get(ctrl)
-        reset_state = getattr(ctrl, "_moops_reset_state", None)
-        if (
-            input_control is None
-            or not callable(reset_state)
-            or self._is_overridden(input_control)
-        ):
+        if input_control is None or self._is_overridden(input_control):
             return
-        reset_state(_reset_value(input_control, args))
+        value = _reset_value(input_control, args)
+        _set_control_value(ctrl, value)
+        reset_state = getattr(ctrl, "_moops_reset_state", None)
+        if callable(reset_state):
+            reset_state(value)
 
     def _clear_query_params(self) -> None:
         for ctrl in self.controls:
@@ -670,6 +678,28 @@ def _should_use_uv_run(command: str) -> bool:
         "UV_RUN_RECURSION_DEPTH" in os.environ
         and path.is_file()
         and not os.access(path, os.X_OK)
+    )
+
+
+def _set_control_value(ctrl: typing.Any, value: typing.Any) -> None:
+    if hasattr(ctrl, "_selected_key"):
+        ctrl._selected_key = value
+    if hasattr(ctrl, "_value"):
+        ctrl._value = value
+
+
+def _list_help_shows_all_variant_keys(
+    input_control: _list_options.SubgroupListControl,
+) -> bool:
+    by_selector: dict[str, set[str]] = {}
+    for leaf in input_control.leaves:
+        selector = leaf.variant_selector_bare_option
+        key = leaf.variant_key
+        if selector is not None and key is not None:
+            by_selector.setdefault(selector, set()).add(key)
+    return all(
+        input_control.active_variant_keys.get(selector) == frozenset(keys)
+        for selector, keys in by_selector.items()
     )
 
 
