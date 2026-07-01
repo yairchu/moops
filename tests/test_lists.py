@@ -238,6 +238,34 @@ def test_list_controls_from_variant_parses_nested_items() -> None:
     ]
 
 
+def test_list_help_shows_options_for_item_using_implicit_default_branch() -> None:
+    """A list item that relies on the selector's default (car) instead of
+    repeating --mode should still show that branch's options in --help."""
+    variant_iface = moops.interface_of(variant_trip)
+    g = Group(
+        cli_args=[
+            "script.py",
+            "--trip",
+            "--mode",
+            "train",
+            "--travel-train-tickets",
+            "3",
+            "--trip",
+            "--travel-car-distance",
+            "50",
+        ]
+    )
+    ctrl = g.list(
+        option="--trip",
+        item=lambda grp: grp.controls_from(variant_iface, prefix="trip"),
+        help_text="Trips",
+        value=[],
+    )
+    iface = g.interface(ctrl)
+
+    assert "Options for --mode car" in iface.help()
+
+
 def test_list_controls_from_variant_rejects_inactive_branch_options(
     capsys: pytest.CaptureFixture[str],
 ) -> None:

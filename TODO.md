@@ -4,12 +4,6 @@ Bugs found reviewing the unreleased "hide inactive variant branches from
 `--help`" feature (`src/moops/_list_options.py`, `src/moops/group.py`,
 `src/moops/interface.py`), not yet fixed:
 
-- `src/moops/_list_options.py:379` — `active_variant_keys_from_args` only
-  marks a variant branch active when the list item's CLI segment explicitly
-  repeats the selector option. An item that relies on the selector's
-  implicit default never marks that branch active, so `--help` hides its
-  options even though the item is using them.
-
 - `src/moops/interface.py:178` — `.removesuffix("\\")` unconditionally
   strips any trailing backslash from edited command-box text, even when
   it's part of a legitimate argument value (e.g. a Windows path) rather
