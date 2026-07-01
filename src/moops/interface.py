@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import dataclasses
 import html
 import os
@@ -207,6 +208,7 @@ class Interface:
         return ()
 
     def help(self) -> str:
+        help_lines = list(self._format_help_lines())
         usage_parts = list(self._format_usage_parts(_usage_placeholders(self)))
         if any(self._input_controls(active_only=True)):
             usage_parts.append("[--interactive]")
@@ -214,7 +216,6 @@ class Interface:
         name = pathlib.PurePath(self.command).name
         prefix = f"Usage: {name} "
         segments = [_text_wrap.wrap_usage(prefix, usage_parts)]
-        help_lines = list(self._format_help_lines())
         if help_lines:
             segments.append("\n".join(help_lines))
         return "\n\n".join(segments)
@@ -682,10 +683,16 @@ def _should_use_uv_run(command: str) -> bool:
 
 
 def _set_control_value(ctrl: typing.Any, value: typing.Any) -> None:
+    mapped_value = value
     if hasattr(ctrl, "_selected_key"):
         ctrl._selected_key = value
+        options = getattr(ctrl, "options", {})
+        if isinstance(options, dict):
+            mapped = typing.cast(dict[typing.Any, typing.Any], options)
+            with contextlib.suppress(KeyError, TypeError):
+                mapped_value = mapped[value]
     if hasattr(ctrl, "_value"):
-        ctrl._value = value
+        ctrl._value = mapped_value
 
 
 def _list_help_shows_all_variant_keys(
