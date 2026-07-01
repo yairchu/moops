@@ -646,6 +646,39 @@ def test_command_box_accepts_args_for_variant_selected_by_edit() -> None:
     assert errors == ()
 
 
+def test_command_box_updates_variant_help_after_branch_edit() -> None:
+    g = Group(cli_args=["script.py"])
+    mode = g.dropdown(
+        ["car", "train"],
+        value="car",
+        option="--mode",
+        help_text="How to travel",
+        allow_select_none=False,
+    )
+    travel = g.variant("travel", mode)
+    distance = travel["car"].number(
+        value=120,
+        option="--distance",
+        help_text="Driving distance",
+    )
+    tickets = travel["train"].number(
+        value=2,
+        option="--tickets",
+        help_text="Number of train tickets",
+    )
+    iface = g.interface(
+        mode,
+        travel["car"].interface(distance),
+        travel["train"].interface(tickets),
+    )
+
+    assert iface.apply_cli_args("script.py --mode train --travel-train-tickets 5") == ()
+    help_text = iface.help()
+
+    assert "Options for --mode train" in help_text
+    assert "Options for --mode car" not in help_text
+
+
 def test_delete_calls_select_to_trigger_rerender(
     tmp_path: pathlib.Path,
 ) -> None:
