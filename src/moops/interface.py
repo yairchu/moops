@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import dataclasses
 import html
 import os
@@ -13,6 +12,7 @@ import urllib.parse
 import marimo as mo
 
 from . import (
+    _choice_options,
     _input_map,
     _list_options,
     _marimo_controls,
@@ -630,7 +630,7 @@ class Interface:
         if input_control is None or self._is_overridden(input_control):
             return
         value = _reset_value(input_control, args)
-        _set_control_value(ctrl, value)
+        _set_control_value(ctrl, input_control, value)
         reset_state = getattr(ctrl, "_moops_reset_state", None)
         if callable(reset_state):
             reset_state(value)
@@ -682,15 +682,23 @@ def _should_use_uv_run(command: str) -> bool:
     )
 
 
-def _set_control_value(ctrl: typing.Any, value: typing.Any) -> None:
+def _set_control_value(
+    ctrl: typing.Any, input_control: _options.InputControl, value: typing.Any
+) -> None:
+    # File controls' widget `_value` holds FileBrowserFileInfo entries, not the
+    # plain path string `value` resolves to, so they're excluded here.
+    if isinstance(input_control, (_options.FileControl, _options.MultiFileControl)):
+        return
     mapped_value = value
     if hasattr(ctrl, "_selected_key"):
         ctrl._selected_key = value
-        options = getattr(ctrl, "options", {})
-        if isinstance(options, dict):
-            mapped = typing.cast(dict[typing.Any, typing.Any], options)
-            with contextlib.suppress(KeyError, TypeError):
-                mapped_value = mapped[value]
+        if isinstance(input_control, _options.DropdownControl):
+            # Use the control's full option mapping rather than the widget's
+            # own `.options`, which is locked to a single entry while disabled
+            # (e.g. an inactive variant branch), so it may not contain `value`.
+            mapped_value = _choice_options.option_value(
+                input_control.dropdown_opts, value
+            )
     if hasattr(ctrl, "_value"):
         ctrl._value = mapped_value
 
