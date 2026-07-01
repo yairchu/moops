@@ -34,6 +34,8 @@ from ._subgroup_registry import SubgroupRegistry
 from ._ui_workarounds import FileBrowserWithInitialSelection
 from .presets import Presets
 
+_UNSET: typing.Any = object()
+
 Numeric = int | float
 S = typing.TypeVar("S")
 T = typing.TypeVar("T")
@@ -1015,11 +1017,19 @@ class Group:
             item_builder=item_builder,
         )
         list_input_ctrl.refresh_active_variant_keys(self._state.args.raw_args)
+        resolved_value = self._value_resolver.get_value(
+            list_input_ctrl, list_input_ctrl.default
+        )
+        control = self._register_control(
+            opt,
+            list_input_ctrl,
+            help_text,
+            on_change,
+            resolved_value=resolved_value,
+        )
         if not list_input_ctrl.active_variant_keys:
-            list_input_ctrl.refresh_active_variant_keys_from_value(
-                list_input_ctrl.default
-            )
-        return self._register_control(opt, list_input_ctrl, help_text, on_change)
+            list_input_ctrl.refresh_active_variant_keys_from_value(resolved_value)
+        return control
 
     def _make_value_resolver(self) -> _value_resolution.ValueResolver:
         return _value_resolution.ValueResolver(
@@ -1037,11 +1047,17 @@ class Group:
         input_control: _options.InputControl,
         help_text: str,
         on_change: typing.Callable[[typing.Any], None] | None,
+        *,
+        resolved_value: typing.Any = _UNSET,
     ) -> typing.Any:
         input_control.label = opt.label
         reset_state = self._value_resolver.query_on_change(input_control, on_change)
+        if resolved_value is _UNSET:
+            resolved_value = self._value_resolver.get_value(
+                input_control, input_control.default
+            )
         control = input_control.make_element(
-            self._value_resolver.get_value(input_control, input_control.default),
+            resolved_value,
             label=opt.label_with_tooltip(help_text),
             disabled=self._value_resolver.is_overridden(opt.option) or self._disabled,
             on_change=reset_state,

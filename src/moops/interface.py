@@ -199,6 +199,8 @@ class Interface:
         errors = tuple(self.validate(state, active_args=args))
         if errors:
             return errors
+        # TODO: refresh top-level variant help state from args too; disabled
+        # branch flags are currently fixed at interface construction time.
         for input_control in self._input_controls(active_only=True, active_args=args):
             if isinstance(input_control, _list_options.SubgroupListControl):
                 input_control.refresh_active_variant_keys(args.raw_args)
