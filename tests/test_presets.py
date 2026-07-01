@@ -581,6 +581,25 @@ def test_command_box_full_path_round_trips_when_applied(
     assert iface.apply_cli_args(box_value) == ()
 
 
+def test_command_box_accepts_multiline_edits_without_shell_continuations() -> None:
+    g = Group(cli_args=["script.py"])
+    text = g.text(value="Default", option="--text", help_text="Input text")
+    style = g.dropdown(
+        ["snake", "camel"],
+        value="camel",
+        option="--style",
+        help_text="Text style",
+        allow_select_none=False,
+    )
+    iface = g.interface(text, style)
+
+    no_continuations = "script.py\n  --text Edited\n  --style snake"
+    trailing_continuation = "script.py \\\n  --text Edited " + "\\"
+
+    assert iface.apply_cli_args(no_continuations) == ()
+    assert iface.apply_cli_args(trailing_continuation) == ()
+
+
 def test_command_box_accepts_args_for_variant_selected_by_edit() -> None:
     g = Group(cli_args=["script.py"])
     mode = g.dropdown(

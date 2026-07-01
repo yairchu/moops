@@ -175,7 +175,7 @@ class Interface:
         # Fold shell line-continuations first: the box shows the command
         # wrapped with `\`-continuations, but shlex would otherwise leave the
         # escaped newline behind as a stray token.
-        text = text.replace("\\\n", " ")
+        text = text.replace("\\\n", " ").removesuffix("\\")
         try:
             tokens = shlex.split(text)
         except ValueError as exc:

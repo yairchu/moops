@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Fixed
+### Changed
 
 - `--help` output now shows only the active (selected or default) variant branch
   options, hiding inactive branches that would otherwise add noise.
@@ -16,6 +16,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `Options for --mode car (default) (per item):`) and shows only the sections
   relevant to modes mentioned in the command line, defaulting to the default
   mode when no items are specified.
+
+### Fixed
+
+- Editable notebook CLI commands now accept newline-separated arguments without
+  shell continuation backslashes, and tolerate a final trailing continuation
+  backslash while still formatting commands with real shell continuations.
 
 ## [0.13.7] - 2026-06-29 - Dropdown default validation
 
