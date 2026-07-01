@@ -322,6 +322,9 @@ def test_list_help_follows_live_item_selector_change() -> None:
 
     assert "Options for --mode train" in help_text
     assert "Options for --mode car" not in help_text
+    usage = help_text.split("\n\n", 1)[0]
+    assert "--travel-train-tickets" in usage
+    assert "--travel-car-distance" not in usage
 
 
 def test_list_help_shows_options_for_seeded_item_variant_branch() -> None:

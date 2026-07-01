@@ -615,6 +615,23 @@ def test_command_box_preserves_escaped_trailing_backslash_value(
     assert params == {"text": "C:\\"}
 
 
+def test_command_box_edit_preserves_mapped_dropdown_value() -> None:
+    g = Group(cli_args=["script.py"])
+    mode = g.dropdown(
+        {"slow": 1, "fast": 2},
+        value="slow",
+        option="--mode",
+        help_text="Mode",
+        allow_select_none=False,
+    )
+    iface = g.interface(mode)
+
+    assert iface.apply_cli_args("script.py --mode fast") == ()
+
+    assert mode.value == 2
+    assert mode._selected_key == "fast"  # type: ignore[attr-defined]
+
+
 def test_command_box_accepts_args_for_variant_selected_by_edit() -> None:
     g = Group(cli_args=["script.py"])
     mode = g.dropdown(
