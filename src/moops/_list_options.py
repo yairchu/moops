@@ -350,54 +350,6 @@ def _leaf_was_provided(args: _parse.ParsedArgs, leaf: SubgroupListLeaf) -> str |
     )
 
 
-def active_variant_keys_from_args(
-    leaves: tuple[SubgroupListLeaf, ...],
-    raw_args: list[str],
-    list_option: str,
-) -> dict[str, frozenset[str]]:
-    """Return {selector_bare_option: frozenset of active keys} parsed from raw_args."""
-    selector_options = {
-        leaf.variant_selector_bare_option
-        for leaf in leaves
-        if leaf.variant_selector_bare_option is not None
-    }
-    if not selector_options:
-        return {}
-    item_options = {opt for leaf in leaves for opt in leaf.bare_control().options()}
-    item_flags = {flag for leaf in leaves for flag in leaf.bare_control().flags()}
-    segments = _segment_by_anchor(
-        raw_args, list_option, item_options=item_options, item_flags=item_flags
-    )
-    if not segments:
-        return {}
-    result: dict[str, set[str]] = {}
-    for segment in segments:
-        item_args = _parse.ParsedArgs.from_options(segment)
-        for leaf in leaves:
-            if leaf.bare_option not in selector_options:
-                continue
-            match leaf.bare_control().parse(item_args):
-                case ParseResult(value=value):
-                    result.setdefault(leaf.bare_option, set()).add(
-                        _variant.key_text(value)
-                    )
-                case None:
-                    result.setdefault(leaf.bare_option, set()).add(
-                        _variant.key_text(leaf.bare_control().default)
-                    )
-                case ParseError():
-                    # Selector value could not be parsed, so which branch is
-                    # active is unknown: keep every branch visible rather than
-                    # hiding all but the default.
-                    result.setdefault(leaf.bare_option, set()).update(
-                        other.variant_key
-                        for other in leaves
-                        if other.variant_selector_bare_option == leaf.bare_option
-                        and other.variant_key is not None
-                    )
-    return {k: frozenset(v) for k, v in result.items()}
-
-
 @dataclasses.dataclass
 class SubgroupListControl(InputControl):
     """A list whose items are mirrored subgroup interfaces."""
@@ -425,9 +377,32 @@ class SubgroupListControl(InputControl):
         return True
 
     def refresh_active_variant_keys(self, raw_args: list[str]) -> None:
-        self.active_variant_keys = active_variant_keys_from_args(
-            self.leaves, raw_args, self.option
-        )
+        """Recompute active_variant_keys by reusing ``parse``'s own segmentation
+        and per-leaf parsing, so --help's active-branch detection can't drift
+        from what CLI parsing actually accepts."""
+        match self.parse(_parse.ParsedArgs.from_options(raw_args)):
+            case ParseResult(value=value):
+                self.refresh_active_variant_keys_from_value(value)
+            case None:
+                self.refresh_active_variant_keys_from_value([])
+            case ParseError():
+                # Some item's selector value could not be parsed, so which
+                # branch is active is unknown: keep every branch visible
+                # rather than hiding all but the default.
+                selectors = {
+                    leaf.variant_selector_bare_option
+                    for leaf in self.leaves
+                    if leaf.variant_selector_bare_option is not None
+                }
+                self.active_variant_keys = {
+                    selector: frozenset(
+                        leaf.variant_key
+                        for leaf in self.leaves
+                        if leaf.variant_selector_bare_option == selector
+                        and leaf.variant_key is not None
+                    )
+                    for selector in selectors
+                }
 
     def refresh_active_variant_keys_from_value(self, value: typing.Any) -> None:
         selector_paths = self._variant_selector_paths()

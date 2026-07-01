@@ -1013,10 +1013,8 @@ class Group:
             item_template_default=item_template.default,
             leaves=leaves,
             item_builder=item_builder,
-            active_variant_keys=_list_options.active_variant_keys_from_args(
-                leaves, self._state.args.raw_args, opt.option
-            ),
         )
+        list_input_ctrl.refresh_active_variant_keys(self._state.args.raw_args)
         if not list_input_ctrl.active_variant_keys:
             list_input_ctrl.refresh_active_variant_keys_from_value(
                 list_input_ctrl.default
