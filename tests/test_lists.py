@@ -314,6 +314,27 @@ def test_list_help_shows_options_for_seeded_item_variant_branch() -> None:
     assert "Options for --mode train" in iface.help()
 
 
+def test_list_help_for_invalid_variant_selector_does_not_hide_branches(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    variant_iface = moops.interface_of(variant_trip)
+    g = Group(cli_args=["script.py", "--trip", "--mode", "plane"])
+    ctrl = g.list(
+        option="--trip",
+        item=lambda grp: grp.controls_from(variant_iface, prefix="trip"),
+        help_text="Trips",
+        value=[],
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        g.interface(ctrl)
+
+    output = capsys.readouterr().out
+    assert exc_info.value.code != 0
+    assert "Option --mode must be one of ['car', 'train'], got: 'plane'" in output
+    assert "Options for --mode train" in output
+
+
 def test_list_controls_from_variant_rejects_inactive_branch_options(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
