@@ -719,6 +719,29 @@ def test_file_browser_multiple_current_args_repeats_option(
     )
 
 
+def test_file_browser_value_not_corrupted_by_apply_cli_args(
+    tmp_path: pathlib.Path,
+) -> None:
+    """apply_cli_args resets other controls' raw widget value, but file_browser's
+    ``_value`` must stay a sequence of FileBrowserFileInfo, not the bare path
+    string parsed from the CLI arg. file_browser doesn't refresh live like other
+    controls; its value only picks up the new path on the next full render."""
+    first = tmp_path / "first.txt"
+    second = tmp_path / "second.txt"
+    first.write_text("first")
+    second.write_text("second")
+
+    g = Group(cli_args=["script.py"])
+    ctrl = g.file_browser(
+        initial_path=str(first), multiple=False, option="--path", help_text="A file"
+    )
+    iface = g.interface(ctrl)
+
+    assert iface.apply_cli_args(f"script.py --path {second}") == ()
+
+    assert [str(info.path) for info in ctrl.value] == [str(first)]
+
+
 def test_file_browser_fallback_display_preserves_default_paths() -> None:
     ctrl = FileBrowserWithInitialSelection(
         default=["second.txt", "first.txt", "second.txt"],

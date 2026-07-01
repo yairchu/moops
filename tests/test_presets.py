@@ -730,6 +730,44 @@ def test_variant_help_follows_live_selector_change() -> None:
     assert "Options for --mode car" not in help_text
 
 
+def test_dict_dropdown_in_inactive_branch_keeps_mapped_value_after_cli_args() -> None:
+    """A dict-valued dropdown inside an inactive (disabled) variant branch has
+    its widget ``.options`` locked to a single entry. Resetting it from a CLI
+    arg that selects a different key must still resolve to the mapped value,
+    not fall back to the raw option key string."""
+    g = Group(cli_args=["script.py"])
+    mode = g.dropdown(
+        ["car", "train"],
+        value="car",
+        option="--mode",
+        help_text="How to travel",
+        allow_select_none=False,
+    )
+    travel = g.variant("travel", mode)
+    distance = travel["car"].number(
+        value=120,
+        option="--distance",
+        help_text="Driving distance",
+    )
+    speed = travel["train"].dropdown(
+        {"fast": 1, "slow": 2},
+        value="fast",
+        option="--speed",
+        help_text="Train speed",
+        allow_select_none=False,
+    )
+    iface = g.interface(
+        mode,
+        travel["car"].interface(distance),
+        travel["train"].interface(speed),
+    )
+
+    errors = iface.apply_cli_args("script.py --mode train --travel-train-speed slow")
+
+    assert errors == ()
+    assert speed.value == 2
+
+
 def test_delete_calls_select_to_trigger_rerender(
     tmp_path: pathlib.Path,
 ) -> None:
