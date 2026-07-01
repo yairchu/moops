@@ -385,8 +385,16 @@ def active_variant_keys_from_args(
                     result.setdefault(leaf.bare_option, set()).add(
                         _variant.key_text(leaf.bare_control().default)
                     )
-                case _:
-                    pass
+                case ParseError():
+                    # Selector value could not be parsed, so which branch is
+                    # active is unknown: keep every branch visible rather than
+                    # hiding all but the default.
+                    result.setdefault(leaf.bare_option, set()).update(
+                        other.variant_key
+                        for other in leaves
+                        if other.variant_selector_bare_option == leaf.bare_option
+                        and other.variant_key is not None
+                    )
     return {k: frozenset(v) for k, v in result.items()}
 
 
