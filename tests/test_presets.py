@@ -600,6 +600,21 @@ def test_command_box_accepts_multiline_edits_without_shell_continuations() -> No
     assert iface.apply_cli_args(trailing_continuation) == ()
 
 
+def test_command_box_preserves_escaped_trailing_backslash_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    params: dict[str, str] = {}
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+    g = Group(cli_args=["script.py"])
+    text = g.text(value="Default", option="--text", help_text="Input text")
+    iface = g.interface(text)
+
+    assert iface.apply_cli_args("script.py --text C:\\\\") == ()
+
+    assert params == {"text": "C:\\"}
+
+
 def test_command_box_accepts_args_for_variant_selected_by_edit() -> None:
     g = Group(cli_args=["script.py"])
     mode = g.dropdown(
