@@ -1017,6 +1017,10 @@ class Group:
                 leaves, self._state.args.raw_args, opt.option
             ),
         )
+        if not list_input_ctrl.active_variant_keys:
+            list_input_ctrl.refresh_active_variant_keys_from_value(
+                list_input_ctrl.default
+            )
         return self._register_control(opt, list_input_ctrl, help_text, on_change)
 
     def _make_value_resolver(self) -> _value_resolution.ValueResolver:

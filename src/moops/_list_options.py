@@ -421,6 +421,29 @@ class SubgroupListControl(InputControl):
             self.leaves, raw_args, self.option
         )
 
+    def refresh_active_variant_keys_from_value(self, value: typing.Any) -> None:
+        selector_paths = self._variant_selector_paths()
+        selectors = {
+            leaf.variant_selector_bare_option
+            for leaf in self.leaves
+            if leaf.variant_selector_bare_option is not None
+        }
+        active: dict[str, set[str]] = {}
+        for item in value:
+            for selector in selectors:
+                selector_path = selector_paths.get(selector)
+                if selector_path is None:
+                    continue
+                selected = get_path(item, selector_path, _UNSET)
+                key = (
+                    self._default_variant_key(selector)
+                    if selected is _UNSET
+                    else _variant.key_text(selected)
+                )
+                if key is not None:
+                    active.setdefault(selector, set()).add(key)
+        self.active_variant_keys = {k: frozenset(v) for k, v in active.items()}
+
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         if err := self._validate_item_placement(args.raw_args):
             return err
