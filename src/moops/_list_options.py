@@ -381,6 +381,10 @@ def active_variant_keys_from_args(
                     result.setdefault(leaf.bare_option, set()).add(
                         _variant.key_text(value)
                     )
+                case None:
+                    result.setdefault(leaf.bare_option, set()).add(
+                        _variant.key_text(leaf.bare_control().default)
+                    )
                 case _:
                     pass
     return {k: frozenset(v) for k, v in result.items()}
