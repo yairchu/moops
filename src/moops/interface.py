@@ -219,6 +219,8 @@ class Interface:
         prev_was_group_with_content = False
         for ctrl in self.controls:
             if (sub_iface := attached_interface(ctrl)) is not None:
+                if sub_iface.variant_ctx.key is not None and sub_iface.disabled:
+                    continue
                 lines = list(sub_iface._format_help_lines())
                 if lines and sub_iface.variant_ctx.help_heading:
                     yield ""

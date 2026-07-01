@@ -35,7 +35,7 @@ def test_example_notebooks_run_as_scripts(
         assert "Usage:" in result.stdout
 
 
-def test_variant_embed_help_lists_all_notebook_branches() -> None:
+def test_variant_embed_help_shows_only_active_branch() -> None:
     result = subprocess.run(
         [sys.executable, "examples/composition/variant_embed.py", "-h"],
         cwd=ROOT,
@@ -47,7 +47,7 @@ def test_variant_embed_help_lists_all_notebook_branches() -> None:
 
     assert result.returncode == 0, result.stderr
     assert "Options for --notebook name-casing" in result.stdout
-    assert "Options for --notebook word-count" in result.stdout
+    assert "Options for --notebook word-count" not in result.stdout
 
 
 def test_variant_embed_selector_accepts_normalized_branch_key() -> None:
