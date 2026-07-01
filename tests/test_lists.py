@@ -266,6 +266,34 @@ def test_list_help_shows_options_for_item_using_implicit_default_branch() -> Non
     assert "Options for --mode car" in iface.help()
 
 
+def test_list_help_updates_after_command_box_changes_active_variant_branch() -> None:
+    variant_iface = moops.interface_of(variant_trip)
+    g = Group(
+        cli_args=[
+            "script.py",
+            "--trip",
+            "--mode",
+            "train",
+            "--travel-train-tickets",
+            "3",
+        ]
+    )
+    ctrl = g.list(
+        option="--trip",
+        item=lambda grp: grp.controls_from(variant_iface, prefix="trip"),
+        help_text="Trips",
+        value=[],
+    )
+    iface = g.interface(ctrl)
+
+    assert (
+        iface.apply_cli_args("script.py --trip --mode car --travel-car-distance 50")
+        == ()
+    )
+
+    assert "Options for --mode car" in iface.help()
+
+
 def test_list_controls_from_variant_rejects_inactive_branch_options(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
