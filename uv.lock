@@ -947,7 +947,7 @@ wheels = [
 
 [[package]]
 name = "moops"
-version = "0.13.7"
+version = "0.13.8"
 source = { editable = "." }
 dependencies = [
     { name = "marimo" },
