@@ -871,6 +871,40 @@ def test_list_subgroup_query_round_trips_non_default_nested_value(
     assert target_ctrl.value[0]["travel-car"]["distance"] == 250
 
 
+def test_list_help_uses_query_param_variant_branch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    iface = moops.interface_of(variant_trip)
+    source = Group(cli_args=["script.py"])
+    source_ctrl = source.list(
+        option="--trip",
+        item=lambda grp: grp.controls_from(iface, prefix="trip"),
+        help_text="Trip",
+        value=[
+            {
+                "mode": "train",
+                "travel-car": {"distance": 120, "gas_price": 3.75},
+                "travel-train": {"tickets": 4},
+            }
+        ],
+    )
+    query_values = source.interface(source_ctrl)._standalone_query_values()  # type: ignore[attr-defined]
+
+    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
+    monkeypatch.setattr(group_module.mo, "query_params", lambda: query_values)
+    target = Group(cli_args=["script.py"])
+    target_ctrl = target.list(
+        option="--trip",
+        item=lambda grp: grp.controls_from(iface, prefix="trip"),
+        help_text="Trip",
+        value=[],
+    )
+    help_text = target.interface(target_ctrl).help()
+
+    assert "Options for --mode train" in help_text
+    assert "Options for --mode car" not in help_text
+
+
 def test_list_empty_value_overrides_non_empty_default_in_query() -> None:
     """An explicitly empty list is user state, not absence of a query override."""
     g = Group(cli_args=["script.py"])
