@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `moops.interface_of(module, args=..., defs=...)` can now inspect a child
   notebook against a bound group with extra definition overrides, so parent
   `--help` output can declare options from result-gated embeds early.
+- Added a composition example demonstrating early interface declaration for a
+  result-gated child embed.
 
 ## [0.13.8] - 2026-07-01 - Variant help visibility
 
