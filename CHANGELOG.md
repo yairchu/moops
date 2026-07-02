@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.13.9] - 2026-07-02 - Bound interface queries
+
 ### Added
 
 - `moops.interface_of(module, args=..., defs=...)` can now inspect a child
