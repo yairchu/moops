@@ -19,8 +19,8 @@ class SubgroupRegistry:
         self._refs[iface.option_prefix] = weakref.ref(iface)
 
     def missing_options(self, controls: typing.Sequence[typing.Any]) -> list[str]:
-        covered_ids = {
-            id(iface)
+        covered = {
+            iface.option_prefix
             for ctrl in controls
             for iface in [interface.attached_interface(ctrl)]
             if iface is not None
@@ -32,7 +32,7 @@ class SubgroupRegistry:
             if iface is None:
                 continue
             live_refs[prefix] = ref
-            if id(iface) in covered_ids:
+            if iface.option_prefix in covered:
                 continue
             missing.extend(iface.input_options())
         self._refs = live_refs
