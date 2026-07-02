@@ -1,5 +1,8 @@
+import types
+
 import pytest
 
+import moops
 from moops import Group
 
 
@@ -20,6 +23,37 @@ def test_subgroup_controls_visible_in_parent_help(capsys: pytest.CaptureFixture[
     with pytest.raises(SystemExit):
         g.interface(casing.interface(ctrl))
     assert "--casing-style" in capsys.readouterr().out
+
+
+def test_interface_of_bound_child_group_declares_result_gated_options(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    class _ChildApp:
+        def run(self, defs: dict[str, object]) -> tuple[object, ...]:
+            child_args = defs["args"]
+            assert isinstance(child_args, Group)
+            if defs["state_path"] is None:
+                ctrl = child_args.text(option="--save-path", help_text="State file")
+            else:
+                ctrl = child_args.text(option="--load-path", help_text="State file")
+            return (), {"interface": child_args.interface(ctrl)}
+
+    module = types.ModuleType("child")
+    module.app = _ChildApp()  # type: ignore[attr-defined]
+    parent = Group(cli_args=["script.py", "--help"])
+    state_args = parent.subgroup("state")
+    state_iface = moops.interface_of(
+        module,  # type: ignore[arg-type]
+        args=state_args,
+        defs={"state_path": None},
+    )
+
+    with pytest.raises(SystemExit):
+        parent.interface(state_iface)
+
+    help_text = capsys.readouterr().out
+    assert "--state-save-path" in help_text
+    assert "--state-load-path" not in help_text
 
 
 def test_overridden_control_not_in_help(capsys: pytest.CaptureFixture[str]):

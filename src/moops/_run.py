@@ -5,7 +5,18 @@ from . import group, workarounds
 from .interface import Interface
 
 
-def interface_of(module: types.ModuleType) -> Interface:
+class _App(typing.Protocol):
+    def run(
+        self, defs: dict[str, typing.Any]
+    ) -> tuple[typing.Iterable[typing.Any], typing.Mapping[str, object]]: ...
+
+
+def interface_of(
+    module: types.ModuleType,
+    *,
+    args: group.Group | None = None,
+    defs: dict[str, typing.Any] | None = None,
+) -> Interface:
     """Return a notebook's Interface without running its computation.
 
     Notebooks can skip heavy work during interface queries::
@@ -14,10 +25,32 @@ def interface_of(module: types.ModuleType) -> Interface:
 
     Useful for surfacing a notebook's controls into a parent notebook without
     embedding it, e.g. when calling the notebook in a loop via ``moops.run()``.
+
+    Pass a bound child ``args`` group to declare controls from a child notebook
+    before the parent reaches a result-gated embed. This lets top-level CLI
+    parsing and ``--help`` see child options such as ``--state-save-path`` even
+    if the real embed only runs after the parent's computation. ``defs`` can
+    override additional child definitions needed to reach the desired controls.
     """
-    args = group.Group.for_interface_query()
-    _, defs = workarounds.run_in_thread_if_in_async(module.app.run, defs={"args": args})
-    return defs["interface"]
+    return interface_of_app(typing.cast(_App, module.app), args=args, defs=defs)
+
+
+def interface_of_app(
+    app: _App,
+    *,
+    args: group.Group | None = None,
+    defs: dict[str, typing.Any] | None = None,
+) -> Interface:
+    args = group.Group.for_interface_query() if args is None else args
+    query_args = typing.cast(typing.Any, args)
+    was_interface_query = query_args._is_interface_query
+    query_args._is_interface_query = True
+    run_defs = {**(defs or {}), "args": args}
+    try:
+        _, result_defs = workarounds.run_in_thread_if_in_async(app.run, defs=run_defs)
+    finally:
+        query_args._is_interface_query = was_interface_query
+    return typing.cast(Interface, result_defs["interface"])
 
 
 def run(

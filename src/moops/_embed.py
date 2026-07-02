@@ -3,7 +3,8 @@ import typing
 
 import marimo as mo
 
-from . import _options, _variant, interface, workarounds
+from . import _options, _variant, interface
+from ._run import interface_of_app
 
 
 class _Embed(typing.Protocol):
@@ -63,23 +64,15 @@ def variant_embed(
             f"selected embed variant {selected_key!r} has no matching group"
         ) from exc
     inactive_interfaces = tuple(
-        _interface_of_app(apps[k], v) for k, v in variants.items() if k != selected_key
+        interface_of_app(apps[k], args=v)
+        for k, v in variants.items()
+        if k != selected_key
     )
     if not mo.running_in_notebook() and any(
         iface.has_prefixed_options(group._state) for iface in inactive_interfaces
     ):
         group._state.failed_validation = True
     return app.clone(), args, inactive_interfaces
-
-
-def _interface_of_app(app: _App, args: typing.Any) -> interface.Interface:
-    was_interface_query = args._is_interface_query
-    args._is_interface_query = True
-    try:
-        _, defs = workarounds.run_in_thread_if_in_async(app.run, defs={"args": args})
-    finally:
-        args._is_interface_query = was_interface_query
-    return typing.cast(interface.Interface, defs["interface"])
 
 
 def _apps_from_selector(selector: typing.Any) -> typing.Mapping[typing.Any, _App]:
