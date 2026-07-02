@@ -152,6 +152,17 @@ def test_missing_subgroup_interface_options_are_on_parent_interface() -> None:
     assert iface.missing_options() == ["--casing-style"]
 
 
+def test_subgroup_interface_covered_by_prefix_after_rerun() -> None:
+    g = Group(cli_args=["script.py"])
+    state = g.subgroup("state")
+    save = state.text(option="--save-path", help_text="State file")
+    early_iface = state.interface(save)
+    fresh_iface = state.interface(save)
+
+    assert g.interface(early_iface).missing_options() == []
+    assert fresh_iface.option_prefix == early_iface.option_prefix
+
+
 def test_overridden_dropdown_accepts_non_string_option_value() -> None:
     class Adam:
         pass
