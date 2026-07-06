@@ -908,7 +908,7 @@ class ListControl(InputControl):
     def _format_default_item_value(self, value: typing.Any) -> list[str]:
         query_value = self.item_control.format_query_value(value)
         if query_value is None:
-            query_value = str(value)
+            query_value = _options.format_cli_value(value)
         return [_options.option_value_token(self.item_control.option, query_value)]
 
     def strategy(self) -> st.SearchStrategy:

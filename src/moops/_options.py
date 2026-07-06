@@ -777,14 +777,14 @@ class NumberControl(_NoneFlag, ValueControl):
             return []
         if value is None:
             return [self._no_flag] if self._no_flag else []
-        return [f"{self.option} {value}"]
+        return [option_value_token(self.option, _format_number(value))]
 
     def format_query_value(self, value: typing.Any) -> str | None:
         if value == self.default:
             return None
         if value is None:
             return "" if self._is_none_capable else None
-        return str(value)
+        return _format_number(value)
 
     def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
         d = self.default if effective_default is _UNSET else effective_default
@@ -1293,4 +1293,14 @@ def _range_bound(
 
 
 def _format_range(value: typing.Iterable[typing.Any]) -> str:
-    return ",".join(str(v) for v in value)
+    return ",".join(_format_number(v) for v in value)
+
+
+def format_cli_value(value: typing.Any) -> str:
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
+def _format_number(value: typing.Any) -> str:
+    return format_cli_value(value)
