@@ -243,6 +243,14 @@ def test_validation_error_not_shown_for_unrendered_control(
     assert "Unexpected argument: --count" in capsys.readouterr().out
 
 
+def test_number_current_args_formats_integral_float_succinctly() -> None:
+    g = Group(cli_args=["script.py"])
+    count = g.number(value=5.0, option="--count", help_text="Count")
+    count._value = 4.0  # type: ignore[attr-defined]
+
+    assert g.interface(count)._current_args() == "--count 4"  # type: ignore[attr-defined]
+
+
 def test_unbounded_number_none_value_round_trips() -> None:
     """An unbounded number can be cleared to None (marimo's number widget yields
     None when emptied), so that state must round-trip through the CLI instead of

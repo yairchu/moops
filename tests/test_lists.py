@@ -122,7 +122,7 @@ def test_list_current_args_keeps_items_equal_to_item_default() -> None:
     )
     iface = g.interface(ctrl)
 
-    assert iface._current_args() == "--factor 1.0 --factor 2.0"  # type: ignore[attr-defined]
+    assert iface._current_args() == "--factor 1 --factor 2"  # type: ignore[attr-defined]
 
 
 def test_list_current_args_round_trips_default_item_starting_with_dash() -> None:
