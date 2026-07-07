@@ -55,7 +55,7 @@ class VariantAwareDictionary(mo.ui.dictionary):
 
     A real ``mo.ui.dictionary`` subclass, so it stays a reactive ``UIElement``
     (cells referencing it rerun when a mirrored control changes). It overrides
-    display to show the controls as a plain vertical stack and to hide inactive
+    display to show the controls as a wrapping row and to hide inactive
     variant branches, instead of marimo's default dictionary layout.
     """
 
@@ -71,7 +71,7 @@ class VariantAwareDictionary(mo.ui.dictionary):
 
     @property
     def text(self) -> str:
-        return self._moops_stacked_display().text
+        return self._moops_row_display().text
 
     def _moops_visible_elements(self) -> dict[str, typing.Any]:
         iface = self._moops_interface
@@ -98,28 +98,37 @@ class VariantAwareDictionary(mo.ui.dictionary):
                 result[active_name] = active_element
         return result
 
-    def _moops_stacked_display(self) -> typing.Any:
-        return mo.vstack(
-            [
-                _display_element(element)
-                for element in self._moops_visible_elements().values()
-            ]
+    def _moops_row_elements(self) -> list[typing.Any]:
+        return [
+            child
+            for element in self._moops_visible_elements().values()
+            for child in _row_elements(element)
+        ]
+
+    def _moops_row_display(self) -> typing.Any:
+        return mo.hstack(
+            self._moops_row_elements(),
+            justify="start",
+            align="start",
+            wrap=True,
         )
 
     def _mime_(self) -> typing.Any:
-        return self._moops_stacked_display()._mime_()
+        return self._moops_row_display()._mime_()
 
 
-def _display_element(element: typing.Any) -> typing.Any:
+def _row_elements(element: typing.Any) -> list[typing.Any]:
     visible_elements = getattr(element, "_moops_visible_elements", None)
     if callable(visible_elements):
         visible = typing.cast(dict[str, typing.Any], visible_elements())
-        return mo.vstack([_display_element(child) for child in visible.values()])
+        return [child for item in visible.values() for child in _row_elements(item)]
     elements = getattr(element, "elements", None)
     if isinstance(elements, dict) and interface.attached_interface(element) is not None:
         typed_elements = typing.cast(dict[str, typing.Any], elements)
-        return mo.vstack([_display_element(child) for child in typed_elements.values()])
-    return element
+        return [
+            child for item in typed_elements.values() for child in _row_elements(item)
+        ]
+    return [element]
 
 
 def _active_variant_element(

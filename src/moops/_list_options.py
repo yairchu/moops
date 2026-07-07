@@ -62,11 +62,11 @@ def _build_list_ui(
     """Build the notebook list layout with per-item controls.
 
     Returns ``(display, add_btn)``. ``display`` is the full vstack: each item is
-    preceded by a left-aligned control cluster operating on that item (insert
-    above / move-up / move-down / remove), and a trailing "+ Append" button adds
-    at the end. All mutations read the current item values via ``value_getter``
-    (so in-progress edits to other items are preserved) and report the new list
-    through ``on_change``.
+    a horizontal row with a left-aligned control cluster operating on that item
+    (insert above / move-up / move-down / remove), and a trailing "+ Append"
+    button adds at the end. All mutations read the current item values via
+    ``value_getter`` (so in-progress edits to other items are preserved) and
+    report the new list through ``on_change``.
 
     ``add_btn`` appends a fresh ``make_default()`` item and is returned so
     callers can expose that operation directly.
@@ -127,11 +127,27 @@ def _build_list_ui(
             tooltip="Remove this item",
             on_click=lambda _, idx=i: remove_at(idx),
         )
-        controls = mo.hstack(
-            [insert_btn, duplicate_btn, up_btn, down_btn, item_remove_btn],
-            justify="start",
+        row_elements = getattr(element, "_moops_row_elements", None)
+        item_parts = (
+            typing.cast(list[typing.Any], row_elements())
+            if callable(row_elements)
+            else [element]
         )
-        rows.append(mo.vstack([controls, element]))
+        rows.append(
+            mo.hstack(
+                [
+                    insert_btn,
+                    duplicate_btn,
+                    up_btn,
+                    down_btn,
+                    item_remove_btn,
+                    *item_parts,
+                ],
+                justify="start",
+                align="start",
+                wrap=True,
+            )
+        )
 
     add_btn = mo.ui.button(
         label="+ Append",
