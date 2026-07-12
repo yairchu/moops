@@ -1,12 +1,10 @@
 """Workarounds for marimo UI element limitations."""
 
-import html
 import pathlib
 import typing
 
 import marimo as mo
 from marimo._messaging.mimetypes import KnownMimeType
-from marimo._plugins.ui._core.ui_element import UIElement
 from marimo._plugins.ui._impl.file_browser import FileBrowserFileInfo
 
 
@@ -41,55 +39,6 @@ def locked_dropdown_options(
     if isinstance(options, dict):
         return {override: None if override is None else options[override]}
     return [override]
-
-
-class LockedMultiselect(UIElement[str, list[str]]):
-    """Read-only multiselect placeholder used when a control is overridden.
-
-    Workaround for mo.ui.multiselect not supporting disabled=True.
-    See https://github.com/marimo-team/marimo/issues/9579
-    """
-
-    def __init__(self, value: list[str], label_html: str) -> None:
-        self._locked_value = list(value)
-        _chips = "".join(
-            f'<span style="background:var(--sky-2,#dbeafe);border-radius:4px;'
-            f'padding:2px 8px;margin:2px;display:inline-block">{v}</span>'
-            for v in [html.escape(item) for item in value]
-        )
-        self._html = (
-            f'<div style="padding:4px 0;opacity:0.7">'
-            f"{label_html}: {_chips or '(none)'}"
-            f"</div>"
-        )
-        display_value = ", ".join(value) if value else "(none)"
-        super().__init__(
-            component_name="marimo-text",
-            initial_value=display_value,
-            label=label_html,
-            on_change=None,
-            args={
-                "placeholder": "",
-                "kind": "text",
-                "max-length": None,
-                "full-width": False,
-                "disabled": True,
-                "debounce": True,
-                "password-has-value": None,
-            },
-        )
-
-    def _convert_value(self, value: str) -> list[str]:
-        del value
-        return list(self._locked_value)
-
-    def _clone(self) -> "LockedMultiselect":
-        # Use the base UIElement deepcopy path so extra attributes set after
-        # construction (e.g., _moops_input) are preserved on the clone.
-        return super()._clone()  # type: ignore[return-value]
-
-    def _mime_(self) -> tuple[KnownMimeType, str]:
-        return ("text/html", self._html)
 
 
 class FileBrowserWithInitialSelection(mo.ui.file_browser):

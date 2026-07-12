@@ -970,15 +970,12 @@ class MultiSelectControl(_NoneFlag, ValueControl):
         selected_keys = [
             _choice_options.option_key(self.select_opts, item) for item in value
         ]
-        if disabled:
-            return _ui_workarounds.LockedMultiselect(
-                [str(item) for item in value], label
-            )
         return mo.ui.multiselect(
             options=self.select_opts,
             value=selected_keys,
             label=label,
             on_change=on_change,
+            disabled=disabled,
             **self.extra_kwargs,
         )
 

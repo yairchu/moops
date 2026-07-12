@@ -18,9 +18,6 @@ def _(args):
     # Game of Life (Classic)
 
     Embeds `game_of_life_iteration.py` with rules locked to classic Conway rules.
-
-    Demonstrates the `_LockedMultiselect` workaround for
-    `mo.ui.multiselect` not supporting `disabled=True`.
     """,
         notebook_only=True,
     )
