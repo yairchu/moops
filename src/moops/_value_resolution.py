@@ -34,6 +34,9 @@ class ValueResolver:
         if self.preset_state is not None:
             changed, changed_value = self.query_params.changed_value(key)
             if changed:
+                # Query values preserve mapped choices by key.
+                # The raw cache only covers factory-default edits;
+                # discard it when remapped data rejects that value.
                 if query_value is not _UNSET:
                     return query_value
                 formatted = control.format_query_value(changed_value)
