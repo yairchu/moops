@@ -45,6 +45,16 @@ class ParseResult:
     value: typing.Any
 
 
+@dataclasses.dataclass(frozen=True)
+class CachedEdit:
+    """Live edit stored raw, except choice controls use stable keys so rebuilt
+    mappings preserve the selected option's identity.
+    """
+
+    value: typing.Any
+    query_encoded: bool = False
+
+
 @dataclasses.dataclass
 class InputControl(abc.ABC):
     """Input-channel behavior for a single UI control."""
@@ -107,6 +117,9 @@ class InputControl(abc.ABC):
                 " it was present in args — this is a bug in the control implementation"
             )
         return result
+
+    def cache_edit(self, value: typing.Any) -> CachedEdit:
+        return CachedEdit(value)
 
     @abc.abstractmethod
     def format_query_value(self, value: typing.Any) -> str | None:
@@ -1059,6 +1072,12 @@ class MultiSelectControl(_NoneFlag, ValueControl):
         keys = [_choice_options.option_key(self.select_opts, v) for v in values]
         return None if values == self.default else json.dumps(keys)
 
+    def cache_edit(self, value: typing.Any) -> CachedEdit:
+        return CachedEdit(
+            json.dumps([self._key_for(v) for v in value]),
+            query_encoded=True,
+        )
+
     def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
         d = self.default if effective_default is _UNSET else effective_default
         default_keys = {
@@ -1190,6 +1209,12 @@ class DropdownControl(_NoneFlag, InputControl):
         if self._is_default(value):
             return None
         return self._key_for_cli(value)
+
+    def cache_edit(self, value: typing.Any) -> CachedEdit:
+        return CachedEdit(
+            "" if value is None else self._key_for_cli(value),
+            query_encoded=True,
+        )
 
     def _is_default(self, value: typing.Any) -> bool:
         return value == self.default or (

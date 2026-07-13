@@ -32,18 +32,22 @@ class ValueResolver:
             return self.overrides[key]
         query_value = self._query_value(control, key)
         if self.preset_state is not None:
-            changed, changed_value = self.query_params.changed_value(key)
-            if changed:
-                # Query values preserve mapped choices by key.
-                # The raw cache only covers factory-default edits;
-                # discard it when remapped data rejects that value.
+            if changed := self.query_params.changed_value(key):
                 if query_value is not _UNSET:
                     return query_value
-                formatted = control.format_query_value(changed_value)
-                if formatted is None or isinstance(
-                    control.parse_query_value(formatted), _options.ParseResult
-                ):
-                    return changed_value
+                if changed.query_encoded:
+                    match control.parse_query_value(changed.value):
+                        case _options.ParseResult(value=v):
+                            return v
+                        case _:
+                            pass
+                else:
+                    changed_value = changed.value
+                    formatted = control.format_query_value(changed_value)
+                    if formatted is None or isinstance(
+                        control.parse_query_value(formatted), _options.ParseResult
+                    ):
+                        return changed_value
                 self.query_params.forget_changed_value(key)
             # Honor live notebook list state over the preset: if the persisted
             # query matches the value the caller passed (so it reflects the

@@ -19,8 +19,8 @@ class QueryParams:
     # remove() used when clearing a key.
     params: typing.Any
     prefix: str = ""
-    _changed_values: dict[str, typing.Any] = dataclasses.field(
-        default_factory=dict[str, typing.Any]
+    _changed_values: dict[str, _options.CachedEdit] = dataclasses.field(
+        default_factory=dict[str, _options.CachedEdit]
     )
 
     @classmethod
@@ -51,9 +51,9 @@ class QueryParams:
             return False
         return any(self._is_user_key(str(key)) for key in params)
 
-    def changed_value(self, key: str) -> tuple[bool, typing.Any]:
+    def changed_value(self, key: str) -> _options.CachedEdit | None:
         key = self._key(key)
-        return key in self._changed_values, self._changed_values.get(key)
+        return self._changed_values.get(key)
 
     def forget_changed_value(self, key: str) -> None:
         self._changed_values.pop(self._key(key), None)
@@ -81,7 +81,7 @@ class QueryParams:
             return on_change
 
         def synced_on_change(value: typing.Any) -> None:
-            self._changed_values[self._key(key)] = value
+            self._changed_values[self._key(key)] = control.cache_edit(value)
             self._set(key, control.format_query_value(value))
             if on_change is not None:
                 on_change(value)
