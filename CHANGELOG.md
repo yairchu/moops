@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.13.12] - 2026-07-14 - Preset edit preservation
+
 ### Changed
 
 - Controls now reject the `disabled` option with a clear error because moops
