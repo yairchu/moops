@@ -27,20 +27,6 @@ class ValueView:
         return getattr(self._element, name)
 
 
-def locked_dropdown_options(
-    override: str | None,
-    options: list[str] | dict[str, typing.Any],
-) -> list[str | None] | dict[str | None, typing.Any]:
-    """Filter dropdown options to a single locked value.
-
-    Workaround for mo.ui.dropdown not supporting disabled=True.
-    See https://github.com/marimo-team/marimo/issues/9579
-    """
-    if isinstance(options, dict):
-        return {override: None if override is None else options[override]}
-    return [override]
-
-
 class FileBrowserWithInitialSelection(mo.ui.file_browser):
     """Extends mo.ui.file_browser with a CLI path fallback when no file is selected."""
 

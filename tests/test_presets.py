@@ -771,9 +771,7 @@ def test_variant_help_follows_live_selector_change() -> None:
 
 def test_dict_dropdown_in_inactive_branch_keeps_mapped_value_after_cli_args() -> None:
     """A dict-valued dropdown inside an inactive (disabled) variant branch has
-    its widget ``.options`` locked to a single entry. Resetting it from a CLI
-    arg that selects a different key must still resolve to the mapped value,
-    not fall back to the raw option key string."""
+    to resolve a new CLI key to the mapped value, not the raw key string."""
     g = Group(cli_args=["script.py"])
     mode = g.dropdown(
         ["car", "train"],

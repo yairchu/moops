@@ -1117,16 +1117,12 @@ class DropdownControl(_NoneFlag, InputControl):
             if value is None
             else _choice_options.option_key(self.dropdown_opts, value)
         )
-        opts: typing.Any = (
-            _ui_workarounds.locked_dropdown_options(selected_key, self.dropdown_opts)
-            if disabled
-            else self.dropdown_opts
-        )
         return mo.ui.dropdown(
-            options=opts,
+            options=self.dropdown_opts,
             value=selected_key,
             label=label,
             on_change=on_change,
+            disabled=disabled,
             **self.extra_kwargs,
         )
 
