@@ -34,6 +34,8 @@ class ValueResolver:
         if self.preset_state is not None:
             changed, changed_value = self.query_params.changed_value(key)
             if changed:
+                if query_value is not _UNSET:
+                    return query_value
                 formatted = control.format_query_value(changed_value)
                 if formatted is None or isinstance(
                     control.parse_query_value(formatted), _options.ParseResult
