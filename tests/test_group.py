@@ -205,6 +205,18 @@ def test_dropdown_no_flag_selects_none() -> None:
     assert ctrl.value is None
 
 
+def test_controls_reject_disabled_kwarg_with_clear_error() -> None:
+    g = Group(cli_args=["script.py"])
+    with pytest.raises(TypeError, match="disabled is managed by moops"):
+        g.dropdown(
+            ["a"],
+            value="a",
+            option="--choice",
+            help_text="Choice",
+            disabled=True,
+        )
+
+
 def test_number_accepts_split_negative_decimal_without_leading_zero() -> None:
     g = Group(cli_args=["script.py", "--count", "-.5"])
     ctrl = g.number(option="--count", help_text="A count")
