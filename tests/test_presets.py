@@ -168,6 +168,38 @@ def test_selected_preset_discards_edit_removed_from_dynamic_dropdown(
     assert recreated_choice.value == "a"
 
 
+def test_selected_preset_keeps_dynamic_dropdown_edit_by_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Recreating mapped options with the same keys should preserve the edited key."""
+    params: dict[str, str] = {}
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+    presets = _mock_presets(
+        selected_args="--choice a",
+        get_current=mock.Mock(return_value="default"),
+    )
+    group = Group(cli_args=["script.py"], presets=presets)
+    choice = group.dropdown(
+        {"A": 1, "B": 2},
+        value=1,
+        option="--choice",
+        help_text="Choice",
+        allow_select_none=False,
+    )
+    choice._on_change(2)  # type: ignore[attr-defined]
+
+    recreated_choice = group.dropdown(
+        {"A": 10, "B": 20},
+        value=10,
+        option="--choice",
+        help_text="Choice",
+        allow_select_none=False,
+    )
+
+    assert recreated_choice.value == 20
+
+
 def test_query_params_disable_default_preset(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
