@@ -55,6 +55,9 @@ class QueryParams:
         key = self._key(key)
         return key in self._changed_values, self._changed_values.get(key)
 
+    def forget_changed_value(self, key: str) -> None:
+        self._changed_values.pop(self._key(key), None)
+
     def sync(
         self,
         control: _options.InputControl,

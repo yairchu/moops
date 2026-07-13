@@ -34,7 +34,12 @@ class ValueResolver:
         if self.preset_state is not None:
             changed, changed_value = self.query_params.changed_value(key)
             if changed:
-                return changed_value
+                formatted = control.format_query_value(changed_value)
+                if formatted is None or isinstance(
+                    control.parse_query_value(formatted), _options.ParseResult
+                ):
+                    return changed_value
+                self.query_params.forget_changed_value(key)
             # Honor live notebook list state over the preset: if the persisted
             # query matches the value the caller passed (so it reflects the
             # current edited state rather than a stale param), keep it. Compare
