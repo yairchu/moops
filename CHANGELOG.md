@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Controls now reject the `disabled` option with a clear error because moops
+  manages disabled state for overrides and inactive variants.
+
 ### Fixed
 
 - Variant controls now retain edits when switching branches under an active

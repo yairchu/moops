@@ -166,6 +166,8 @@ class InputControl(abc.ABC):
         fallback. Use this instead of ``create_marimo_element`` wherever an
         element is built from a control that may carry a custom wrapper.
         """
+        if "disabled" in self.extra_kwargs:
+            raise TypeError("disabled is managed by moops")
         element = self.create_marimo_element(
             value, label, on_change=on_change, disabled=disabled
         )
