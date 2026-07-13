@@ -90,8 +90,10 @@ def test_selected_preset_clears_unspecified_query_params(
     assert params == {"style": "snake"}
 
 
+@pytest.mark.parametrize("edited_distance", [80, 120])
 def test_selected_preset_keeps_edit_when_variant_becomes_inactive(
     monkeypatch: pytest.MonkeyPatch,
+    edited_distance: int,
 ) -> None:
     params: dict[str, str] = {}
     monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
@@ -114,7 +116,7 @@ def test_selected_preset_keeps_edit_when_variant_becomes_inactive(
         option="--distance",
         help_text="Distance",
     )
-    distance._on_change(80)  # type: ignore[attr-defined]
+    distance._on_change(edited_distance)  # type: ignore[attr-defined]
 
     mode._value = "train"  # type: ignore[attr-defined]
     mode._selected_key = "train"  # type: ignore[attr-defined]
@@ -126,7 +128,7 @@ def test_selected_preset_keeps_edit_when_variant_becomes_inactive(
     )
 
     assert recreated_distance._component_args["disabled"] is True  # type: ignore[reportPrivateUsage]
-    assert recreated_distance.value == 80
+    assert recreated_distance.value == edited_distance
 
 
 def test_query_params_disable_default_preset(
