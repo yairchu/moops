@@ -90,6 +90,45 @@ def test_selected_preset_clears_unspecified_query_params(
     assert params == {"style": "snake"}
 
 
+def test_selected_preset_keeps_edit_when_variant_becomes_inactive(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    params: dict[str, str] = {}
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+    presets = _mock_presets(
+        selected_args="--mode car --travel-car-distance 100",
+        get_current=mock.Mock(return_value="default"),
+    )
+    group = Group(cli_args=["script.py"], presets=presets)
+    mode = group.dropdown(
+        ["car", "train"],
+        value="car",
+        option="--mode",
+        help_text="Travel mode",
+        allow_select_none=False,
+    )
+    car = group.variant("travel", mode)["car"]
+    distance = car.number(
+        value=120,
+        option="--distance",
+        help_text="Distance",
+    )
+    distance._on_change(80)  # type: ignore[attr-defined]
+
+    mode._value = "train"  # type: ignore[attr-defined]
+    mode._selected_key = "train"  # type: ignore[attr-defined]
+    inactive_car = group.variant("travel", mode)["car"]
+    recreated_distance = inactive_car.number(
+        value=120,
+        option="--distance",
+        help_text="Distance",
+    )
+
+    assert recreated_distance._component_args["disabled"] is True  # type: ignore[reportPrivateUsage]
+    assert recreated_distance.value == 80
+
+
 def test_query_params_disable_default_preset(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
