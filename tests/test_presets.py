@@ -131,6 +131,43 @@ def test_selected_preset_keeps_edit_when_variant_becomes_inactive(
     assert recreated_distance.value == edited_distance
 
 
+def test_selected_preset_discards_edit_removed_from_dynamic_dropdown(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A reactive control cell may rerun with new dropdown options while its
+    Group, and therefore its live-edit cache, stays alive. If the new options
+    remove the edited value, recreation must fall back to the still-valid
+    preset value instead of passing the stale edit to marimo and crashing.
+    """
+    params: dict[str, str] = {}
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+    presets = _mock_presets(
+        selected_args="--choice a",
+        get_current=mock.Mock(return_value="default"),
+    )
+    group = Group(cli_args=["script.py"], presets=presets)
+    choice = group.dropdown(
+        ["a", "b"],
+        value="a",
+        option="--choice",
+        help_text="Choice",
+        allow_select_none=False,
+    )
+    choice._on_change("b")  # type: ignore[attr-defined]
+
+    with pytest.warns(UserWarning, match="Query parameter for --choice"):
+        recreated_choice = group.dropdown(
+            ["a", "c"],
+            value="a",
+            option="--choice",
+            help_text="Choice",
+            allow_select_none=False,
+        )
+
+    assert recreated_choice.value == "a"
+
+
 def test_query_params_disable_default_preset(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
