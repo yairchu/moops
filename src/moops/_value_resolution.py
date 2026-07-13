@@ -32,6 +32,8 @@ class ValueResolver:
             return self.overrides[key]
         query_value = self._query_value(control, key)
         if self.preset_state is not None:
+            if query_value is not _UNSET and self.query_params.was_changed(key):
+                return query_value
             # Honor live notebook list state over the preset: if the persisted
             # query matches the value the caller passed (so it reflects the
             # current edited state rather than a stale param), keep it. Compare

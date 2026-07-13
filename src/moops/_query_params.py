@@ -19,6 +19,7 @@ class QueryParams:
     # remove() used when clearing a key.
     params: typing.Any
     prefix: str = ""
+    _changed_keys: set[str] = dataclasses.field(default_factory=lambda: set[str]())
 
     @classmethod
     def from_notebook(cls) -> "QueryParams":
@@ -28,6 +29,7 @@ class QueryParams:
         return type(self)(
             params=self.params,
             prefix=f"{self.prefix}.{prefix}" if self.prefix else prefix,
+            _changed_keys=self._changed_keys,
         )
 
     def get(self, key: str) -> str | None:
@@ -46,6 +48,9 @@ class QueryParams:
         if params is None:
             return False
         return any(self._is_user_key(str(key)) for key in params)
+
+    def was_changed(self, key: str) -> bool:
+        return self._key(key) in self._changed_keys
 
     def sync(
         self,
@@ -70,6 +75,7 @@ class QueryParams:
             return on_change
 
         def synced_on_change(value: typing.Any) -> None:
+            self._changed_keys.add(self._key(key))
             self._set(key, control.format_query_value(value))
             if on_change is not None:
                 on_change(value)

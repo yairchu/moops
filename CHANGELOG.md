@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Variant controls now retain edits when switching branches under an active
+  preset instead of reverting to the saved preset value.
+
 ## [0.13.11] - 2026-07-07 - Mirrored list control rows
 
 ### Changed
