@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Lists of variant controls now preserve active-branch options in generated CLI
+  commands and saved presets when the selector dropdown maps keys to values.
+
 ## [0.13.12] - 2026-07-14 - Preset edit preservation
 
 ### Changed

@@ -7,7 +7,7 @@ import typing
 
 import marimo as mo
 
-from . import _options, _parse, _variant
+from . import _choice_options, _options, _parse, _variant
 
 if typing.TYPE_CHECKING:
     from hypothesis import strategies as st
@@ -437,7 +437,7 @@ class SubgroupListControl(InputControl):
                 key = (
                     self._default_variant_key(selector)
                     if selected is _UNSET
-                    else _variant.key_text(selected)
+                    else self._variant_key(selector, selected)
                 )
                 if key is not None:
                     active.setdefault(selector, set()).add(key)
@@ -525,7 +525,19 @@ class SubgroupListControl(InputControl):
         if selector_path is None:
             return True
         selected = get_path(item_value, selector_path, _UNSET)
-        return selected is _UNSET or leaf.variant_key == _variant.key_text(selected)
+        return selected is _UNSET or leaf.variant_key == self._variant_key(
+            leaf.variant_selector_bare_option, selected
+        )
+
+    def _variant_key(self, selector_bare_option: str, value: typing.Any) -> str:
+        for leaf in self.leaves:
+            if leaf.bare_option != selector_bare_option:
+                continue
+            control = leaf.bare_control()
+            if isinstance(control, _options.DropdownControl):
+                value = _choice_options.option_key(control.dropdown_opts, value)
+            break
+        return _variant.key_text(value)
 
     def _default_variant_key(self, selector_bare_option: str) -> str | None:
         for leaf in self.leaves:
