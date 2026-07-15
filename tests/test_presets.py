@@ -481,8 +481,8 @@ def test_selected_default_preset_does_not_lock_edited_subgroup_list_state(
     preset_trip = [{"mode": "car", "distance": 120}]
     edited_trip = [*preset_trip, {"mode": "car", "distance": 120}]
     presets = _mock_presets(
-        selected_args="--trip --mode car --distance 120",
-        default_args="--trip --mode car --distance 120",
+        selected_args="--trip --trip-mode car --trip-distance 120",
+        default_args="--trip --trip-mode car --trip-distance 120",
         get_current=mock.Mock(return_value="default"),
     )
     template = Group(cli_args=["template.py"])
@@ -552,8 +552,8 @@ def test_selected_preset_honors_edit_with_non_serializable_list_value(
     monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
 
     presets = _mock_presets(
-        selected_args="--step --optimizer adam --mult 1.0",
-        default_args="--step --optimizer adam --mult 1.0",
+        selected_args="--step --step-optimizer adam --step-mult 1.0",
+        default_args="--step --step-optimizer adam --step-mult 1.0",
         get_current=mock.Mock(return_value="default"),
     )
 

@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** Mirrored `Group.list` item options now retain their structural
+  prefix (for example, `--trip --trip-mode train`) so multiple lists and nested variant
+  structures can reuse child option names without CLI ambiguity. Existing
+  commands and presets using unprefixed item options must be updated.
+
 ### Fixed
 
 - Lists of variant controls now preserve active-branch options in generated CLI

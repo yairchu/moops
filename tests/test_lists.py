@@ -204,14 +204,14 @@ def test_list_controls_from_variant_parses_nested_items() -> None:
         cli_args=[
             "script.py",
             "--trip",
-            "--mode",
+            "--trip-mode",
             "car",
-            "--travel-car-distance",
+            "--trip-travel-car-distance",
             "100",
             "--trip",
-            "--mode",
+            "--trip-mode",
             "train",
-            "--travel-train-tickets",
+            "--trip-travel-train-tickets",
             "4",
         ]
     )
@@ -238,18 +238,17 @@ def test_list_controls_from_variant_parses_nested_items() -> None:
     ]
 
 
-def test_variant_lists_scope_shared_item_options_to_anchor() -> None:
-    """Lists may reuse child option names because each anchor starts a new
-    item scope."""
+def test_variant_lists_prefix_shared_item_options() -> None:
+    """Structural prefixes let mirrored lists reuse source option names."""
     variant_iface = moops.interface_of(variant_trip)
     g = Group(
         cli_args=[
             "script.py",
             "--outbound",
-            "--mode",
+            "--outbound-mode",
             "car",
             "--return",
-            "--mode",
+            "--return-mode",
             "train",
         ]
     )
@@ -274,18 +273,18 @@ def test_variant_lists_scope_shared_item_options_to_anchor() -> None:
 
 def test_list_help_shows_options_for_item_using_implicit_default_branch() -> None:
     """A list item that relies on the selector's default (car) instead of
-    repeating --mode should still show that branch's options in --help."""
+    repeating --trip-mode should still show that branch's options in --help."""
     variant_iface = moops.interface_of(variant_trip)
     g = Group(
         cli_args=[
             "script.py",
             "--trip",
-            "--mode",
+            "--trip-mode",
             "train",
-            "--travel-train-tickets",
+            "--trip-travel-train-tickets",
             "3",
             "--trip",
-            "--travel-car-distance",
+            "--trip-travel-car-distance",
             "50",
         ]
     )
@@ -297,7 +296,7 @@ def test_list_help_shows_options_for_item_using_implicit_default_branch() -> Non
     )
     iface = g.interface(ctrl)
 
-    assert "Options for --mode car" in iface.help()
+    assert "Options for --trip-mode car" in iface.help()
 
 
 def test_list_help_updates_after_command_box_changes_active_variant_branch() -> None:
@@ -306,9 +305,9 @@ def test_list_help_updates_after_command_box_changes_active_variant_branch() -> 
         cli_args=[
             "script.py",
             "--trip",
-            "--mode",
+            "--trip-mode",
             "train",
-            "--travel-train-tickets",
+            "--trip-travel-train-tickets",
             "3",
         ]
     )
@@ -321,11 +320,13 @@ def test_list_help_updates_after_command_box_changes_active_variant_branch() -> 
     iface = g.interface(ctrl)
 
     assert (
-        iface.apply_cli_args("script.py --trip --mode car --travel-car-distance 50")
+        iface.apply_cli_args(
+            "script.py --trip --trip-mode car --trip-travel-car-distance 50"
+        )
         == ()
     )
 
-    assert "Options for --mode car" in iface.help()
+    assert "Options for --trip-mode car" in iface.help()
 
 
 def test_list_help_follows_live_item_selector_change() -> None:
@@ -354,11 +355,11 @@ def test_list_help_follows_live_item_selector_change() -> None:
     ]
     help_text = iface.help()
 
-    assert "Options for --mode train" in help_text
-    assert "Options for --mode car" not in help_text
+    assert "Options for --trip-mode train" in help_text
+    assert "Options for --trip-mode car" not in help_text
     usage = help_text.split("\n\n", 1)[0]
-    assert "--travel-train-tickets" in usage
-    assert "--travel-car-distance" not in usage
+    assert "--trip-travel-train-tickets" in usage
+    assert "--trip-travel-car-distance" not in usage
 
 
 def test_list_help_shows_options_for_seeded_item_variant_branch() -> None:
@@ -378,14 +379,14 @@ def test_list_help_shows_options_for_seeded_item_variant_branch() -> None:
     )
     iface = g.interface(ctrl)
 
-    assert "Options for --mode train" in iface.help()
+    assert "Options for --trip-mode train" in iface.help()
 
 
 def test_list_help_for_invalid_variant_selector_does_not_hide_branches(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     variant_iface = moops.interface_of(variant_trip)
-    g = Group(cli_args=["script.py", "--trip", "--mode", "plane"])
+    g = Group(cli_args=["script.py", "--trip", "--trip-mode", "plane"])
     ctrl = g.list(
         option="--trip",
         item=lambda grp: grp.controls_from(variant_iface, prefix="trip"),
@@ -398,8 +399,8 @@ def test_list_help_for_invalid_variant_selector_does_not_hide_branches(
 
     output = capsys.readouterr().out
     assert exc_info.value.code != 0
-    assert "Option --mode must be one of ['car', 'train'], got: 'plane'" in output
-    assert "Options for --mode train" in output
+    assert "Option --trip-mode must be one of ['car', 'train'], got: 'plane'" in output
+    assert "Options for --trip-mode train" in output
 
 
 def test_list_controls_from_variant_rejects_inactive_branch_options(
@@ -411,9 +412,9 @@ def test_list_controls_from_variant_rejects_inactive_branch_options(
         cli_args=[
             "script.py",
             "--trip",
-            "--mode",
+            "--trip-mode",
             "train",
-            "--travel-car-distance",
+            "--trip-travel-car-distance",
             "999",
         ]
     )
@@ -428,7 +429,7 @@ def test_list_controls_from_variant_rejects_inactive_branch_options(
         g.interface(ctrl)
 
     assert exc_info.value.code != 0
-    assert "Unexpected argument: --travel-car-distance" in capsys.readouterr().out
+    assert "Unexpected argument: --trip-travel-car-distance" in capsys.readouterr().out
 
 
 def test_list_controls_from_current_args_round_trips_default_item() -> None:
@@ -733,7 +734,7 @@ def test_list_mapped_variant_selector_serializes_active_branch() -> None:
     )
 
     assert parent.interface(trips).preset_args() == (
-        "--trip --mode train --travel-train-tickets 9"
+        "--trip --trip-mode train --trip-travel-train-tickets 9"
     )
 
 
@@ -768,7 +769,7 @@ def test_list_controls_from_rejects_item_option_without_anchor(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     variant_iface = moops.interface_of(variant_trip)
-    g = Group(cli_args=["script.py", "--mode", "train"])
+    g = Group(cli_args=["script.py", "--trip-mode", "train"])
     ctrl = g.list(
         option="--trip",
         item=lambda grp: grp.controls_from(variant_iface, prefix="trip"),
@@ -780,7 +781,7 @@ def test_list_controls_from_rejects_item_option_without_anchor(
         g.interface(ctrl)
 
     assert exc_info.value.code != 0
-    assert "Unexpected argument: --mode" in capsys.readouterr().out
+    assert "Unexpected argument: --trip-mode" in capsys.readouterr().out
 
 
 def test_list_controls_from_allows_following_sibling_options() -> None:
@@ -789,7 +790,7 @@ def test_list_controls_from_allows_following_sibling_options() -> None:
         cli_args=[
             "script.py",
             "--trip",
-            "--mode",
+            "--trip-mode",
             "car",
             "--name",
             "Bob",
@@ -824,11 +825,11 @@ def test_list_controls_from_rejects_item_option_after_sibling_option(
         cli_args=[
             "script.py",
             "--trip",
-            "--mode",
+            "--trip-mode",
             "car",
             "--name",
             "Bob",
-            "--travel-train-tickets",
+            "--trip-travel-train-tickets",
             "4",
         ]
     )
@@ -844,7 +845,7 @@ def test_list_controls_from_rejects_item_option_after_sibling_option(
         g.interface(trips, name)
 
     assert exc_info.value.code != 0
-    assert "Unexpected argument: --travel-train-tickets" in capsys.readouterr().out
+    assert "Unexpected argument: --trip-travel-train-tickets" in capsys.readouterr().out
 
 
 def test_list_standalone_query_value_round_trips(
@@ -944,7 +945,7 @@ def test_list_subgroup_query_round_trips_non_default_nested_value(
 
     Regression: serializing the list query value via the CLI display token form
     combined an item's ``option value`` into a single token (e.g.
-    ``"--travel-car-distance 250"``), which the parser could not read back, so
+    ``"--trip-travel-car-distance 250"``), which the parser could not read back, so
     the value collapsed to its template default on the next render.
     """
     iface = moops.interface_of(variant_trip)
@@ -1008,8 +1009,8 @@ def test_list_help_uses_query_param_variant_branch(
     )
     help_text = target.interface(target_ctrl).help()
 
-    assert "Options for --mode train" in help_text
-    assert "Options for --mode car" not in help_text
+    assert "Options for --trip-mode train" in help_text
+    assert "Options for --trip-mode car" not in help_text
 
 
 def test_list_empty_value_overrides_non_empty_default_in_query() -> None:

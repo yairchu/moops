@@ -916,9 +916,10 @@ class Group:
             --factor 2 --factor 5 --factor 10
 
         For mirrored subgroup items, each bare occurrence of ``option`` starts a
-        new item and following unprefixed child options belong to it::
+        new item and following structurally prefixed child options belong to it::
 
-            --trip --mode car --travel-car-distance 100 --trip --mode train
+            --trip --trip-mode car --trip-travel-car-distance 100
+            --trip --trip-mode train
 
         Returns a ``mo.ui.array`` whose ``.value`` is the list of item values.
         In notebooks, pass a ``mo.state`` value and setter so the add/remove
