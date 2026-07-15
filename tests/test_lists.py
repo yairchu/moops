@@ -238,6 +238,40 @@ def test_list_controls_from_variant_parses_nested_items() -> None:
     ]
 
 
+def test_variant_lists_scope_shared_item_options_to_anchor() -> None:
+    """Lists may reuse child option names because each anchor starts a new
+    item scope."""
+    variant_iface = moops.interface_of(variant_trip)
+    g = Group(
+        cli_args=[
+            "script.py",
+            "--outbound",
+            "--mode",
+            "car",
+            "--return",
+            "--mode",
+            "train",
+        ]
+    )
+    outbound = g.list(
+        option="--outbound",
+        item=lambda group: group.controls_from(variant_iface, prefix="outbound"),
+        help_text="Outbound trips",
+        value=[],
+    )
+    returning = g.list(
+        option="--return",
+        item=lambda group: group.controls_from(variant_iface, prefix="return"),
+        help_text="Return trips",
+        value=[],
+    )
+
+    g.interface(outbound, returning)
+
+    assert outbound.value[0]["mode"] == "car"
+    assert returning.value[0]["mode"] == "train"
+
+
 def test_list_help_shows_options_for_item_using_implicit_default_branch() -> None:
     """A list item that relies on the selector's default (car) instead of
     repeating --mode should still show that branch's options in --help."""
