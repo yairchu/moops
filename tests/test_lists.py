@@ -663,6 +663,46 @@ def test_list_controls_from_mapped_dropdown_edit_keeps_selected_key(
     assert item.value["mode"] == 2
 
 
+def test_list_mapped_variant_selector_serializes_active_branch() -> None:
+    """A mapped selector's live value must still identify its variant branch."""
+    source = Group(cli_args=["child.py"])
+    mode = source.dropdown(
+        {"car": 1, "train": 2},
+        value="car",
+        option="--mode",
+        help_text="Mode",
+        allow_select_none=False,
+    )
+    travel = source.variant("travel", mode)
+    distance = travel["car"].number(
+        value=120, option="--distance", help_text="Distance"
+    )
+    tickets = travel["train"].number(value=2, option="--tickets", help_text="Tickets")
+    child_iface = source.interface(
+        mode,
+        travel["car"].interface(distance),
+        travel["train"].interface(tickets),
+    )
+
+    parent = Group(cli_args=["parent.py"])
+    trips = parent.list(
+        option="--trip",
+        item=lambda group: group.controls_from(child_iface, prefix="trip"),
+        help_text="Trips",
+        value=[
+            {
+                "mode": "train",
+                "travel-car": {"distance": 120},
+                "travel-train": {"tickets": 9},
+            }
+        ],
+    )
+
+    assert parent.interface(trips).preset_args() == (
+        "--trip --mode train --travel-train-tickets 9"
+    )
+
+
 def test_list_controls_from_variant_displays_only_active_branch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
