@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `Group.variant(..., short_options=True)` can omit the variant group name from
   branch CLI options, including when mirrored into `Group.list`. Shortened
   options that would collide are rejected.
+- `Group.assertions()` preserves normal Python assertions on the CLI and turns
+  assertion failures, including those raised by called code, into visible
+  notebook danger callouts that stop the current cell and its descendants.
 
 ## [0.14.0] - 2026-07-15 - Unambiguous mirrored list options
 

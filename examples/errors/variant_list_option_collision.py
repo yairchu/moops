@@ -169,10 +169,18 @@ def _(generated_command, mo, original, parsed):
 
 
 @app.cell
-def _(generated_command, parsed):
-    assert generated_command == "--item --item-x-value 10"
-    assert parsed["alpha-x"]["value"] == 10
-    assert parsed["beta-x"]["value"] == 3
+def _(generated_command, parent, parsed):
+    with parent.assertions():
+        assert generated_command == "--item --item-x-value 10", (
+            f"Generated command was `{generated_command}`, expected the short "
+            "alpha option `--item --item-x-value 10`"
+        )
+        assert parsed["alpha-x"]["value"] == 10, (
+            f"`alpha-x.value` changed to `{parsed['alpha-x']['value']}`, expected `10`"
+        )
+        assert parsed["beta-x"]["value"] == 3, (
+            f"`beta-x.value` changed to `{parsed['beta-x']['value']}`, expected `3`"
+        )
     return
 
 

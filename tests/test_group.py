@@ -18,6 +18,45 @@ from moops import Group, _input_map, _options, _parse
 from moops._ui_workarounds import FileBrowserWithInitialSelection
 
 
+def test_assertions_cli_is_quiet_on_success_and_preserves_failure(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    g = Group(cli_args=["script.py"])
+
+    with g.assertions():
+        assert True
+    assert capsys.readouterr().out == ""
+    value = 0
+    with pytest.raises(AssertionError, match="value was wrong"), g.assertions():
+        assert value == 1, "value was wrong"
+
+
+def test_assertions_notebook_stops_on_internal_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class StopError(Exception):
+        pass
+
+    stopped_outputs: list[typing.Any] = []
+
+    def stop(predicate: bool, output: typing.Any = None) -> None:
+        assert predicate
+        stopped_outputs.append(output)
+        raise StopError
+
+    monkeypatch.setattr(group_module.mo, "stop", stop)
+    g = Group(cli_args=["script.py"])
+    g.output_mode = group_module.OutputMode.NOTEBOOK
+
+    def require_one(value: int) -> None:
+        assert value == 1, "internal value was wrong"
+
+    with pytest.raises(StopError), g.assertions():
+        require_one(0)
+
+    assert "internal value was wrong" in stopped_outputs[0].text
+
+
 def test_switch_with_default_true_and_explicit_flag() -> None:
     g = Group(cli_args=["script.py"])
     ctrl = g.switch(value=True, flag="--no-verbose", help_text="Disable verbose output")

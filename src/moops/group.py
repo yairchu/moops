@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import dataclasses
 import enum
 import inspect
@@ -337,6 +338,24 @@ class Group:
             text = text[1:-1]
         print(f"{text}\n")
         return None
+
+    @contextlib.contextmanager
+    def assertions(self) -> typing.Generator[None, None, None]:
+        """Render assertion failures as notebook callouts.
+
+        On the CLI, ``AssertionError`` propagates unchanged. In notebooks, the
+        current cell and its descendants stop with the assertion message in a
+        danger callout. Successful assertion blocks are silent.
+        """
+        try:
+            yield
+        except AssertionError as exc:
+            if self.is_interface_query or self.output_mode is None:
+                return
+            if self.output_mode is OutputMode.NOTEBOOK:
+                message = str(exc) or "Assertion failed"
+                mo.stop(True, mo.callout(mo.md(message), kind="danger"))
+            raise
 
     @property
     def graphics_supported(self) -> bool:
