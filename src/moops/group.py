@@ -207,6 +207,8 @@ class Group:
         self,
         prefix: str,
         selector: typing.Any,
+        *,
+        short_options: bool = False,
     ) -> dict[typing.Any, Group]:
         """Create branch subgroups disabled when `selector` selects another value.
 
@@ -214,6 +216,11 @@ class Group:
         Controls from every branch should still be
         passed to ``interface()`` so marimo's DAG can see them all; this helper
         only centralizes branch namespacing and inactive-control disabling.
+
+        Pass ``short_options=True`` to omit ``prefix`` from branch CLI options,
+        for example ``--train-tickets`` instead of
+        ``--travel-train-tickets``. The structural value key remains
+        ``travel-train``.
         """
 
         selector_option = _variant.control_option(selector)
@@ -223,6 +230,11 @@ class Group:
         for key in _variant.keys(selector):
             key_text = _variant.key_text(key)
             group = self.subgroup(f"{prefix}-{key_text}")
+            if short_options:
+                group.option = (
+                    f"{self.option}-{key_text}" if self.option else f"--{key_text}"
+                )
+                group._value_resolver = group._make_value_resolver()
             is_active = selected == key
             group._disabled = self._disabled or not is_active
             heading = _variant.help_heading(selector_option, key_text)
@@ -241,6 +253,7 @@ class Group:
                 selector_parent_prefix=self.option,
                 key=key_text,
                 group_prefix=prefix,
+                short_options=short_options,
             )
             result[key] = group
         return result

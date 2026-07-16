@@ -74,33 +74,51 @@ class Interface:
         )
 
     def _check_duplicate_options(self) -> None:
-        """Reject sibling controls that resolve to the same option name.
-
-        Only direct controls at this level are compared. Attached
-        sub-interfaces (e.g. variant branches) legitimately reuse option
-        names across mutually-exclusive branches and list/dict element
-        controls repeat options by design, so both are skipped here — they
-        are validated at their own level instead.
-        """
-        seen: set[str] = set()
+        """Reject options shared by controls that can be active together."""
+        seen: dict[str, list[tuple[str, str, str] | None]] = {}
         for ctrl in self.controls:
-            if attached_interface(ctrl) is not None:
-                continue
-            if _marimo_controls.ui_dictionary_elements(ctrl) is not None:
-                continue
-            input_control = self.input_map.get(ctrl)
-            if input_control is None:
-                continue
-            option = input_control.option
-            if option in seen:
-                raise ValueError(
-                    f"Multiple controls map to the option {option!r}. Labels with "
-                    f"parenthetical units share a base option name — e.g. "
-                    f"'Length (seconds)' and 'Length (minutes)' both become "
-                    f"{option!r}; give them distinct labels or pass explicit, "
-                    f"different option names."
+            sub_iface = attached_interface(ctrl)
+            if sub_iface is not None:
+                ctx = sub_iface.variant_ctx
+                owner = (
+                    (ctx.selector_option, ctx.group_prefix, ctx.key)
+                    if ctx.selector_option is not None
+                    and ctx.group_prefix is not None
+                    and ctx.key is not None
+                    else None
                 )
-            seen.add(option)
+                options = set(sub_iface.input_options())
+            else:
+                if _marimo_controls.ui_dictionary_elements(ctrl) is not None:
+                    continue
+                input_control = self.input_map.get(ctrl)
+                if input_control is None:
+                    continue
+                owner = None
+                options = {input_control.option}
+            for option in options:
+                for previous in seen.get(option, []):
+                    mutually_exclusive = (
+                        owner is not None
+                        and previous is not None
+                        and owner[:2] == previous[:2]
+                        and owner[2] != previous[2]
+                    )
+                    if not mutually_exclusive:
+                        if owner is None and previous is None:
+                            raise ValueError(
+                                f"Multiple controls map to the option {option!r}. "
+                                "Labels with parenthetical units share a base "
+                                "option name — e.g. 'Length (seconds)' and "
+                                "'Length (minutes)' both become "
+                                f"{option!r}; give them distinct labels or pass "
+                                "explicit, different option names."
+                            )
+                        raise ValueError(
+                            f"Multiple controls map to the option {option!r}; "
+                            "give them distinct option names."
+                        )
+                seen.setdefault(option, []).append(owner)
 
     def has_prefixed_options(self, state: _parse.ParseState) -> bool:
         """True if state has CLI options starting with this interface's prefix."""
@@ -360,8 +378,11 @@ class Interface:
         """
         for ctrl in self.controls:
             if (sub_iface := attached_interface(ctrl)) is not None:
-                sub_prefix = sub_iface.option_prefix[len(self.option_prefix) :].lstrip(
-                    "-"
+                ctx = sub_iface.variant_ctx
+                sub_prefix = (
+                    f"{ctx.group_prefix}-{ctx.key}"
+                    if ctx.group_prefix is not None and ctx.key is not None
+                    else sub_iface.option_prefix[len(self.option_prefix) :].lstrip("-")
                 )
                 yield sub_prefix, sub_iface
             else:

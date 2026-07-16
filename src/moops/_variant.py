@@ -21,6 +21,7 @@ class VariantContext:
     selector_parent_prefix: str = ""
     key: str | None = None
     group_prefix: str | None = None
+    short_options: bool = False
 
 
 def selected_key(selector: typing.Any) -> typing.Any:

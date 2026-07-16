@@ -18,6 +18,7 @@ def controls_from(
 ) -> typing.Any:
     """Create a subgroup of controls mirroring another notebook's interface."""
     child = group.subgroup(prefix)
+    _apply_mirrored_variant_ctx(iface, child, group.option)
     excluded = set(exclude)
     controls: dict[str, typing.Any] = {
         name: (
@@ -41,10 +42,7 @@ def controls_from(
     for key, original in controls.items():
         _reattach_interface_to_clone(original, result.elements[key])
     # Use the live clones (result.elements) rather than the originals so
-    # that cur_values() reads up-to-date widget values. Apply the mirrored
-    # variant metadata to the child group first, so the interface it builds
-    # already carries it instead of being mutated afterwards.
-    _apply_mirrored_variant_ctx(iface, child, group.option)
+    # that cur_values() reads up-to-date widget values.
     mirrored_iface = child.interface(*result.elements.values())
     result._moops_interface = mirrored_iface  # type: ignore[attr-defined]
     return result
@@ -160,6 +158,14 @@ def _apply_mirrored_variant_ctx(
     mirrored_parent_prefix: str,
 ) -> None:
     source_ctx = source.variant_ctx
+    if source_ctx.short_options:
+        assert source_ctx.key is not None
+        child_group.option = (
+            f"{mirrored_parent_prefix}-{source_ctx.key}"
+            if mirrored_parent_prefix
+            else f"--{source_ctx.key}"
+        )
+        child_group._value_resolver = child_group._make_value_resolver()
     child_group._variant_ctx = dataclasses.replace(
         child_group._variant_ctx,
         key=source_ctx.key,
@@ -170,6 +176,7 @@ def _apply_mirrored_variant_ctx(
             source_ctx.selector_parent_prefix,
             mirrored_parent_prefix,
         ),
+        short_options=source_ctx.short_options,
     )
 
 

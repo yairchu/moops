@@ -221,7 +221,7 @@ def test_controls_from_variant_current_args_follow_live_selector_change() -> Non
     trip.elements["mode"]._selected_key = "train"  # type: ignore[attr-defined]
     trip.elements["travel-train"].elements["tickets"]._value = 4  # type: ignore[attr-defined]
 
-    assert iface._current_args() == "--trip-mode train --trip-travel-train-tickets 4"  # type: ignore[attr-defined]
+    assert iface._current_args() == "--trip-mode train --trip-train-tickets 4"  # type: ignore[attr-defined]
 
 
 def test_controls_from_supports_overridden_multiselect() -> None:

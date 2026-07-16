@@ -8,11 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Fixed
+### Added
 
-- Mirrored `Group.list` variant options now omit redundant variant group names
-  while retaining the list prefix and branch key, for example
-  `--trip-train-tickets` instead of `--trip-travel-train-tickets`.
+- `Group.variant(..., short_options=True)` can omit the variant group name from
+  branch CLI options, including when mirrored into `Group.list`. Shortened
+  options that would collide are rejected.
 
 ## [0.14.0] - 2026-07-15 - Unambiguous mirrored list options
 

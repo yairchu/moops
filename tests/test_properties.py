@@ -111,14 +111,12 @@ def test_controls_from_variant_rejects_inactive_branch_args(
     """Mirrored variants should still reject args for inactive branches."""
 
     inactive_option = (
-        "--trip-travel-train-tickets"
-        if selected == "car"
-        else "--trip-travel-car-distance"
+        "--trip-train-tickets" if selected == "car" else "--trip-car-distance"
     )
     active_args = (
-        ["--trip-travel-car-distance", str(distance)]
+        ["--trip-car-distance", str(distance)]
         if selected == "car"
-        else ["--trip-travel-train-tickets", str(tickets)]
+        else ["--trip-train-tickets", str(tickets)]
     )
     inactive_value = str(tickets if selected == "car" else distance)
     g = Group(

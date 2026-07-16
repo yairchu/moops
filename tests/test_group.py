@@ -503,6 +503,67 @@ def test_variant_interfaces_expose_branch_metadata() -> None:
     assert car_iface.variant_ctx.selector_parent_prefix == ""
     assert car_iface.variant_ctx.key == "car"
     assert car_iface.variant_ctx.group_prefix == "travel"
+    assert not car_iface.variant_ctx.short_options
+
+
+def test_variant_short_options_keep_structural_value_keys() -> None:
+    g = Group(cli_args=["script.py"])
+    mode = g.dropdown(
+        ["car", "train"],
+        value="car",
+        option="--mode",
+        help_text="Mode",
+        allow_select_none=False,
+    )
+    branches = g.variant("travel", mode, short_options=True)
+    distance = branches["car"].number(
+        value=120,
+        option="--distance",
+        help_text="Miles",
+    )
+    tickets = branches["train"].number(
+        value=2,
+        option="--tickets",
+        help_text="Tickets",
+    )
+    iface = g.interface(
+        mode,
+        branches["car"].interface(distance),
+        branches["train"].interface(tickets),
+    )
+
+    assert iface.input_options() == ["--mode", "--car-distance", "--train-tickets"]
+    assert list(iface.default) == ["mode", "travel-car", "travel-train"]
+
+
+def test_variant_short_options_reject_collisions() -> None:
+    g = Group(cli_args=["script.py"])
+    first = g.dropdown(
+        ["x", "y"],
+        value="x",
+        option="--first",
+        help_text="First",
+        allow_select_none=False,
+    )
+    second = g.dropdown(
+        ["x", "y"],
+        value="x",
+        option="--second",
+        help_text="Second",
+        allow_select_none=False,
+    )
+    alpha = g.variant("alpha", first, short_options=True)
+    beta = g.variant("beta", second, short_options=True)
+    alpha_value = alpha["x"].number(option="--value", help_text="Alpha value")
+    beta_value = beta["x"].number(option="--value", help_text="Beta value")
+
+    with pytest.raises(ValueError, match="--x-value"):
+        g.interface(
+            first,
+            alpha["x"].interface(alpha_value),
+            second,
+            beta["x"].interface(beta_value),
+        )
 
 
 def test_variant_display_uses_selected_key_without_reading_value() -> None:

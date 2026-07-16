@@ -56,7 +56,7 @@ def _(args):
 
 @app.cell
 def _(args, mode):
-    travel = args.variant("travel", mode)
+    travel = args.variant("travel", mode, short_options=True)
     car = travel["car"]
     train = travel["train"]
     return car, train

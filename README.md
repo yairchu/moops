@@ -112,6 +112,10 @@ interface = args.interface(
 )
 ```
 
+Pass `short_options=True` to `args.variant()` to omit the variant group name
+from branch CLI options, such as `--file-path` instead of `--seed-file-path`.
+Moops rejects shortened options that would collide.
+
 ## Presets
 
 Presets save and restore named groups of control values from a JSON file stored

@@ -727,7 +727,7 @@ def test_list_mapped_variant_selector_serializes_active_branch() -> None:
         help_text="Mode",
         allow_select_none=False,
     )
-    travel = source.variant("travel", mode)
+    travel = source.variant("travel", mode, short_options=True)
     distance = travel["car"].number(
         value=120, option="--distance", help_text="Distance"
     )

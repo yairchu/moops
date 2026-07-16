@@ -7,10 +7,10 @@ app = marimo.App(width="medium")
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
-    # Mirrored list variant option collision
+    # Short mirrored list variant options
 
-    Two sibling variants map distinct `--value` controls to the same
-    `--item-x-value` option.
+    Only one sibling variant opts into short options, so its `--value` control
+    becomes `--item-x-value` without colliding with the other variant.
     """)
     return
 
@@ -44,7 +44,7 @@ def _(moops):
         help_text="First variant",
         allow_select_none=False,
     )
-    alpha = source.variant("alpha", first)
+    alpha = source.variant("alpha", first, short_options=True)
     alpha_x = alpha["x"].number(
         value=1,
         option="--value",
@@ -161,9 +161,9 @@ def _(generated_command, mo, original, parsed):
         f"| `alpha-x.value` | {original['alpha-x']['value']} | "
         f"{parsed['alpha-x']['value']} |\n"
         f"| `beta-x.value` | {expected_beta} | {actual_beta} |\n\n"
-        "The command contains only one `--item-x-value 10`, but parsing applies "
-        "it to both sibling variant leaves. `beta-x.value` changes from "
-        f"`{expected_beta}` to `{actual_beta}`."
+        "The command uses `--item-x-value 10` only for the opted-in alpha "
+        "variant. The beta variant keeps its structural option prefix, so "
+        f"`beta-x.value` remains `{actual_beta}`."
     )
     return
 
