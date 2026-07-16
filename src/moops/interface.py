@@ -396,7 +396,7 @@ class Interface:
 
         Each entry is the space-joined tokens for one chunk: a single option
         (e.g. ``"--trip-0-mode car"``), or one item of a list control (e.g.
-        ``"--trip --trip-travel-car-distance 125"``) so long repeated-option
+        ``"--trip --trip-car-distance 125"``) so long repeated-option
         commands wrap per item. Used both for the flat ``_current_args`` string
         and for the line-wrapped command shown in the script callout.
         """

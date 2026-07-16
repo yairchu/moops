@@ -916,9 +916,9 @@ class Group:
             --factor 2 --factor 5 --factor 10
 
         For mirrored subgroup items, each bare occurrence of ``option`` starts a
-        new item and following structurally prefixed child options belong to it::
+        new item and following list-prefixed child options belong to it::
 
-            --trip --trip-mode car --trip-travel-car-distance 100
+            --trip --trip-mode car --trip-car-distance 100
             --trip --trip-mode train
 
         Returns a ``mo.ui.array`` whose ``.value`` is the list of item values.

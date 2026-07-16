@@ -206,12 +206,12 @@ def test_list_controls_from_variant_parses_nested_items() -> None:
             "--trip",
             "--trip-mode",
             "car",
-            "--trip-travel-car-distance",
+            "--trip-car-distance",
             "100",
             "--trip",
             "--trip-mode",
             "train",
-            "--trip-travel-train-tickets",
+            "--trip-train-tickets",
             "4",
         ]
     )
@@ -302,10 +302,10 @@ def test_list_help_shows_options_for_item_using_implicit_default_branch() -> Non
             "--trip",
             "--trip-mode",
             "train",
-            "--trip-travel-train-tickets",
+            "--trip-train-tickets",
             "3",
             "--trip",
-            "--trip-travel-car-distance",
+            "--trip-car-distance",
             "50",
         ]
     )
@@ -328,7 +328,7 @@ def test_list_help_updates_after_command_box_changes_active_variant_branch() -> 
             "--trip",
             "--trip-mode",
             "train",
-            "--trip-travel-train-tickets",
+            "--trip-train-tickets",
             "3",
         ]
     )
@@ -341,9 +341,7 @@ def test_list_help_updates_after_command_box_changes_active_variant_branch() -> 
     iface = g.interface(ctrl)
 
     assert (
-        iface.apply_cli_args(
-            "script.py --trip --trip-mode car --trip-travel-car-distance 50"
-        )
+        iface.apply_cli_args("script.py --trip --trip-mode car --trip-car-distance 50")
         == ()
     )
 
@@ -379,8 +377,8 @@ def test_list_help_follows_live_item_selector_change() -> None:
     assert "Options for --trip-mode train" in help_text
     assert "Options for --trip-mode car" not in help_text
     usage = help_text.split("\n\n", 1)[0]
-    assert "--trip-travel-train-tickets" in usage
-    assert "--trip-travel-car-distance" not in usage
+    assert "--trip-train-tickets" in usage
+    assert "--trip-car-distance" not in usage
 
 
 def test_list_help_shows_options_for_seeded_item_variant_branch() -> None:
@@ -435,7 +433,7 @@ def test_list_controls_from_variant_rejects_inactive_branch_options(
             "--trip",
             "--trip-mode",
             "train",
-            "--trip-travel-car-distance",
+            "--trip-car-distance",
             "999",
         ]
     )
@@ -450,7 +448,7 @@ def test_list_controls_from_variant_rejects_inactive_branch_options(
         g.interface(ctrl)
 
     assert exc_info.value.code != 0
-    assert "Unexpected argument: --trip-travel-car-distance" in capsys.readouterr().out
+    assert "Unexpected argument: --trip-car-distance" in capsys.readouterr().out
 
 
 def test_list_controls_from_current_args_round_trips_default_item() -> None:
@@ -755,7 +753,7 @@ def test_list_mapped_variant_selector_serializes_active_branch() -> None:
     )
 
     assert parent.interface(trips).preset_args() == (
-        "--trip --trip-mode train --trip-travel-train-tickets 9"
+        "--trip --trip-mode train --trip-train-tickets 9"
     )
 
 
@@ -850,7 +848,7 @@ def test_list_controls_from_rejects_item_option_after_sibling_option(
             "car",
             "--name",
             "Bob",
-            "--trip-travel-train-tickets",
+            "--trip-train-tickets",
             "4",
         ]
     )
@@ -866,7 +864,7 @@ def test_list_controls_from_rejects_item_option_after_sibling_option(
         g.interface(trips, name)
 
     assert exc_info.value.code != 0
-    assert "Unexpected argument: --trip-travel-train-tickets" in capsys.readouterr().out
+    assert "Unexpected argument: --trip-train-tickets" in capsys.readouterr().out
 
 
 def test_list_standalone_query_value_round_trips(
@@ -966,7 +964,7 @@ def test_list_subgroup_query_round_trips_non_default_nested_value(
 
     Regression: serializing the list query value via the CLI display token form
     combined an item's ``option value`` into a single token (e.g.
-    ``"--trip-travel-car-distance 250"``), which the parser could not read back, so
+    ``"--trip-car-distance 250"``), which the parser could not read back, so
     the value collapsed to its template default on the next render.
     """
     iface = moops.interface_of(variant_trip)
