@@ -31,6 +31,17 @@ def test_assertions_cli_is_quiet_on_success_and_preserves_failure(
         assert value == 1, "value was wrong"
 
 
+def test_assertions_preserve_failure_when_output_is_suppressed_or_queried() -> None:
+    silent = Group(cli_args=["script.py"])
+    silent.output_mode = None
+    query = Group.for_interface_query()
+    query.output_mode = group_module.OutputMode.NOTEBOOK
+
+    for group in (silent, query):
+        with pytest.raises(AssertionError, match="value was wrong"), group.assertions():
+            raise AssertionError("value was wrong")
+
+
 def test_assertions_notebook_stops_on_internal_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

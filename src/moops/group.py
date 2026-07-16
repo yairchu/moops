@@ -350,9 +350,7 @@ class Group:
         try:
             yield
         except AssertionError as exc:
-            if self.is_interface_query or self.output_mode is None:
-                return
-            if self.output_mode is OutputMode.NOTEBOOK:
+            if not self.is_interface_query and self.output_mode is OutputMode.NOTEBOOK:
                 message = str(exc) or "Assertion failed"
                 mo.stop(True, mo.callout(mo.md(message), kind="danger"))
             raise
