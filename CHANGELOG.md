@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-07-16 - Short variant options and notebook assertions
+
 ### Added
 
 - `Group.variant(..., short_options=True)` can omit the variant group name from
