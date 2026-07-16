@@ -271,6 +271,27 @@ def test_variant_lists_prefix_shared_item_options() -> None:
     assert returning.value[0]["mode"] == "train"
 
 
+def test_list_variant_options_omit_redundant_group_prefix() -> None:
+    variant_iface = moops.interface_of(variant_trip)
+    group = Group(cli_args=["script.py"])
+    trips = group.list(
+        option="--trip",
+        item=lambda child: child.controls_from(variant_iface, prefix="trip"),
+        help_text="Trips",
+        value=[
+            {
+                "mode": "train",
+                "travel-car": {"distance": 120, "gas_price": 3.75},
+                "travel-train": {"tickets": 4},
+            }
+        ],
+    )
+
+    assert group.interface(trips).preset_args() == (
+        "--trip --trip-mode train --trip-train-tickets 4"
+    )
+
+
 def test_list_help_shows_options_for_item_using_implicit_default_branch() -> None:
     """A list item that relies on the selector's default (car) instead of
     repeating --trip-mode should still show that branch's options in --help."""
