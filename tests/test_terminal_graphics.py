@@ -74,6 +74,7 @@ def test_detect_identifies_kitty_family() -> None:
         {"TERM": "xterm-kitty"},
         {"KITTY_WINDOW_ID": "1"},
         {"TERM": "xterm-ghostty"},
+        {"TERM": "xterm-256color", "TERM_PROGRAM": "ghostty"},
         {"TERM_PROGRAM": "WezTerm"},
         {"KONSOLE_VERSION": "240400"},
     ]
