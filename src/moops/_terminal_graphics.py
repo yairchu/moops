@@ -31,12 +31,13 @@ def detect(
     if out is None or not (hasattr(out, "isatty") and out.isatty()):
         return False
     term = env.get("TERM", "")
+    term_program = env.get("TERM_PROGRAM", "").lower()
     return (
         "KITTY_WINDOW_ID" in env
         or "kitty" in term
         or term == "xterm-ghostty"
         or "GHOSTTY_BIN_DIR" in env
-        or env.get("TERM_PROGRAM") == "WezTerm"
+        or term_program in {"ghostty", "wezterm"}
         or "KONSOLE_VERSION" in env
     )
 

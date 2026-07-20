@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Kitty graphics detection now recognizes Ghostty-compatible terminals such as
+  cmux when they identify themselves with `TERM_PROGRAM=ghostty` and a generic
+  `TERM=xterm-256color`.
+
 ## [0.14.1] - 2026-07-16 - Short variant options and notebook assertions
 
 ### Added
