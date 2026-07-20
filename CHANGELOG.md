@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.14.2] - 2026-07-20 - cmux terminal graphics
+
 ### Fixed
 
 - Kitty graphics detection now recognizes Ghostty-compatible terminals such as
