@@ -1,3 +1,4 @@
+import io
 import typing
 
 import marimo as mo
@@ -5,6 +6,11 @@ import pytest
 
 import moops.group as group_module
 from moops import Group
+
+
+class _FakeTTY(io.StringIO):
+    def isatty(self) -> bool:
+        return True
 
 
 def test_subgroup_markdown_demotes_headings_in_notebooks(
@@ -107,6 +113,20 @@ def test_cli_markdown_preserves_separate_fenced_blocks(
     g.md(text)
 
     assert capsys.readouterr().out == f"{text}\n\n"
+
+
+def test_cli_markdown_renders_styling_when_stdout_is_terminal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stream = _FakeTTY()
+    monkeypatch.setattr(group_module.sys, "stdout", stream)
+    g = Group(cli_args=["script.py"])
+
+    g.md("You picked an **uppercase** letter")
+
+    output = stream.getvalue()
+    assert "uppercase" in output
+    assert "**" not in output
 
 
 def test_subgroup_markdown_heading_offset_is_configurable(

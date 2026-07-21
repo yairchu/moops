@@ -5,10 +5,13 @@ import dataclasses
 import enum
 import inspect
 import pathlib
+import sys
 import typing
 import warnings
 
 import marimo as mo
+import rich.console
+import rich.markdown
 
 from . import (
     _choice_options,
@@ -321,7 +324,7 @@ class Group:
         return iface
 
     def md(self, text: str, *, notebook_only: bool = False) -> mo.Html | None:
-        """Display markdown in notebooks or plain text in CLI."""
+        """Display Markdown in notebooks and styled terminals."""
 
         if self.is_interface_query or self.output_mode is None:
             return None
@@ -331,6 +334,10 @@ class Group:
         if self.output_mode is OutputMode.NOTEBOOK:
             return mo.md(text)
         text = text.strip()
+        if getattr(sys.stdout, "isatty", lambda: False)():
+            rich.console.Console(file=sys.stdout).print(rich.markdown.Markdown(text))
+            print()
+            return None
         stripped_fence = _markdown.strip_outer_fence(text)
         if stripped_fence is not None:
             text = stripped_fence

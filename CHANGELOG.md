@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- `Group.md()` now renders Markdown styling with Rich when CLI output is attached
+  to a terminal, while redirected and captured output remains unchanged.
+
 ## [0.14.2] - 2026-07-20 - cmux terminal graphics
 
 ### Fixed
