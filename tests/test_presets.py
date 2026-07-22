@@ -2,6 +2,7 @@ import pathlib
 import typing
 from unittest import mock
 
+import marimo as mo
 import pytest
 
 from moops import Group, _text_wrap
@@ -771,6 +772,32 @@ def test_command_box_edit_preserves_mapped_dropdown_value() -> None:
 
     assert mode.value == 2
     assert mode._selected_key == "fast"  # type: ignore[attr-defined]
+
+
+def test_command_box_edit_updates_custom_control_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    params: dict[str, str] = {}
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+    group = Group(cli_args=["script.py"])
+    fallback = group.range_slider(
+        start=0,
+        stop=100,
+        value=[20, 60],
+        option="--x-range",
+        help_text="X axis range",
+    )
+    x_range = group.custom(
+        fallback,
+        lambda value: mo.ui.range_slider(start=0, stop=100, value=list(value)),
+        value=lambda _component, fallback: fallback.value,
+    )
+    iface = group.interface(x_range)
+
+    assert iface.apply_cli_args("script.py --x-range 41.2,56.1") == ()
+
+    assert x_range.value == [41.2, 56.1]
 
 
 def test_command_box_accepts_args_for_variant_selected_by_edit() -> None:
