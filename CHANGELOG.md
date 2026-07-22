@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.14.4] - 2026-07-22 - Custom control CLI resets
+
 ### Fixed
 
 - Editing the notebook CLI box now resets custom controls through their fallback
