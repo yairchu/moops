@@ -61,6 +61,20 @@ class CustomElement(UIElement[typing.Any, typing.Any]):
             _ui_workarounds.ValueView(self._fallback),
         )
 
+    @_value.setter
+    def _value(self, value: typing.Any) -> None:
+        # Interface resets supply values in the fallback control's shape. The
+        # arbitrary notebook component may use a different frontend value, so
+        # leave it untouched; the accepted CLI edit triggers a notebook rerun
+        # that rebuilds the component from this fallback value.
+        self._fallback._value = value
+
+    def _moops_reset_state(self, value: typing.Any) -> None:
+        """Delegate query-state resets to the CLI fallback control."""
+        reset_state = getattr(self._fallback, "_moops_reset_state", None)
+        if callable(reset_state):
+            reset_state(value)
+
     @property
     def value(self) -> typing.Any:
         return self._value

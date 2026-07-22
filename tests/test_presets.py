@@ -798,6 +798,7 @@ def test_command_box_edit_updates_custom_control_fallback(
     assert iface.apply_cli_args("script.py --x-range 41.2,56.1") == ()
 
     assert x_range.value == [41.2, 56.1]
+    assert params == {"x_range": "41.2,56.1"}
 
 
 def test_command_box_accepts_args_for_variant_selected_by_edit() -> None:

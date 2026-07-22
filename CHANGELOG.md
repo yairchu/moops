@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Editing the notebook CLI box now resets custom controls through their fallback
+  controls instead of assigning to their read-only derived values.
+
 ## [0.14.3] - 2026-07-21 - Rich terminal Markdown
 
 ### Changed
