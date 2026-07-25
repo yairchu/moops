@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-07-26 - Native file browser selections
+
 ### Changed
 
 - `Group.file_browser()` now uses marimo's native `value` parameter for initial
