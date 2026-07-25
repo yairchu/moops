@@ -56,27 +56,6 @@ class OutputMode(enum.Enum):
     STDOUT = "stdout"  # print text to the terminal
 
 
-def _ensure_nongui_matplotlib() -> None:
-    """Switch matplotlib off GUI backends for CLI figure rendering.
-
-    Imports matplotlib if needed: when an app offloaded to a worker thread is
-    the first to import it, the backend would be resolved in that thread,
-    picking the GUI backend on macOS. A no-op when matplotlib is not
-    installed. Notebook backends are not registered as interactive and are
-    left untouched.
-    """
-    try:
-        import matplotlib
-        from matplotlib.backends.registry import BackendFilter, backend_registry
-    except ImportError:
-        return
-    interactive = backend_registry.list_builtin(  # type: ignore[reportUnknownMemberType]
-        BackendFilter.INTERACTIVE
-    )
-    if matplotlib.get_backend().lower() in {b.lower() for b in interactive}:
-        matplotlib.use("agg")
-
-
 class Group:
     """Unified CLI argument parser and marimo UI element generator."""
 
@@ -384,7 +363,7 @@ class Group:
             return False
         if not _terminal_graphics.detect():
             return False
-        _ensure_nongui_matplotlib()
+        _terminal_graphics.ensure_nongui_matplotlib()
         return True
 
     def figure(

@@ -1,9 +1,9 @@
 """Render figures as inline terminal images via the Kitty graphics protocol.
 
-This backs ``Group.figure``/``Group.graphics_supported``. It is intentionally
-free of any marimo or matplotlib import: notebook display is handled by the
-caller, and figures are accepted by duck-typing so moops keeps no hard
-dependency on a plotting library.
+This backs ``Group.figure``/``Group.graphics_supported``. It intentionally has
+no top-level marimo or matplotlib import: notebook display is handled by the
+caller, figures are accepted by duck-typing, and matplotlib is imported lazily
+only when its backend needs configuring.
 """
 
 from __future__ import annotations
@@ -13,6 +13,27 @@ import io
 import os
 import sys
 import typing
+
+
+def ensure_nongui_matplotlib() -> None:
+    """Switch matplotlib off GUI backends for CLI figure rendering.
+
+    Imports matplotlib if needed: when an app offloaded to a worker thread is
+    the first to import it, the backend would be resolved in that thread,
+    picking the GUI backend on macOS. A no-op when matplotlib is not
+    installed. Notebook backends are not registered as interactive and are
+    left untouched.
+    """
+    try:
+        import matplotlib
+        from matplotlib.backends.registry import BackendFilter, backend_registry
+    except ImportError:
+        return
+    interactive = backend_registry.list_builtin(  # type: ignore[reportUnknownMemberType]
+        BackendFilter.INTERACTIVE
+    )
+    if matplotlib.get_backend().lower() in {b.lower() for b in interactive}:
+        matplotlib.use("agg")
 
 
 def detect(
