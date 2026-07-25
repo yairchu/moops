@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.8"
+__generated_with = "0.23.15"
 app = marimo.App(width="full")
 
 
@@ -64,24 +64,22 @@ def _(args, fallback_slider, mo, plt, x, y):
     def _build_selection(x_range):
         _fig, _ax = plt.subplots(figsize=(10, 5))
         plt.plot(x, y)
-        plt.axvspan(
-            *x_range,
-            color="tab:orange",
-            alpha=0.18,
-            label="preset range",
-        )
-        for _x in x_range:
-            plt.axvline(_x, color="tab:orange", alpha=0.75, linewidth=1)
         plt.grid()
         plt.xlabel("time (seconds)")
         plt.ylabel("signal")
         plt.title("Drag on the plot to choose an x range")
-        plt.legend()
-        return mo.ui.matplotlib(_ax, debounce=True)
+        return mo.ui.matplotlib(
+            _ax, debounce=True, value={"x": x_range, "y": _ax.get_ylim()}
+        )
 
     def _x_range_from_selection(selection_plot, fallback):
         selection = selection_plot.value
-        return (selection.x_min, selection.x_max) if selection else fallback.value
+        if hasattr(selection, "vertices"):
+            selected_x = [point[0] for point in selection.vertices]
+            return (min(selected_x), max(selected_x))
+        if selection:
+            return (selection.x_min, selection.x_max)
+        return fallback.value
 
     x_window = args.custom(
         fallback_slider, _build_selection, value=_x_range_from_selection
