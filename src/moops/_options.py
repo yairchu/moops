@@ -403,9 +403,7 @@ def _decode_json_list(value: str) -> list[typing.Any] | None:
         raw: typing.Any = json.loads(value)
     except json.JSONDecodeError:
         raw = [value] if value else []
-    if not isinstance(raw, list):
-        return None
-    return typing.cast(list[typing.Any], raw)
+    return typing.cast(list[typing.Any], raw) if isinstance(raw, list) else None
 
 
 def _missing_path_error(value: str) -> ParseError | None:
@@ -1125,23 +1123,18 @@ class DropdownControl(_NoneFlag, InputControl):
         if (none_result := self._parse_none_flag(args, None)) is not None:
             return none_result
         raw = args.value_for(self.option)
-        if raw is None:
-            return None
-        key = self._key_from_cli(raw)
-        if key is None:
-            return ParseError(
-                f"Option {self.option} must be one of"
-                f" {list(self.cli_opts)!r}, got: {raw!r}"
-            )
-        return ParseResult(key)
+        return None if raw is None else self._parse(raw, "Option")
 
     def parse_query_value(self, value: str) -> ParseResult | ParseError:
         if not value and self.supports_none:
             return ParseResult(None)
+        return self._parse(value, "Query parameter for")
+
+    def _parse(self, value: str, desc: str) -> ParseResult | ParseError:
         key = self._key_from_cli(value)
         if key is None:
             return ParseError(
-                f"Query parameter for {self.option} must be one of"
+                f"{desc} {self.option} must be one of"
                 f" {list(self.cli_opts)!r}, got: {value!r}"
             )
         return ParseResult(key)
@@ -1176,9 +1169,7 @@ class DropdownControl(_NoneFlag, InputControl):
         return [option_value_token(self.option, self._key_for_cli(value))]
 
     def format_query_value(self, value: typing.Any) -> str | None:
-        if self._is_default(value):
-            return None
-        return self._key_for_cli(value)
+        return None if self._is_default(value) else self._key_for_cli(value)
 
     def cache_edit(self, value: typing.Any) -> CachedEdit:
         return CachedEdit(
@@ -1229,9 +1220,7 @@ class DropdownControl(_NoneFlag, InputControl):
     def _key_from_cli(self, value: str) -> str | None:
         if value in self.cli_opts:
             return self.cli_opts[value]
-        if value in self.dropdown_opts:
-            return value
-        return None
+        return value if value in self.dropdown_opts else None
 
     def _key_for_cli(self, value: typing.Any) -> str:
         key = next(
