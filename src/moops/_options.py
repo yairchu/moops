@@ -11,8 +11,9 @@ import sys
 import typing
 
 import marimo as mo
+from marimo._plugins.ui._impl.file_browser import FileBrowserFileInfo
 
-from . import _choice_options, _custom_element, _parse, _ui_workarounds
+from . import _choice_options, _custom_element, _parse
 
 if typing.TYPE_CHECKING:
     from hypothesis import strategies as st
@@ -397,33 +398,6 @@ class TextControl(ValueControl):
         return [self.option, response] if response else []
 
 
-def _create_file_browser(
-    first_path: str,
-    default_paths: list[str],
-    *,
-    label: str,
-    multiple: bool,
-    on_change: typing.Callable[
-        [typing.Sequence[_ui_workarounds.FileBrowserFileInfo]], None
-    ],
-    extra_kwargs: dict[str, typing.Any],
-) -> typing.Any:
-    p = pathlib.Path(first_path) if first_path else None
-    initial_path = str(p.parent) if (p and p.is_file()) else first_path
-    browser_kwargs: dict[str, typing.Any] = dict(
-        initial_path=initial_path,
-        label=label,
-        multiple=multiple,
-        on_change=on_change,
-        **extra_kwargs,
-    )
-    if default_paths:
-        return _ui_workarounds.FileBrowserWithInitialSelection(
-            default=default_paths, **browser_kwargs
-        )
-    return mo.ui.file_browser(**browser_kwargs)
-
-
 def _decode_json_list(value: str) -> list[typing.Any] | None:
     try:
         raw: typing.Any = json.loads(value)
@@ -450,9 +424,7 @@ def _file_browser_paths(value: typing.Any) -> list[str]:
     if isinstance(value, typing.Sequence):
         items = typing.cast(typing.Sequence[object], value)
         return [
-            str(item.path)
-            if isinstance(item, _ui_workarounds.FileBrowserFileInfo)
-            else str(item)
+            str(item.path) if isinstance(item, FileBrowserFileInfo) else str(item)
             for item in items
         ]
     return [str(value)]
@@ -471,20 +443,19 @@ class FileControl(TextControl):
         del disabled
 
         def _on_change(
-            infos: typing.Sequence[_ui_workarounds.FileBrowserFileInfo],
+            infos: typing.Sequence[FileBrowserFileInfo],
         ) -> None:
             if on_change is not None:
                 paths = [str(info.path) for info in infos]
                 on_change(paths[0] if paths else "")
 
-        path = str(value) if value else ""
-        return _create_file_browser(
-            path,
-            [path] if path else [],
+        paths = _file_browser_paths(value)
+        return mo.ui.file_browser(
+            value=paths,
             label=label,
             multiple=False,
             on_change=_on_change,
-            extra_kwargs=self.extra_kwargs,
+            **self.extra_kwargs,
         )
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
@@ -531,19 +502,18 @@ class MultiFileControl(ValueControl):
         del disabled
 
         def _on_change(
-            infos: typing.Sequence[_ui_workarounds.FileBrowserFileInfo],
+            infos: typing.Sequence[FileBrowserFileInfo],
         ) -> None:
             if on_change is not None:
                 on_change([str(info.path) for info in infos])
 
         paths = list(value) if value else []
-        return _create_file_browser(
-            paths[0] if paths else "",
-            paths,
+        return mo.ui.file_browser(
+            value=paths,
             label=label,
             multiple=True,
             on_change=_on_change,
-            extra_kwargs=self.extra_kwargs,
+            **self.extra_kwargs,
         )
 
     def allows_repeated_values(self) -> bool:

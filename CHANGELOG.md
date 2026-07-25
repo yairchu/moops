@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- `Group.file_browser()` now uses marimo's native `value` parameter for initial
+  selections; `initial_path` once again controls only the initially displayed
+  directory.
+
 ## [0.14.4] - 2026-07-22 - Custom control CLI resets
 
 ### Fixed

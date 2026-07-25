@@ -35,7 +35,6 @@ from ._custom_element import CustomElement, CustomValueFn
 from ._dataclass import controls_for_dataclass as _dataclass_controls
 from ._run_button import run_button
 from ._subgroup_registry import SubgroupRegistry
-from ._ui_workarounds import FileBrowserWithInitialSelection
 from .presets import Presets
 
 _UNSET: typing.Any = object()
@@ -622,24 +621,32 @@ class Group:
         | typing.Sequence[typing.Literal["file", "directory"]] = "file",
         multiple: bool = True,
         restrict_navigation: bool = False,
+        value: str | pathlib.Path | typing.Sequence[str | pathlib.Path] | None = None,
         *,
         option: str | None = None,
         help_text: str,
         label: str | None = None,
         on_change: typing.Callable[[typing.Any], None] | None = None,
         **kwargs: typing.Any,
-    ) -> FileBrowserWithInitialSelection | mo.ui.file_browser:
+    ) -> mo.ui.file_browser:
         """Create a file browser UI element that maps to a CLI path option."""
         opt = self._make_opt(label=label, option=option)
         initial_path = str(initial_path)
         kwargs = {
+            "initial_path": initial_path,
             "filetypes": filetypes,
             "selection_mode": selection_mode,
             "restrict_navigation": restrict_navigation,
             **kwargs,
         }
         if multiple:
-            default: str | list[str] = [initial_path] if initial_path else []
+            default: str | list[str] = (
+                [str(path) for path in value]
+                if isinstance(value, typing.Sequence) and not isinstance(value, str)
+                else [str(value)]
+                if value is not None
+                else []
+            )
             input_control: _options.FileControl | _options.MultiFileControl = (
                 _options.MultiFileControl(
                     default=default,
@@ -650,7 +657,15 @@ class Group:
                 )
             )
         else:
-            default = initial_path
+            if isinstance(value, typing.Sequence) and not isinstance(value, str):
+                if len(value) > 1:
+                    raise ValueError(
+                        "File browser with multiple=False cannot have more than one "
+                        "default value."
+                    )
+                default = str(value[0]) if value else ""
+            else:
+                default = str(value) if value is not None else ""
             input_control = _options.FileControl(
                 default=default,
                 option=opt.option,

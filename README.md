@@ -154,9 +154,9 @@ fallback_slider = args.range_slider(
 x_range = args.custom(
     fallback_slider,
     lambda x_range: mo.ui.matplotlib(build_selection_plot(x_range)),
-    value=lambda plot, fallback:
-        [plot.value.x_min, plot.value.x_max]
-        if plot.value else fallback.value,
+    value=lambda plot, fallback: (
+        [plot.value.x_min, plot.value.x_max] if plot.value else fallback.value
+    ),
 )
 ```
 
@@ -171,6 +171,7 @@ from examples.composition import name_casing
 
 _name_casing_interface = moops.interface_of(name_casing)
 _name_casing_defaults = _name_casing_interface.default
+
 
 @hypothesis.given(_name_casing_interface.strategy())
 def test_name_casing_preserves_alphanumeric_count(kwargs):

@@ -15,7 +15,6 @@ import moops
 import moops.group as group_module
 import moops.interface as interface_module
 from moops import Group, _input_map, _options, _parse
-from moops._ui_workarounds import FileBrowserWithInitialSelection
 
 
 def test_assertions_cli_is_quiet_on_success_and_preserves_failure(
@@ -875,28 +874,17 @@ def test_file_browser_value_not_corrupted_by_apply_cli_args(
 
     g = Group(cli_args=["script.py"])
     ctrl = g.file_browser(
-        initial_path=str(first), multiple=False, option="--path", help_text="A file"
+        initial_path=tmp_path,
+        value=first,
+        multiple=False,
+        option="--path",
+        help_text="A file",
     )
     iface = g.interface(ctrl)
 
     assert iface.apply_cli_args(f"script.py --path {second}") == ()
 
     assert [str(info.path) for info in ctrl.value] == [str(first)]
-
-
-def test_file_browser_fallback_display_preserves_default_paths() -> None:
-    ctrl = FileBrowserWithInitialSelection(
-        default=["second.txt", "first.txt", "second.txt"],
-        initial_path="",
-        label="Files",
-        multiple=True,
-    )
-
-    mime_type, rendered = ctrl._mime_()  # type: ignore[reportPrivateUsage]
-
-    assert mime_type == "text/html"
-    assert rendered.index("second.txt") < rendered.index("first.txt")
-    assert rendered.count("second.txt") == 2
 
 
 def test_variant_heading_selected_when_non_default_chosen_without_cli_arg() -> None:
