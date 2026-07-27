@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Depend on `marimo-base` instead of the full `marimo` package, reducing the
   dependency footprint for CLI-only installations.
+- When `Group.file_browser()` has a default selection but no explicit
+  `initial_path`, it now opens at the common parent of the selected paths.
 
 ## [0.15.0] - 2026-07-26 - Native file browser selections
 

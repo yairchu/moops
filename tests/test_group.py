@@ -815,8 +815,10 @@ def test_custom_control_build_uses_fallback_snapshot_without_reading_value(
 def test_file_browser_multiple_accepts_repeated_cli_option(
     tmp_path: pathlib.Path,
 ) -> None:
-    first = tmp_path / "first.txt"
-    second = tmp_path / "second.txt"
+    first = tmp_path / "first" / "first.txt"
+    second = tmp_path / "second" / "second.txt"
+    first.parent.mkdir()
+    second.parent.mkdir()
     first.write_text("first")
     second.write_text("second")
 
@@ -833,6 +835,27 @@ def test_file_browser_multiple_accepts_repeated_cli_option(
     g.interface(ctrl)
 
     assert [str(info.path) for info in ctrl.value] == [str(first), str(second)]
+    assert ctrl._initial_path == tmp_path  # type: ignore[reportPrivateUsage]
+
+
+def test_file_browser_explicit_initial_path_takes_precedence(
+    tmp_path: pathlib.Path,
+) -> None:
+    selected = tmp_path / "selected" / "input.txt"
+    selected.parent.mkdir()
+    selected.write_text("input")
+    initial = tmp_path / "initial"
+    initial.mkdir()
+
+    ctrl = Group(cli_args=["script.py"]).file_browser(
+        initial_path=initial,
+        value=selected,
+        multiple=False,
+        option="--file",
+        help_text="File to inspect",
+    )
+
+    assert ctrl._initial_path == initial  # type: ignore[reportPrivateUsage]
 
 
 def test_file_browser_multiple_current_args_repeats_option(
