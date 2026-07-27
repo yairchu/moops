@@ -7,7 +7,7 @@
 
 import marimo
 
-__generated_with = "0.23.5"
+__generated_with = "0.23.15"
 app = marimo.App(width="full")
 
 
@@ -45,14 +45,19 @@ def _(get_preset_sel, moops, set_preset_sel):
 
 
 @app.cell
-def _(args, moops):
+def _(args):
     file_ctrl = args.file_browser(
         label="File",
         help_text="File to inspect",
         multiple=False,
     )
-    moops.ui.fold(file_ctrl)
     return (file_ctrl,)
+
+
+@app.cell
+def _(file_ctrl, moops):
+    moops.ui.fold(file_ctrl)
+    return
 
 
 @app.cell

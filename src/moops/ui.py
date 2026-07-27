@@ -62,7 +62,7 @@ def fold(control: typing.Any) -> mo.Html:
     value_text = _format_value(value)
     summary = html.escape(label)
     if value_text:
-        summary += f": {html.escape(value_text)}"
+        summary += f" · <strong>{html.escape(value_text)}</strong>"
     return _Fold(mo.lazy(control), summary)
 
 

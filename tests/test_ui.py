@@ -20,7 +20,7 @@ def test_fold_uses_control_label_and_value_and_lazily_retains_control(
     rendered = folded.text
 
     assert "Input &lt;file&gt;" in rendered
-    assert str(selected) in rendered
+    assert f"<strong>{selected}</strong>" in rendered
     assert "marimo-lazy" in rendered
     assert folded._children[0]._element is control  # type: ignore[reportPrivateUsage]
     assert ".moops-fold[open] > summary .moops-fold-collapsed" in rendered
