@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   dependency footprint for CLI-only installations.
 - When `Group.file_browser()` has a default selection but no explicit
   `initial_path`, it now opens at the common parent of the selected paths.
+- Add `moops.ui.fold()`, a compact disclosure that shows a control’s label and
+  value while collapsed and lazily renders the control when expanded.
 
 ## [0.15.0] - 2026-07-26 - Native file browser selections
 

@@ -45,13 +45,13 @@ def _(get_preset_sel, moops, set_preset_sel):
 
 
 @app.cell
-def _(args):
+def _(args, moops):
     file_ctrl = args.file_browser(
         label="File",
         help_text="File to inspect",
         multiple=False,
     )
-    file_ctrl
+    moops.ui.fold(file_ctrl)
     return (file_ctrl,)
 
 
