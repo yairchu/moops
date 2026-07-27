@@ -140,7 +140,8 @@ def test_no_options_usage_omits_interactive(
 def test_empty_interface_omits_usage_block() -> None:
     rendered = Group(cli_args=["script.py"]).interface()._mime_()[1]  # type: ignore[misc]
     assert "Usage:" not in rendered
-    assert "details" not in rendered
+    assert '<details class="moops-fold">' in rendered
+    assert "Notebook CLI info" in rendered
 
 
 def test_missing_options_shown_even_with_no_active_controls() -> None:
@@ -158,6 +159,7 @@ def test_missing_options_shown_even_with_no_active_controls() -> None:
     assert iface.missing_options() == ["--casing-style"]
     rendered = iface._mime_()[1]  # type: ignore[misc]
     assert "--casing-style" in rendered
+    assert '<details class="moops-fold" open>' in rendered
 
 
 def test_short_usage_is_not_wrapped_in_disclosure() -> None:
@@ -165,7 +167,7 @@ def test_short_usage_is_not_wrapped_in_disclosure() -> None:
     iface = g.interface(g.text(label="Name", help_text="A name"))
 
     rendered = iface._mime_()[1]  # type: ignore[misc]
-    assert "details" not in rendered
+    assert rendered.count("<details") == 1
     assert "Usage:" in rendered
 
 
@@ -177,8 +179,9 @@ def test_long_usage_disclosure_stays_closed() -> None:
     iface = g.interface(*ctrls)
 
     rendered = iface._mime_()[1]  # type: ignore[misc]
-    assert "details open" not in rendered
-    assert "details" in rendered
+    assert '<details class="moops-fold">' in rendered
+    assert '<details class="moops-fold" open>' not in rendered
+    assert "u003csummary&#92;u003eUsage" in rendered
 
 
 def test_usage_wraps_at_88_columns(

@@ -23,6 +23,7 @@ from . import (
     _query_params,
     _text_wrap,
     _variant,
+    ui,
 )
 from .presets import Presets
 
@@ -599,7 +600,15 @@ class Interface:
             body_items.append(mo.md(f"{usage}{missing_options_msg}"))
         elif missing_options_msg:
             body_items.append(mo.md(missing_options_msg))
-        items: list[typing.Any] = [mo.callout(mo.vstack(body_items), kind)]
+        callout = mo.callout(mo.vstack(body_items), kind)
+        items: list[typing.Any] = [
+            ui._Disclosure(  # type: ignore[reportPrivateUsage]
+                callout,
+                "Notebook CLI info",
+                expanded_summary="Notebook CLI info",
+                open=kind != "info",
+            )
+        ]
         if self._presets_ui is not None:
             items.append(self._presets_ui.layout(args))
         return mo.vstack(items)

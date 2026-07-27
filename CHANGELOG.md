@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Collapse the notebook CLI callout behind a compact `Notebook CLI info`
+  disclosure, while automatically expanding warnings and errors.
+
 ## [0.15.1] - 2026-07-27 - Lazy control folds
 
 ### Changed

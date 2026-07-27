@@ -10,9 +10,18 @@ from marimo._output.hypertext import ContainerHtml
 from . import _options
 
 
-class _Fold(ContainerHtml):
-    def __init__(self, child: mo.Html, summary: str) -> None:
+class _Disclosure(ContainerHtml):
+    def __init__(
+        self,
+        child: mo.Html,
+        summary: str,
+        *,
+        expanded_summary: str = "",
+        open: bool = False,
+    ) -> None:
         self._summary = summary
+        self._expanded_summary = expanded_summary
+        self._open = open
         super().__init__([child])
 
     @property
@@ -21,6 +30,7 @@ class _Fold(ContainerHtml):
 
     def _build_text(self) -> str:
         child = self._children[0]
+        open_attr = " open" if self._open else ""
         return f"""
         <style>
           .moops-fold > summary {{
@@ -37,10 +47,12 @@ class _Fold(ContainerHtml):
           }}
           .moops-fold-content {{ margin-top: 0.25rem; }}
         </style>
-        <details class="moops-fold">
+        <details class="moops-fold"{open_attr}>
           <summary>
             <span class="moops-fold-collapsed">&#9656; {self._summary}</span>
-            <span class="moops-fold-expanded" aria-label="Collapse">&#9662;</span>
+            <span class="moops-fold-expanded" aria-label="Collapse">
+              &#9662; {self._expanded_summary}
+            </span>
           </summary>
           <div class="moops-fold-content">{child}</div>
         </details>
@@ -63,7 +75,7 @@ def fold(control: typing.Any) -> mo.Html:
     summary = html.escape(label)
     if value_text:
         summary += f" · <strong>{html.escape(value_text)}</strong>"
-    return _Fold(mo.lazy(control), summary)
+    return _Disclosure(mo.lazy(control), summary)
 
 
 def _display_value(
