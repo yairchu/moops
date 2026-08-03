@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Add `Interface.run_button()` so CLI arguments are fully validated before
+  cells gated by the button can begin expensive computation. Remove the
+  misleading `Group.run_button()` alias; `moops.run_button()` remains available
+  for gates that deliberately do not depend on an interface.
+
 ## [0.15.2] - 2026-08-03 - Notebook CLI disclosure
 
 ### Changed
@@ -614,7 +621,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- `moops.run_button()` (also available as `group.run_button()`) creates a
+- `moops.run_button()` creates a
   `mo.ui.run_button` in notebooks and returns a stub with `.value = True` in
   CLI context, so `mo.stop(not btn.value)` gates notebook execution while
   always running in scripts.

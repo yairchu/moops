@@ -25,6 +25,7 @@ from . import (
     _variant,
     ui,
 )
+from ._run_button import RunButton, run_button
 from .presets import Presets
 
 if typing.TYPE_CHECKING:
@@ -73,6 +74,16 @@ class Interface:
             if self.presets is not None
             else None
         )
+
+    def run_button(self, **kwargs: typing.Any) -> RunButton:
+        """Create a run button downstream of CLI argument validation.
+
+        Expensive cells gated by this button cannot run until this interface
+        has been created. In CLI context, creating the root interface validates
+        the complete command line before the returned stub allows execution to
+        continue.
+        """
+        return run_button(**kwargs)
 
     def _check_duplicate_options(self) -> None:
         """Reject options shared by controls that can be active together."""

@@ -34,7 +34,6 @@ from . import (
 )
 from ._custom_element import CustomElement, CustomValueFn
 from ._dataclass import controls_for_dataclass as _dataclass_controls
-from ._run_button import run_button
 from ._subgroup_registry import SubgroupRegistry
 from .presets import Presets
 
@@ -787,20 +786,6 @@ class Group:
             else fallback
         )
         return self._input_map.register(element, custom_control)
-
-    @staticmethod
-    def run_button(
-        kind: typing.Literal["neutral", "success", "warn", "danger"] = "neutral",
-        disabled: bool = False,
-        tooltip: str | None = None,
-        **kwargs: typing.Any,
-    ):
-        """Create a run button that gates notebook execution.
-
-        In CLI context, always returns a stub with .value = True so code that
-        checks `mo.stop(not btn.value)` runs unconditionally.
-        """
-        return run_button(kind=kind, disabled=disabled, tooltip=tooltip, **kwargs)
 
     def _numeric_input_control(
         self,

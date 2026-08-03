@@ -1,7 +1,7 @@
 # /// script
 # dependencies = [
 #     "marimo>=0.23.1",
-#     "moops>=0.3.2",
+#     "moops>=0.15.3",
 # ]
 # ///
 
@@ -21,7 +21,7 @@ def _(args):
 def _(args, text_input):
     interface = args.interface(text_input)
     interface
-    return
+    return (interface,)
 
 
 @app.cell
@@ -56,8 +56,8 @@ def _(args):
 
 
 @app.cell
-def _(moops):
-    run_btn = moops.run_button(label="Count words")
+def _(interface):
+    run_btn = interface.run_button(label="Count words")
     run_btn
     return (run_btn,)
 

@@ -4,6 +4,13 @@ import marimo as mo
 from marimo._messaging.mimetypes import KnownMimeType
 
 
+class RunButton(typing.Protocol):
+    """A notebook run button or its always-active CLI counterpart."""
+
+    @property
+    def value(self) -> bool: ...
+
+
 class _RunButtonStub:
     """Returned by run_button() outside notebooks; always considered clicked."""
 
@@ -15,7 +22,7 @@ class _RunButtonStub:
         return ("text/plain", "")
 
 
-def run_button(**kwargs: typing.Any) -> mo.ui.run_button | _RunButtonStub:
+def run_button(**kwargs: typing.Any) -> RunButton:
     """Create a run button that gates notebook execution.
 
     In CLI context, always returns a stub with .value = True so code that
