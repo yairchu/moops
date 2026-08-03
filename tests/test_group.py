@@ -455,6 +455,24 @@ def test_input_control_freed_when_control_gc_collected() -> None:
     assert input_control_ref() is None
 
 
+def test_shrinking_dynamic_controls_does_not_require_gc_collection() -> None:
+    g = Group(cli_args=["script.py"])
+
+    controls = [
+        g.number(label=f"Item {index}", help_text="A sparse-vector item")
+        for index in range(3)
+    ]
+    g.interface(*controls)
+
+    # A notebook rerun can leave the old cell state in cyclic garbage. The
+    # interface should not report its no-longer-live controls merely because
+    # Python has not happened to run cyclic GC yet.
+    controls.append(controls)  # type: ignore[arg-type]
+    controls = [g.number(label="Item 0", help_text="A sparse-vector item")]
+
+    assert g.interface(*controls).missing_options() == []
+
+
 def test_renamed_control_with_same_ui_id_replaces_old_option() -> None:
     g = Group(cli_args=["script.py"])
 
