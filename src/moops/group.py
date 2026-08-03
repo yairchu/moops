@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import dataclasses
 import enum
+import gc
 import inspect
 import pathlib
 import sys
@@ -287,16 +288,21 @@ class Group:
             variant_ctx=self._variant_ctx,
             embedded_extra_overrides=self._embedded_extra_overrides,
         )
+        missing_options = iface.missing_options()
+        if missing_options:
+            gc.collect()
+            iface.extra_missing_options = tuple(
+                self._subgroup_registry.missing_options(controls)
+            )
+            missing_options = iface.missing_options()
         if self._parent_group is not None:
             self._parent_group._subgroup_registry.register(iface)
-        if self.option or not mo.running_in_notebook():
-            missing_options = iface.missing_options()
-            if missing_options:
-                warnings.warn(
-                    f"Controls registered with this Group "
-                    f"but not passed to interface(): {', '.join(missing_options)}",
-                    stacklevel=2,
-                )
+        if missing_options and (self.option or not mo.running_in_notebook()):
+            warnings.warn(
+                f"Controls registered with this Group "
+                f"but not passed to interface(): {', '.join(missing_options)}",
+                stacklevel=2,
+            )
         if not self.option and not mo.running_in_notebook():
             iface.validate_or_exit(self._state)
         return iface
