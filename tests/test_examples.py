@@ -4,6 +4,8 @@ import sys
 
 import pytest
 
+from examples.basics import sparse_mapping
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
@@ -107,3 +109,21 @@ def test_variant_embed_inactive_branch_args_do_not_emit_child_output() -> None:
     assert result.returncode != 0
     assert "Unexpected argument: --notebook-word-count-text" in result.stdout
     assert "LoremIpsum" not in result.stdout
+
+
+def test_sparse_mapping_state_read_is_upstream_of_mapping_control() -> None:
+    """The mapping cell must rerun after its append callback updates state.
+
+    Marimo does not rerun the cell that initiates a state update. Reading
+    get_items in the same cell that passes set_items to args.mapping therefore
+    leaves the rendered editor unchanged when its Append button is clicked.
+    """
+    mapping_cell = next(
+        data.cell
+        for data in sparse_mapping.app._cell_manager.cell_data()  # pyright: ignore[reportPrivateUsage]
+        if "args.mapping(" in data.code
+    )
+    assert mapping_cell is not None
+
+    assert "get_items" not in mapping_cell.refs
+    assert {"items_value", "set_items"} <= mapping_cell.refs
