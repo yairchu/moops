@@ -75,8 +75,9 @@ def _(args):
 
 
 @app.cell
-def _(args, items_value, set_items):
-    items = args.mapping(
+def _(args, items_value, moops, set_items):
+    items = moops.composites.mapping(
+        args,
         label="Nonzero items",
         option="--item",
         key=int,

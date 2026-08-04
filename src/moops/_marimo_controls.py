@@ -6,6 +6,9 @@ import marimo as mo
 
 
 def ctrl_value(ctrl: typing.Any) -> typing.Any:
+    input_value = getattr(ctrl, "_moops_input_value", None)
+    if input_value is not None:
+        return input_value
     if isinstance(ctrl, mo.ui.file_browser):
         multiple = getattr(ctrl, "_component_args", {}).get("multiple", True)
         if multiple:

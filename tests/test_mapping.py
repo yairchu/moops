@@ -1,6 +1,6 @@
 import pytest
 
-from moops import Group
+from moops import Group, composites
 
 
 def test_mapping_can_remove_its_last_item(
@@ -12,7 +12,8 @@ def test_mapping_can_remove_its_last_item(
     monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
     changes: list[dict[int, float]] = []
     group = Group(cli_args=["script.py"])
-    mapping = group.mapping(
+    mapping = composites.mapping(
+        group,
         option="--item",
         help_text="Sparse items",
         key=int,
@@ -21,7 +22,7 @@ def test_mapping_can_remove_its_last_item(
         on_change=changes.append,
     )
 
-    list_ui = mapping._list_ui
+    list_ui = mapping._list_ui  # pyright: ignore[reportPrivateUsage]
     item_row = list_ui._display._live_children[0]
     remove_button = item_row._live_children[4]
     remove_button._on_click(None)
@@ -37,7 +38,8 @@ def test_mapping_current_args_reflect_live_widget_changes(
     params: dict[str, str] = {}
     monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
     group = Group(cli_args=["script.py"])
-    mapping = group.mapping(
+    mapping = composites.mapping(
+        group,
         option="--item",
         help_text="Sparse items",
         key=int,
@@ -47,7 +49,7 @@ def test_mapping_current_args_reflect_live_widget_changes(
     )
     interface = group.interface(mapping)
 
-    item_row = mapping._list_ui._display._live_children[0]
+    item_row = mapping._list_ui._display._live_children[0]  # pyright: ignore[reportPrivateUsage]
     item_row._live_children[5]._value = 2
     item_row._live_children[6]._value = 3.5
 

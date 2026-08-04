@@ -115,13 +115,13 @@ def test_sparse_mapping_state_read_is_upstream_of_mapping_control() -> None:
     """The mapping cell must rerun after its append callback updates state.
 
     Marimo does not rerun the cell that initiates a state update. Reading
-    get_items in the same cell that passes set_items to args.mapping therefore
-    leaves the rendered editor unchanged when its Append button is clicked.
+    get_items in the same cell that passes set_items to composites.mapping
+    therefore leaves the rendered editor unchanged when Append is clicked.
     """
     mapping_cell = next(
         data.cell
         for data in sparse_mapping.app._cell_manager.cell_data()  # pyright: ignore[reportPrivateUsage]
-        if "args.mapping(" in data.code
+        if "composites.mapping(" in data.code
     )
     assert mapping_cell is not None
 
