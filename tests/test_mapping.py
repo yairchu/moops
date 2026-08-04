@@ -13,6 +13,38 @@ def test_mapping_rejects_equals_in_string_key() -> None:
         )
 
 
+@pytest.mark.parametrize(
+    ("entry", "message"),
+    [
+        ("invalid", "Mapping entry must be KEY=VALUE"),
+        ("not-an-int=1", "Mapping key must be int"),
+        ("0=1", "Mapping contains duplicate key"),
+    ],
+)
+def test_mapping_rejects_invalid_cli_entries(
+    entry: str,
+    message: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    cli_args = ["script.py", "--item", entry]
+    if entry == "0=1":
+        cli_args.extend(["--item", "0=2"])
+    group = Group(cli_args=cli_args)
+    mapping = composites.mapping(
+        group,
+        option="--item",
+        help_text="Sparse items",
+        key=int,
+        value=float,
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        group.interface(mapping)
+
+    assert exc_info.value.code != 0
+    assert message in capsys.readouterr().out
+
+
 def test_mapping_can_append_after_rerender(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -71,6 +103,15 @@ def test_mapping_allows_clearing_a_numeric_field(
     key_input._on_change(None)
 
     assert changes == []
+    composites.mapping(
+        Group(cli_args=["script.py"]),
+        option="--item",
+        help_text="Sparse items",
+        key=int,
+        value=float,
+        default={0: 1.0},
+        on_change=changes.append,
+    )
 
 
 def test_mapping_can_remove_its_last_item(
