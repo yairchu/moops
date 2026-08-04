@@ -9,6 +9,7 @@ import marimo as mo
 import pytest
 
 import moops
+import moops._run as run_module
 from examples.composition import name_casing, notebook
 
 
@@ -20,6 +21,22 @@ def test_is_interface_query_set_for_help_and_interface_of() -> None:
     parent = moops.Group.for_interface_query()
     child = parent.subgroup("sub")
     assert child.is_interface_query
+
+
+def test_interface_query_run_button_is_not_clicked() -> None:
+    button_values: list[bool] = []
+
+    class _App:
+        def run(
+            self, defs: dict[str, typing.Any]
+        ) -> tuple[typing.Iterable[typing.Any], typing.Mapping[str, object]]:
+            interface = typing.cast(moops.Group, defs["args"]).interface()
+            button_values.append(interface.run_button().value)
+            return (), {"interface": interface}
+
+    run_module.interface_of_app(_App())
+
+    assert button_values == [False]
 
 
 def test_script_mode_embed_forwards_interface() -> None:
