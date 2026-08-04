@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Add `Group.mapping()`, an editable mapping control backed by a stable,
+  repeatable `KEY=VALUE` command-line option.
+
 ## [0.15.3] - 2026-08-04 - Validated run buttons
 
 ### Changed

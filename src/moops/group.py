@@ -20,6 +20,7 @@ from . import (
     _input_map,
     _list_controls,
     _list_options,
+    _mapping_options,
     _markdown,
     _naming,
     _options,
@@ -1084,6 +1085,39 @@ class Group:
             preset_state=self._preset_state.selected,
             default_preset_state=self._preset_state.default,
         )
+
+    def mapping(
+        self,
+        *,
+        option: str,
+        help_text: str,
+        key: _mapping_options.ScalarType = str,
+        value: _mapping_options.ScalarType = str,
+        label: str | None = None,
+        default: typing.Mapping[typing.Any, typing.Any] | None = None,
+        on_change: typing.Callable[[dict[typing.Any, typing.Any]], None] | None = None,
+    ) -> typing.Any:
+        """Create an editable mapping backed by repeated KEY=VALUE options.
+
+        The CLI option has a stable shape and may be repeated, for example:
+        --item 2=4.5 --item 83=-1. The key and value scalar types may be str,
+        int, or float. The returned control's value is a dictionary, and
+        duplicate CLI keys are rejected.
+
+        In notebooks, pass a mo.state mapping and setter to enable the
+        add/remove editor and preserve edits across reruns.
+        """
+        if key not in (str, int, float) or value not in (str, int, float):
+            raise TypeError("mapping key and value must be str, int, or float")
+        opt = self._make_opt(label=label, option=option)
+        input_control = _mapping_options.MappingControl(
+            option=opt.option,
+            help_text=help_text,
+            default=dict(default or {}),
+            key_type=key,
+            value_type=value,
+        )
+        return self._register_control(opt, input_control, help_text, on_change)
 
     def _register_control(
         self,
