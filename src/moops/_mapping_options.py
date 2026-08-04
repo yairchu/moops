@@ -4,6 +4,8 @@ import dataclasses
 import json
 import typing
 
+import marimo as mo
+
 from . import _list_options, _options, _parse
 
 if typing.TYPE_CHECKING:
@@ -59,12 +61,10 @@ class _MappingUI:
         self,
         list_ui: typing.Any,
         *,
-        option: str,
         key_type: ScalarType,
         value_type: ScalarType,
     ) -> None:
         self._list_ui = list_ui
-        self._option = option
         self._key_type = key_type
         self._value_type = value_type
         self._id = list_ui._id
@@ -74,11 +74,9 @@ class _MappingUI:
     @property
     def value(self) -> dict[typing.Any, typing.Any]:
         result: dict[typing.Any, typing.Any] = {}
-        for raw in self._list_ui.value:
-            parsed = _parse_entry(self._option, raw, self._key_type, self._value_type)
-            if isinstance(parsed, _options.ParseError):
-                continue
-            key, value = typing.cast(tuple[typing.Any, typing.Any], parsed.value)
+        for entry in self._list_ui.value:
+            key = self._key_type(entry["key"])
+            value = self._value_type(entry["value"])
             result[key] = value
         return result
 
@@ -191,6 +189,7 @@ class MappingControl(_options.InputControl):
         on_change: typing.Callable[[typing.Any], None] | None = None,
         disabled: bool = False,
     ) -> typing.Any:
+        del label
         mapping = dict(value)
         if self.key_type is str:
             key: typing.Any = "key"
@@ -204,45 +203,108 @@ class MappingControl(_options.InputControl):
                 key += 1
             if self.key_type is float:
                 key = float(key)
-        default_entry = _format_entry(key, "" if self.value_type is str else 0)
-        text_control = _options.TextControl(
-            option=self.option,
-            metavar="KEY=VALUE",
-            help_text=self.help_text,
-            default=default_entry,
-        )
-        list_control = _list_options.ListControl(
-            option=self.option,
-            help_text=self.help_text,
-            default=[
-                _format_entry(key, item_value)
-                for key, item_value in self.default.items()
-            ],
-            item_control=text_control,
-        )
+        default_entry = {
+            "key": key,
+            "value": "" if self.value_type is str else 0,
+        }
+        elements: list[typing.Any] = []
 
-        def handle_change(raw_items: list[str]) -> None:
+        def current_entries() -> list[dict[str, typing.Any]]:
+            return [dict(element.value) for element in elements]
+
+        def handle_change(entries: list[dict[str, typing.Any]]) -> None:
             if on_change is None:
                 return
-            if not raw_items:
-                on_change({})
-                return
-            option_values: list[str | None] = list(raw_items)
-            parsed = self.parse(
-                _parse.ParsedArgs(options={self.option: option_values}, unexpected=[])
-            )
-            if isinstance(parsed, _options.ParseResult):
-                on_change(parsed.value)
+            result: dict[typing.Any, typing.Any] = {}
+            for entry in entries:
+                entry_key = self.key_type(entry["key"])
+                if entry_key in result:
+                    return
+                result[entry_key] = self.value_type(entry["value"])
+            on_change(result)
 
-        list_ui = list_control.create_marimo_element(
-            [_format_entry(key, item_value) for key, item_value in mapping.items()],
-            label,
-            on_change=handle_change if on_change is not None else None,
-            disabled=disabled,
-        )
+        def handle_edit(index: int, field: str, new_value: typing.Any) -> None:
+            entries = current_entries()
+            entries[index][field] = new_value
+            handle_change(entries)
+
+        def scalar_element(
+            scalar_type: ScalarType,
+            scalar_value: typing.Any,
+            field_label: str,
+            on_edit: typing.Callable[[typing.Any], None] | None,
+        ) -> typing.Any:
+            if scalar_type is str:
+                return mo.ui.text(
+                    value=str(scalar_value),
+                    label=field_label,
+                    on_change=on_edit,
+                    disabled=disabled,
+                )
+            return mo.ui.number(
+                value=typing.cast(float, scalar_type(scalar_value)),
+                label=field_label,
+                step=1 if scalar_type is int else None,
+                on_change=on_edit,
+                disabled=disabled,
+            )
+
+        for index, (entry_key, entry_value) in enumerate(mapping.items()):
+            key_element = scalar_element(
+                self.key_type,
+                entry_key,
+                "Key",
+                (
+                    lambda new_value, i=index: (
+                        handle_edit(i, "key", new_value)
+                        if on_change is not None
+                        else None
+                    )
+                ),
+            )
+            value_element = scalar_element(
+                self.value_type,
+                entry_value,
+                "Value",
+                (
+                    lambda new_value, i=index: (
+                        handle_edit(i, "value", new_value)
+                        if on_change is not None
+                        else None
+                    )
+                ),
+            )
+            element = mo.ui.dictionary({"key": key_element, "value": value_element})
+
+            def row_elements(
+                entry_elements: tuple[typing.Any, typing.Any] = (
+                    key_element,
+                    value_element,
+                ),
+            ) -> list[typing.Any]:
+                return list(entry_elements)
+
+            element._moops_row_elements = row_elements
+            elements.append(element)
+
+        array = mo.ui.array(elements)
+        if on_change is not None and mo.running_in_notebook():
+            display, add_btn = _list_options._build_list_ui(  # pyright: ignore[reportPrivateUsage]
+                elements,
+                current_items=current_entries,
+                default_item=lambda: dict(default_entry),
+                set_items=handle_change,
+            )
+            list_ui: typing.Any = _list_options._ListUI(  # pyright: ignore[reportPrivateUsage]
+                array,
+                add_btn,
+                display=display,
+                value_getter=current_entries,
+            )
+        else:
+            list_ui = array
         return _MappingUI(
             list_ui,
-            option=self.option,
             key_type=self.key_type,
             value_type=self.value_type,
         )
