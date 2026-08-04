@@ -37,6 +37,8 @@ def _parse_entry(
 
 
 def _format_entry(key: typing.Any, value: typing.Any) -> str:
+    if isinstance(key, str) and "=" in key:
+        raise ValueError("Mapping key must not contain =")
     return f"{key}={value}"
 
 
@@ -103,7 +105,8 @@ def mapping(
     """Create a dictionary-valued composite backed by Group.list().
 
     Each CLI occurrence uses KEY=VALUE syntax. In notebooks each list item
-    renders separate typed Key and Value widgets.
+    renders separate typed Key and Value widgets. The first equals sign
+    separates the key from the value, so string keys must not contain ``=``.
     """
     if key not in (str, int, float) or value not in (str, int, float):
         raise TypeError("mapping key and value must be str, int, or float")
@@ -165,10 +168,13 @@ def mapping(
             raw_value = elements["value"]._value
             if raw_key is None or raw_value is None:
                 return ""
-            return _format_entry(
-                key(raw_key),
-                value(raw_value),
-            )
+            try:
+                return _format_entry(
+                    key(raw_key),
+                    value(raw_value),
+                )
+            except ValueError:
+                return ""
 
         return item_group.custom(fallback, build, value=entry_value)
 
