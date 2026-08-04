@@ -3,6 +3,16 @@ import pytest
 from moops import Group, composites
 
 
+def test_mapping_rejects_equals_in_string_key() -> None:
+    with pytest.raises(ValueError, match="Mapping key must not contain ="):
+        composites.mapping(
+            Group(cli_args=["script.py"]),
+            option="--item",
+            help_text="Items",
+            default={"a=b": "c"},
+        )
+
+
 def test_mapping_can_append_after_rerender(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
