@@ -75,6 +75,11 @@ class CustomElement(UIElement[typing.Any, typing.Any]):
                 changed_source._value = new_value
                 if callable(previous):
                     previous(new_value)
+                should_forward = getattr(
+                    self._component, "_moops_should_forward_change", None
+                )
+                if callable(should_forward) and not should_forward():
+                    return
                 fallback_on_change(self._value)
 
             forward_change._moops_custom_bridge = True  # type: ignore[attr-defined]

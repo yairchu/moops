@@ -778,6 +778,9 @@ class ListControl(InputControl):
 
     item_control: InputControl
     default: list[typing.Any]
+    value_validator: typing.Callable[[list[typing.Any]], str | None] | None = (
+        dataclasses.field(default=None, kw_only=True)
+    )
 
     @property
     def _is_merged(self) -> bool:
@@ -799,7 +802,8 @@ class ListControl(InputControl):
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
         if self._is_merged:
-            return self._parse_merged_items(args.raw_args)
+            merged_result = self._parse_merged_items(args.raw_args)
+            return self._validated(merged_result)
         if err := self._validate_non_merged_item_placement(args.raw_args):
             return err
         segments = _segment_by_anchor(
@@ -823,7 +827,7 @@ class ListControl(InputControl):
                 if isinstance(item_result, ParseResult)
                 else self.item_control.default
             )
-        return ParseResult(result)
+        return self._validated(ParseResult(result))
 
     def _validate_non_merged_item_placement(
         self, raw_args: list[str]
@@ -875,6 +879,18 @@ class ListControl(InputControl):
                 result.append(item_result.value)
             i += 1
         return ParseResult(result) if found else None
+
+    def _validated(
+        self, result: ParseResult | ParseError | None
+    ) -> ParseResult | ParseError | None:
+        if not isinstance(result, ParseResult) or self.value_validator is None:
+            return result
+        if message := self.value_validator(typing.cast(list[typing.Any], result.value)):
+            return ParseError(message)
+        return result
+
+    def accepts_live_value(self, value: typing.Any) -> bool:
+        return self.value_validator is None or self.value_validator(list(value)) is None
 
     def format_usage_parts(self) -> list[str]:
         if self._is_merged:
@@ -938,7 +954,9 @@ class ListControl(InputControl):
             if isinstance(item_result, ParseError):
                 return item_result
             result.append(item_result.value)
-        return ParseResult(result)
+        return typing.cast(
+            ParseResult | ParseError, self._validated(ParseResult(result))
+        )
 
     def _format_default_item_value(self, value: typing.Any) -> list[str]:
         query_value = self.item_control.format_query_value(value)

@@ -123,6 +123,10 @@ class InputControl(abc.ABC):
     def cache_edit(self, value: typing.Any) -> CachedEdit:
         return CachedEdit(value)
 
+    def accepts_live_value(self, value: typing.Any) -> bool:
+        del value
+        return True
+
     @abc.abstractmethod
     def format_query_value(self, value: typing.Any) -> str | None:
         """Format a value for URL query parameters, or None to omit it."""

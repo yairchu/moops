@@ -157,6 +157,10 @@ def mapping(
                 component.elements["key"],
                 component.elements["value"],
             ]
+            component._moops_should_forward_change = lambda: all(
+                getattr(element, "_value", None) is not None
+                for element in component.elements.values()
+            )
             return component
 
         def entry_value(component: typing.Any, fallback: typing.Any) -> str:
@@ -167,14 +171,14 @@ def mapping(
             raw_key = elements["key"]._value
             raw_value = elements["value"]._value
             if raw_key is None or raw_value is None:
-                return ""
+                return str(fallback.value)
             try:
                 return _format_entry(
                     key(raw_key),
                     value(raw_value),
                 )
             except ValueError:
-                return ""
+                return str(fallback.value)
 
         return item_group.custom(fallback, build, value=entry_value)
 
@@ -187,6 +191,13 @@ def mapping(
             return
         on_change(parsed)
 
+    def validate_entries(entries: list[typing.Any]) -> str | None:
+        try:
+            _mapping_value(entries, key, value)
+        except ValueError as exc:
+            return str(exc)
+        return None
+
     entries = group.list(
         item,
         option=option,
@@ -194,5 +205,6 @@ def mapping(
         label=label,
         value=[_format_entry(k, v) for k, v in initial.items()],
         on_change=entries_changed if on_change is not None else None,
+        _value_validator=validate_entries,
     )
     return Mapping(entries, key, value)

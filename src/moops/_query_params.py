@@ -81,6 +81,8 @@ class QueryParams:
             return on_change
 
         def synced_on_change(value: typing.Any) -> None:
+            if not control.accepts_live_value(value):
+                return
             self._changed_values[self._key(key)] = control.cache_edit(value)
             self._set(key, control.format_query_value(value))
             if on_change is not None:
