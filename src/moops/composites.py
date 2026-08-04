@@ -161,9 +161,13 @@ def mapping(
             if not isinstance(component_elements, dict):
                 return str(fallback.value)
             elements = typing.cast(dict[str, typing.Any], component_elements)
+            raw_key = elements["key"]._value
+            raw_value = elements["value"]._value
+            if raw_key is None or raw_value is None:
+                return ""
             return _format_entry(
-                key(elements["key"]._value),
-                value(elements["value"]._value),
+                key(raw_key),
+                value(raw_value),
             )
 
         return item_group.custom(fallback, build, value=entry_value)
