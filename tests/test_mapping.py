@@ -3,6 +3,31 @@ import pytest
 from moops import Group, composites
 
 
+def test_mapping_allows_clearing_a_numeric_field(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("moops._list_options.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    params: dict[str, str] = {}
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+    changes: list[dict[int, float]] = []
+    mapping = composites.mapping(
+        Group(cli_args=["script.py"]),
+        option="--item",
+        help_text="Sparse items",
+        key=int,
+        value=float,
+        default={0: 1.0},
+        on_change=changes.append,
+    )
+
+    item_row = mapping._list_ui._display._live_children[0]  # pyright: ignore[reportPrivateUsage]
+    key_input = item_row._live_children[5]
+    key_input._on_change(None)
+
+    assert changes == []
+
+
 def test_mapping_can_remove_its_last_item(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
