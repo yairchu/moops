@@ -12,14 +12,20 @@ class RunButton(typing.Protocol):
 
 
 class _RunButtonStub:
-    """Returned by run_button() outside notebooks; always considered clicked."""
+    """A hidden run-button value used outside interactive notebooks."""
 
-    value: bool = True
+    def __init__(self, value: bool = True) -> None:
+        self.value = value
 
     def _mime_(self) -> tuple[KnownMimeType, str]:
         # Hide run buttons in embedded notebooks output
         # to reflect that there is no run barrier.
         return ("text/plain", "")
+
+
+def run_button_stub(value: bool) -> RunButton:
+    """Create a hidden run-button value for non-interactive execution."""
+    return _RunButtonStub(value=value)
 
 
 def run_button(**kwargs: typing.Any) -> RunButton:

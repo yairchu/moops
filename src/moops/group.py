@@ -287,6 +287,7 @@ class Group:
             disabled=self._disabled,
             variant_ctx=self._variant_ctx,
             embedded_extra_overrides=self._embedded_extra_overrides,
+            is_interface_query=self.is_interface_query,
         )
         missing_options = iface.missing_options()
         if missing_options:

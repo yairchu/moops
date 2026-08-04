@@ -25,7 +25,7 @@ from . import (
     _variant,
     ui,
 )
-from ._run_button import RunButton, run_button
+from ._run_button import RunButton, run_button, run_button_stub
 from .presets import Presets
 
 if typing.TYPE_CHECKING:
@@ -58,6 +58,7 @@ class Interface:
     # Names of defs other than "args" overridden for the embed this interface
     # renders inside; None when that is unknown (not embedded via moops.embed).
     embedded_extra_overrides: frozenset[str] | None = None
+    is_interface_query: bool = False
 
     def __post_init__(self) -> None:
         seen_ids: set[int] = set()
@@ -80,9 +81,12 @@ class Interface:
 
         Expensive cells gated by this button cannot run until this interface
         has been created. In CLI context, creating the root interface validates
-        the complete command line before the returned stub allows execution to
-        continue.
+        the complete command line before the returned stub allows execution.
+        During interface queries, the stub remains unclicked so gated
+        computation does not run.
         """
+        if self.is_interface_query:
+            return run_button_stub(value=False)
         return run_button(**kwargs)
 
     def _check_duplicate_options(self) -> None:
