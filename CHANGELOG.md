@@ -11,9 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - Add `Interface.run_button()` so CLI arguments are fully validated before
-  cells gated by the button can begin expensive computation. Remove the
-  misleading `Group.run_button()` alias; `moops.run_button()` remains available
-  for gates that deliberately do not depend on an interface.
+  cells gated by the button can begin expensive computation.
+- Deprecate `Group.run_button()` in favor of `Interface.run_button()`; the
+  compatibility method remains available with a migration warning.
+  `moops.run_button()` remains available for gates that deliberately do not
+  depend on an interface.
 
 ## [0.15.2] - 2026-08-03 - Notebook CLI disclosure
 
