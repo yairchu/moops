@@ -17,6 +17,19 @@ import moops.interface as interface_module
 from moops import Group, _input_map, _options, _parse
 
 
+def test_group_run_button_remains_available_with_migration_notice() -> None:
+    group = Group(cli_args=["script.py"])
+
+    run_button = typing.cast(
+        typing.Callable[..., typing.Any],
+        getattr(group, "run_button"),  # noqa: B009
+    )
+    with pytest.warns(DeprecationWarning, match=r"Interface\.run_button"):
+        button = run_button(label="Run")
+
+    assert button.value is True
+
+
 def test_assertions_cli_is_quiet_on_success_and_preserves_failure(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
