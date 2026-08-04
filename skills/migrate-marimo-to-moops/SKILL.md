@@ -32,10 +32,13 @@ programmatic inputs.
 
    It may reference controls defined in later cells; marimo's DAG resolves
    execution order.
-6. Preserve output cells unless moops has a direct reason to own them. Common
+6. Replace user-triggered `mo.ui.run_button` controls with
+   `interface.run_button`. Keep them in a separate cell downstream of the
+   interface so CLI arguments are validated before gated computation begins.
+7. Preserve output cells unless moops has a direct reason to own them. Common
    safe replacements are `args.md`, `args.table`, `args.progress_bar`, and
    `args.spinner` when the output should also behave well in CLI runs.
-7. If the notebook has many options or users often reuse option sets, consider
+8. If the notebook has many options or users often reuse option sets, consider
    presets:
 
    ```python
@@ -49,7 +52,7 @@ programmatic inputs.
    ```
 
    Keep plain `moops.Group()` for small notebooks or one-off scripts.
-8. Validate with the project's existing commands. Prefer the project's package
+9. Validate with the project's existing commands. Prefer the project's package
    manager and checks. If no checks are obvious, run the migrated notebook with
    marimo or execute the notebook file as a script.
 
@@ -68,7 +71,7 @@ Use the closest `Group` method:
 - `mo.ui.multiselect` -> `args.multiselect`
 - `mo.ui.file` -> `args.file`
 - `mo.ui.file_browser` -> `args.file_browser`
-- `mo.ui.run_button` -> `args.run_button`
+- `mo.ui.run_button` -> `interface.run_button`
 - `mo.ui.table` -> `args.table` only when CLI table output is useful
 - `mo.status.progress_bar` -> `args.progress_bar`
 - `mo.status.spinner` -> `args.spinner`
