@@ -3,6 +3,41 @@ import pytest
 from moops import Group, composites
 
 
+def test_mapping_can_append_after_rerender(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("moops._list_options.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    params: dict[str, str] = {}
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+    changes: list[dict[int, float]] = []
+    group = Group(cli_args=["script.py"])
+
+    first_mapping = composites.mapping(
+        group,
+        option="--item",
+        help_text="Sparse items",
+        key=int,
+        value=float,
+        default={},
+        on_change=changes.append,
+    )
+    first_mapping._add_btn._on_click(None)  # pyright: ignore[reportPrivateUsage]
+    second_mapping = composites.mapping(
+        group,
+        option="--item",
+        help_text="Sparse items",
+        key=int,
+        value=float,
+        default=changes[-1],
+        on_change=changes.append,
+    )
+
+    second_mapping._add_btn._on_click(None)  # pyright: ignore[reportPrivateUsage]
+
+    assert changes[-1] == {0: 0.0, 1: 0.0}
+
+
 def test_mapping_allows_clearing_a_numeric_field(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
