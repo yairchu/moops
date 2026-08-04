@@ -43,6 +43,43 @@ class CustomElement(UIElement[typing.Any, typing.Any]):
         # Calling super().__init__() would register a new element and ID.
         self._id = component._id
         self._lens = component._lens
+        self._attach_change_forwarding()
+
+    def _attach_change_forwarding(self) -> None:
+        fallback_on_change = getattr(self._fallback, "_on_change", None)
+        if not callable(fallback_on_change):
+            return
+
+        row_elements = getattr(self._component, "_moops_row_elements", None)
+        sources: list[typing.Any] = (
+            typing.cast(list[typing.Any], row_elements())
+            if callable(row_elements)
+            else [self._component]
+        )
+        for source in sources:
+            previous_on_change = getattr(source, "_on_change", None)
+            if getattr(previous_on_change, "_moops_custom_bridge", False):
+                previous_on_change = getattr(
+                    previous_on_change, "_moops_previous_on_change", None
+                )
+
+            def forward_change(
+                new_value: typing.Any,
+                *,
+                changed_source: typing.Any = source,
+                previous: typing.Any = previous_on_change,
+            ) -> None:
+                # UIElement._update sets this before invoking _on_change. Set it
+                # here as well so direct callback invocation behaves identically
+                # in tests and other programmatic integrations.
+                changed_source._value = new_value
+                if callable(previous):
+                    previous(new_value)
+                fallback_on_change(self._value)
+
+            forward_change._moops_custom_bridge = True  # type: ignore[attr-defined]
+            forward_change._moops_previous_on_change = previous_on_change  # type: ignore[attr-defined]
+            source._on_change = forward_change
 
     @property
     def _value(self) -> typing.Any:
