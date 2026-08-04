@@ -210,7 +210,13 @@ class MappingControl(_options.InputControl):
         elements: list[typing.Any] = []
 
         def current_entries() -> list[dict[str, typing.Any]]:
-            return [dict(element.value) for element in elements]
+            return [
+                {
+                    "key": element.elements["key"].value,
+                    "value": element.elements["value"].value,
+                }
+                for element in elements
+            ]
 
         def handle_change(entries: list[dict[str, typing.Any]]) -> None:
             if on_change is None:
@@ -275,11 +281,13 @@ class MappingControl(_options.InputControl):
                 ),
             )
             element = mo.ui.dictionary({"key": key_element, "value": value_element})
+            live_key_element = element.elements["key"]
+            live_value_element = element.elements["value"]
 
             def row_elements(
                 entry_elements: tuple[typing.Any, typing.Any] = (
-                    key_element,
-                    value_element,
+                    live_key_element,
+                    live_value_element,
                 ),
             ) -> list[typing.Any]:
                 return list(entry_elements)
