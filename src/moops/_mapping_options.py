@@ -224,6 +224,9 @@ class MappingControl(_options.InputControl):
         def handle_change(raw_items: list[str]) -> None:
             if on_change is None:
                 return
+            if not raw_items:
+                on_change({})
+                return
             option_values: list[str | None] = list(raw_items)
             parsed = self.parse(
                 _parse.ParsedArgs(options={self.option: option_values}, unexpected=[])
