@@ -55,6 +55,12 @@ def _(mo):
 
 
 @app.cell
+def _(get_items):
+    items_value = get_items()
+    return (items_value,)
+
+
+@app.cell
 def _(args):
     length = args.number(
         label="Length",
@@ -69,13 +75,13 @@ def _(args):
 
 
 @app.cell
-def _(args, get_items, set_items):
+def _(args, items_value, set_items):
     items = args.mapping(
         label="Nonzero items",
         option="--item",
         key=int,
         value=float,
-        default=get_items(),
+        default=items_value,
         on_change=set_items,
         help_text="Override an element as INDEX=VALUE",
     )
