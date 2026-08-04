@@ -757,6 +757,29 @@ def test_custom_control_notebook_element_reuses_component_id(
     assert typing.cast(typing.Any, ctrl).value == [2, 8]
 
 
+def test_custom_control_forwards_component_changes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    changes: list[str] = []
+    g = Group(cli_args=["script.py"])
+    fallback = g.text(
+        value="initial",
+        option="--name",
+        help_text="Name",
+        on_change=changes.append,
+    )
+    empty_params: dict[str, str] = {}
+    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
+    monkeypatch.setattr(group_module.mo, "query_params", lambda: empty_params)
+    component = mo.ui.text(value="initial")
+
+    g.custom(fallback, lambda _value: component)
+
+    component._on_change("edited")  # type: ignore[reportPrivateUsage]
+
+    assert changes == ["edited"]
+
+
 def test_dataclass_result_is_reactive_ui_element() -> None:
     # Dataclass controls are created dynamically, so the returned object must
     # itself be a UIElement. Otherwise marimo has no bound UIElement global to
