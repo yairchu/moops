@@ -3,6 +3,18 @@ import pytest
 from moops import Group, composites
 
 
+def test_mapping_rejects_invalid_typed_default() -> None:
+    with pytest.raises(ValueError, match="Mapping key must be int"):
+        composites.mapping(
+            Group(cli_args=["script.py"]),
+            option="--item",
+            help_text="Items",
+            key=int,
+            value=float,
+            default={"not-an-int": 1.0},
+        )
+
+
 def test_mapping_rejects_equals_in_string_key() -> None:
     with pytest.raises(ValueError, match="Mapping key must not contain ="):
         composites.mapping(
@@ -139,6 +151,33 @@ def test_mapping_can_remove_its_last_item(
     remove_button._on_click(None)
 
     assert changes == [{}]
+
+
+@pytest.mark.parametrize("field_offset", [5, 6], ids=["key", "value"])
+def test_mapping_rejects_fractional_integer_widget_edits(
+    monkeypatch: pytest.MonkeyPatch,
+    field_offset: int,
+) -> None:
+    monkeypatch.setattr("moops._list_options.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    params: dict[str, str] = {}
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+    changes: list[dict[int, int]] = []
+    mapping = composites.mapping(
+        Group(cli_args=["script.py"]),
+        option="--item",
+        help_text="Items",
+        key=int,
+        value=int,
+        default={0: 0},
+        on_change=changes.append,
+    )
+
+    item_row = mapping._list_ui._display._live_children[0]  # pyright: ignore[reportPrivateUsage]
+    integer_input = item_row._live_children[field_offset]
+    integer_input._on_change(1.5)
+
+    assert changes == []
 
 
 def test_mapping_current_args_reflect_live_widget_changes(
