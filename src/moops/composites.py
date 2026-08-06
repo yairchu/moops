@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import typing
 
 import marimo as mo
@@ -53,6 +54,8 @@ def _mapping_value(
     result: dict[typing.Any, typing.Any] = {}
     for raw in entries:
         key, value = _parse_entry(raw, key_type, value_type)
+        if key_type is float and math.isnan(key):
+            raise ValueError("Mapping key must not be NaN")
         if key in result:
             raise ValueError(f"Mapping contains duplicate key: {key!r}")
         result[key] = value
