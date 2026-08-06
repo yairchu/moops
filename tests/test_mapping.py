@@ -57,6 +57,20 @@ def test_mapping_rejects_invalid_cli_entries(
     assert message in capsys.readouterr().out
 
 
+def test_mapping_rejects_duplicate_nan_float_keys() -> None:
+    group = Group(cli_args=["script.py", "--item", "nan=1", "--item", "nan=2"])
+    mapping = composites.mapping(
+        group,
+        option="--item",
+        help_text="Sparse items",
+        key=float,
+        value=int,
+    )
+
+    with pytest.raises(SystemExit):
+        group.interface(mapping)
+
+
 def test_mapping_can_append_after_rerender(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
