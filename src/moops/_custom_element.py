@@ -137,7 +137,11 @@ class CustomElement(UIElement[typing.Any, typing.Any]):
         self._component._register_as_view(parent, key)
 
     def _clone(self) -> "CustomElement":
-        clone = CustomElement(self._component._clone(), self._fallback, self._value_fn)
+        component = self._component._clone()
+        configure_clone = getattr(self._component, "_moops_configure_clone", None)
+        if callable(configure_clone):
+            configure_clone(component)
+        clone = CustomElement(component, self._fallback, self._value_fn)
         # Preserve the input-channel link the way marimo's deepcopy-based clone
         # would (it copies __dict__), so input_map.get() still resolves the
         # mirrored clone and keeps its InputControl alive.

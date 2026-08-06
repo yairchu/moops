@@ -1001,12 +1001,13 @@ class ListControl(InputControl):
         ]
         array = mo.ui.array(elements)
         if on_change is not None and mo.running_in_notebook():
+            live_elements = list(array.elements)
 
             def value_getter() -> list[typing.Any]:
-                return [element.value for element in elements]
+                return [element.value for element in live_elements]
 
             display, add_btn = _build_list_ui(
-                elements,
+                live_elements,
                 current_items=value_getter,
                 default_item=lambda: copy.deepcopy(self.item_control.default),
                 set_items=on_change,

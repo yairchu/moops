@@ -6,6 +6,7 @@ import math
 import typing
 
 import marimo as mo
+from marimo._plugins.ui._core.ui_element import UIElement
 
 from .group import Group
 
@@ -62,7 +63,7 @@ def _mapping_value(
     return result
 
 
-class Mapping:
+class Mapping(UIElement[typing.Any, dict[typing.Any, typing.Any]]):
     """A dictionary-valued view over a list of KEY=VALUE entries."""
 
     def __init__(
@@ -75,14 +76,25 @@ class Mapping:
         self._list_ui = entries
         self._key_type = key_type
         self._value_type = value_type
-        self._id = entries._id
+        self._component = getattr(entries, "_array", entries)
+        self._id = self._component._id
+        self._lens = self._component._lens
         self._moops_input = entries._moops_input
         if hasattr(entries, "_add_btn"):
             self._add_btn = entries._add_btn
 
+    def _convert_value(self, value: typing.Any) -> dict[typing.Any, typing.Any]:
+        entries = self._component._convert_value(value)
+        return _mapping_value(entries, self._key_type, self._value_type)
+
     @property
     def value(self) -> dict[typing.Any, typing.Any]:
         return _mapping_value(self._entries.value, self._key_type, self._value_type)
+
+    @value.setter
+    def value(self, value: dict[typing.Any, typing.Any]) -> None:
+        del value
+        raise RuntimeError("Setting the value of a UIElement is not allowed.")
 
     @property
     def _moops_input_value(self) -> list[str]:
@@ -161,24 +173,29 @@ def mapping(
                 )
             )
             component = mo.ui.dictionary({"key": key_element, "value": value_element})
-            component._moops_row_elements = lambda: [
-                component.elements["key"],
-                component.elements["value"],
-            ]
 
-            def component_is_valid() -> bool:
-                raw_key = getattr(component.elements["key"], "_value", None)
-                raw_value = getattr(component.elements["value"], "_value", None)
-                if raw_key is None or raw_value is None:
-                    return False
-                try:
-                    _parse_scalar(raw_key, key, "key")
-                    _parse_scalar(raw_value, value, "value")
-                except ValueError:
-                    return False
-                return True
+            def configure_component(target: typing.Any) -> None:
+                target._moops_row_elements = lambda: [
+                    target.elements["key"],
+                    target.elements["value"],
+                ]
 
-            component._moops_should_forward_change = component_is_valid
+                def component_is_valid() -> bool:
+                    raw_key = getattr(target.elements["key"], "_value", None)
+                    raw_value = getattr(target.elements["value"], "_value", None)
+                    if raw_key is None or raw_value is None:
+                        return False
+                    try:
+                        _parse_scalar(raw_key, key, "key")
+                        _parse_scalar(raw_value, value, "value")
+                    except ValueError:
+                        return False
+                    return True
+
+                target._moops_should_forward_change = component_is_valid
+                target._moops_configure_clone = configure_component
+
+            configure_component(component)
             return component
 
         def entry_value(component: typing.Any, fallback: typing.Any) -> str:

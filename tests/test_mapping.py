@@ -73,8 +73,8 @@ def test_mapping_edit_reruns_dependent_cell() -> None:
             await runner.run(set(internal_app.execution_order))
 
             mapping = runner.globals["mapping"]
-            item_row = mapping._list_ui._display._live_children[0]
-            key_input = item_row._live_children[5]
+            first_entry = mapping._list_ui._array.elements[0]
+            key_input = first_entry.elements["key"]
             updated = await runner.set_ui_element_value(
                 UpdateUIElementCommand(
                     object_ids=[key_input._id],
@@ -214,8 +214,8 @@ def test_mapping_allows_clearing_a_numeric_field(
         on_change=changes.append,
     )
 
-    item_row = mapping._list_ui._display._live_children[0]  # pyright: ignore[reportPrivateUsage]
-    key_input = item_row._live_children[5]
+    first_entry = mapping._list_ui._array.elements[0]  # pyright: ignore[reportPrivateUsage]
+    key_input = first_entry.elements["key"]
     key_input._on_change(None)
 
     assert changes == []
@@ -257,10 +257,10 @@ def test_mapping_can_remove_its_last_item(
     assert changes == [{}]
 
 
-@pytest.mark.parametrize("field_offset", [5, 6], ids=["key", "value"])
+@pytest.mark.parametrize("field", ["key", "value"])
 def test_mapping_rejects_fractional_integer_widget_edits(
     monkeypatch: pytest.MonkeyPatch,
-    field_offset: int,
+    field: str,
 ) -> None:
     monkeypatch.setattr("moops._list_options.mo.running_in_notebook", lambda: True)
     monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
@@ -277,8 +277,8 @@ def test_mapping_rejects_fractional_integer_widget_edits(
         on_change=changes.append,
     )
 
-    item_row = mapping._list_ui._display._live_children[0]  # pyright: ignore[reportPrivateUsage]
-    integer_input = item_row._live_children[field_offset]
+    first_entry = mapping._list_ui._array.elements[0]  # pyright: ignore[reportPrivateUsage]
+    integer_input = first_entry.elements[field]
     integer_input._on_change(1.5)
 
     assert changes == []
@@ -303,8 +303,8 @@ def test_mapping_current_args_reflect_live_widget_changes(
     )
     interface = group.interface(mapping)
 
-    item_row = mapping._list_ui._display._live_children[0]  # pyright: ignore[reportPrivateUsage]
-    item_row._live_children[5]._value = 2
-    item_row._live_children[6]._value = 3.5
+    first_entry = mapping._list_ui._array.elements[0]  # pyright: ignore[reportPrivateUsage]
+    first_entry.elements["key"]._value = 2
+    first_entry.elements["value"]._value = 3.5
 
     assert interface._current_args() == "--item 2=3.5"  # pyright: ignore[reportPrivateUsage]
