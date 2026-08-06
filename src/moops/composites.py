@@ -11,12 +11,15 @@ from .group import Group
 ScalarType = type[str] | type[int] | type[float]
 
 
-def _parse_scalar(raw: str, scalar_type: ScalarType, role: str) -> typing.Any:
+def _parse_scalar(raw: typing.Any, scalar_type: ScalarType, role: str) -> typing.Any:
     if scalar_type is str:
-        return raw
+        return str(raw)
     try:
-        return scalar_type(raw)
-    except ValueError as exc:
+        parsed = scalar_type(raw)
+        if scalar_type is int and not isinstance(raw, str) and parsed != raw:
+            raise ValueError
+        return parsed
+    except (TypeError, ValueError) as exc:
         raise ValueError(
             f"Mapping {role} must be {scalar_type.__name__}, got {raw!r}"
         ) from exc
@@ -111,6 +114,8 @@ def mapping(
     if key not in (str, int, float) or value not in (str, int, float):
         raise TypeError("mapping key and value must be str, int, or float")
     initial = dict(default or {})
+    initial_entries = [_format_entry(k, v) for k, v in initial.items()]
+    _mapping_value(initial_entries, key, value)
     if key is str:
         next_key: typing.Any = "key"
         suffix = 2
@@ -157,10 +162,20 @@ def mapping(
                 component.elements["key"],
                 component.elements["value"],
             ]
-            component._moops_should_forward_change = lambda: all(
-                getattr(element, "_value", None) is not None
-                for element in component.elements.values()
-            )
+
+            def component_is_valid() -> bool:
+                raw_key = getattr(component.elements["key"], "_value", None)
+                raw_value = getattr(component.elements["value"], "_value", None)
+                if raw_key is None or raw_value is None:
+                    return False
+                try:
+                    _parse_scalar(raw_key, key, "key")
+                    _parse_scalar(raw_value, value, "value")
+                except ValueError:
+                    return False
+                return True
+
+            component._moops_should_forward_change = component_is_valid
             return component
 
         def entry_value(component: typing.Any, fallback: typing.Any) -> str:
@@ -174,8 +189,8 @@ def mapping(
                 return str(fallback.value)
             try:
                 return _format_entry(
-                    key(raw_key),
-                    value(raw_value),
+                    _parse_scalar(raw_key, key, "key"),
+                    _parse_scalar(raw_value, value, "value"),
                 )
             except ValueError:
                 return str(fallback.value)
@@ -203,7 +218,7 @@ def mapping(
         option=option,
         help_text=help_text,
         label=label,
-        value=[_format_entry(k, v) for k, v in initial.items()],
+        value=initial_entries,
         on_change=entries_changed if on_change is not None else None,
         _value_validator=validate_entries,
     )
