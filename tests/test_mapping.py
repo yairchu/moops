@@ -1,6 +1,96 @@
+import asyncio
+import typing
+
+import marimo as mo
 import pytest
+from marimo._ast.app import InternalApp
+from marimo._config.config import DEFAULT_CONFIG
+from marimo._messaging.types import KernelStreams, NoopStream
+from marimo._runtime.app.kernel_runner import (  # pyright: ignore[reportMissingTypeStubs]
+    AppKernelRunner,
+)
+from marimo._runtime.commands import AppMetadata, UpdateUIElementCommand
+from marimo._runtime.context.kernel_context import initialize_kernel_context
+from marimo._runtime.context.types import teardown_context
+from marimo._runtime.patches import create_main_module
+from marimo._runtime.runner.hooks import NotebookCellHooks
+from marimo._runtime.runtime import Kernel
+from marimo._session.model import SessionMode
 
 from moops import Group, composites
+
+
+def test_mapping_edit_reruns_dependent_cell() -> None:
+    app = mo.App()
+
+    @app.cell
+    def _() -> tuple[typing.Any]:
+        import moops
+
+        return (moops,)
+
+    @app.cell
+    def _(moops: typing.Any) -> tuple[typing.Any]:
+        mapping = moops.composites.mapping(
+            moops.Group(cli_args=["script.py"]),
+            option="--item",
+            help_text="Items",
+            key=int,
+            value=float,
+            default={0: 1.0},
+        )
+        return (mapping,)
+
+    @app.cell
+    def _(mapping: typing.Any) -> tuple[typing.Any]:
+        observed = mapping.value
+        return (observed,)
+
+    async def edit_mapping() -> dict[int, float]:
+        internal_app = InternalApp(app)
+        streams = KernelStreams(
+            stream=NoopStream(), stdout=None, stderr=None, stdin=None
+        )
+        kernel = Kernel(
+            cell_configs={},
+            app_metadata=AppMetadata(
+                {}, {}, app_config=internal_app.config, filename="<test>"
+            ),
+            user_config=DEFAULT_CONFIG,
+            streams=streams,
+            module=create_main_module("<test>", input_override=None),
+            enqueue_control_request=lambda _: None,
+            hooks=NotebookCellHooks(),
+        )
+        initialize_kernel_context(
+            kernel=kernel,
+            streams=streams,
+            virtual_file_storage=None,
+            mode=SessionMode.EDIT,
+        )
+        try:
+            runner = AppKernelRunner(internal_app)
+            await runner.run(set(internal_app.execution_order))
+
+            mapping = runner.globals["mapping"]
+            item_row = mapping._list_ui._display._live_children[0]
+            key_input = item_row._live_children[5]
+            updated = await runner.set_ui_element_value(
+                UpdateUIElementCommand(
+                    object_ids=[key_input._id],
+                    values=[2],
+                ),
+                notify_frontend=False,
+            )
+
+            assert updated
+            assert key_input._value == 2
+            assert mapping.value == {2: 1.0}
+            return typing.cast(dict[int, float], runner.globals["observed"])
+        finally:
+            teardown_context()
+
+    assert asyncio.run(edit_mapping()) == {2: 1.0}
 
 
 def test_mapping_rejects_invalid_typed_default() -> None:
