@@ -33,6 +33,29 @@ def test_mapping_can_be_nested_in_marimo_dictionary() -> None:
     assert container.value == {"mapping": {"a": "b"}}
 
 
+def test_mapping_preserves_dictionary_value_through_controls_from(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    params: dict[str, str] = {}
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+    source = Group(cli_args=["source.py"])
+    mapping = composites.mapping(
+        source,
+        option="--item",
+        help_text="Items",
+        key=int,
+        value=float,
+        default={1: 2.0},
+    )
+    source_interface = source.interface(mapping)
+
+    target = Group(cli_args=["target.py"])
+    mirrored = target.controls_from(source_interface, prefix="source")
+
+    assert mirrored.value == {"item": {1: 2.0}}
+
+
 def test_mapping_edit_reruns_dependent_cell() -> None:
     app = mo.App()
 

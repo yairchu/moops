@@ -956,6 +956,39 @@ def test_list_subgroup_query_round_trips_non_serializable_mapped_value(
     assert tgt_ctrl.value == [{"optimizer": Adam}]
 
 
+def test_list_query_round_trips_nullable_item_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = Group(cli_args=["script.py"])
+    source_ctrl = source.list(
+        option="--item",
+        item=lambda group: group.number(
+            value=None,
+            option="--number",
+            help_text="Number",
+        ),
+        help_text="Optional numbers",
+        value=[None],
+    )
+    query_values = source.interface(source_ctrl)._standalone_query_values()  # type: ignore[attr-defined]
+
+    monkeypatch.setattr(group_module.mo, "running_in_notebook", lambda: True)
+    monkeypatch.setattr(group_module.mo, "query_params", lambda: query_values)
+    target = Group(cli_args=["script.py"])
+    target_ctrl = target.list(
+        option="--item",
+        item=lambda group: group.number(
+            value=None,
+            option="--number",
+            help_text="Number",
+        ),
+        help_text="Optional numbers",
+        value=[],
+    )
+
+    assert target_ctrl.value == [None]
+
+
 def test_list_subgroup_query_round_trips_non_default_nested_value(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
