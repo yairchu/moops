@@ -35,12 +35,16 @@ class _ListUI:
         *,
         display: typing.Any | None = None,
         value_getter: typing.Callable[[], list[typing.Any]] | None = None,
+        default_item: typing.Callable[[], typing.Any] | None = None,
+        set_items: typing.Callable[[list[typing.Any]], None] | None = None,
     ) -> None:
         self._array = array
         self._display = display if display is not None else array
         self._value_getter = value_getter
         self._add_btn = add_btn
         self._id = array._id
+        self._default_item = default_item
+        self._set_items = set_items
 
     @property
     def value(self) -> list[typing.Any]:
@@ -50,6 +54,29 @@ class _ListUI:
 
     def _mime_(self) -> typing.Any:
         return self._display._mime_()  # type: ignore[reportPrivateUsage]
+
+    def _moops_clone_with_array(self, array: typing.Any) -> _ListUI:
+        if self._default_item is None or self._set_items is None:
+            raise RuntimeError("dynamic list clone metadata is unavailable")
+        elements = list(array.elements)
+
+        def value_getter() -> list[typing.Any]:
+            return [element.value for element in elements]
+
+        display, add_btn = _build_list_ui(
+            elements,
+            current_items=value_getter,
+            default_item=self._default_item,
+            set_items=self._set_items,
+        )
+        return _ListUI(
+            array,
+            add_btn,
+            display=display,
+            value_getter=value_getter,
+            default_item=self._default_item,
+            set_items=self._set_items,
+        )
 
 
 def _build_list_ui(
@@ -705,6 +732,8 @@ class SubgroupListControl(InputControl):
                 add_btn,
                 display=display,
                 value_getter=value_getter,
+                default_item=lambda: copy.deepcopy(self.item_template_default),
+                set_items=on_change,
             )
         return mo.ui.array(elements)
 
@@ -1027,6 +1056,8 @@ class ListControl(InputControl):
                 add_btn,
                 display=display,
                 value_getter=value_getter,
+                default_item=lambda: copy.deepcopy(self.item_control.default),
+                set_items=on_change,
             )
         else:
             element = array

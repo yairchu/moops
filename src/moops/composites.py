@@ -124,14 +124,19 @@ class Mapping(UIElement[typing.Any, typing.Any]):
 
     def _clone(self) -> Mapping:
         component = self._component._clone()
+        clone_entries = getattr(self._entries, "_moops_clone_with_array", None)
+        entries = clone_entries(component) if callable(clone_entries) else component
         clone = object.__new__(Mapping)
-        clone._entries = component
-        clone._list_ui = component
+        clone._entries = entries
+        clone._list_ui = entries
         clone._key_type = self._key_type
         clone._value_type = self._value_type
         clone._component = component
         clone._id = component._id
         clone._lens = component._lens
+        add_btn = getattr(entries, "_add_btn", None)
+        if add_btn is not None:
+            clone._add_btn = add_btn
         clone._moops_input = self._moops_input
         return clone
 
