@@ -20,6 +20,19 @@ from marimo._session.model import SessionMode
 from moops import Group, composites
 
 
+def test_mapping_can_be_nested_in_marimo_dictionary() -> None:
+    mapping = composites.mapping(
+        Group(cli_args=["script.py"]),
+        option="--item",
+        help_text="Items",
+        default={"a": "b"},
+    )
+
+    container = mo.ui.dictionary({"mapping": mapping})
+
+    assert container.value == {"mapping": {"a": "b"}}
+
+
 def test_mapping_edit_reruns_dependent_cell() -> None:
     app = mo.App()
 
