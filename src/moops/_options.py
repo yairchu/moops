@@ -82,6 +82,9 @@ class InputControl(abc.ABC):
     custom_value_fn: _custom_element.CustomValueFn | None = dataclasses.field(
         default=None, kw_only=True
     )
+    custom_behavior: _custom_element.CustomComponentBehavior | None = dataclasses.field(
+        default=None, kw_only=True
+    )
 
     def options(self) -> set[str]:
         """Value options for this control."""
@@ -193,7 +196,10 @@ class InputControl(abc.ABC):
         if self.custom_build is None or not mo.running_in_notebook():
             return element
         return _custom_element.CustomElement(
-            self.custom_build(value), element, self.custom_value_fn
+            self.custom_build(value),
+            element,
+            self.custom_value_fn,
+            behavior=self.custom_behavior,
         )
 
     @abc.abstractmethod

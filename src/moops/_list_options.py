@@ -8,6 +8,7 @@ import typing
 import marimo as mo
 
 from . import _choice_options, _options, _parse, _variant
+from ._custom_element import CustomElement
 
 if typing.TYPE_CHECKING:
     from hypothesis import strategies as st
@@ -55,7 +56,7 @@ class _ListUI:
     def _mime_(self) -> typing.Any:
         return self._display._mime_()  # type: ignore[reportPrivateUsage]
 
-    def _moops_clone_with_array(self, array: typing.Any) -> _ListUI:
+    def clone_with_array(self, array: typing.Any) -> _ListUI:
         if self._default_item is None or self._set_items is None:
             raise RuntimeError("dynamic list clone metadata is unavailable")
         elements = list(array.elements)
@@ -77,6 +78,11 @@ class _ListUI:
             default_item=self._default_item,
             set_items=self._set_items,
         )
+
+
+def clone_list_ui(entries: typing.Any, array: typing.Any) -> typing.Any:
+    """Clone list presentation metadata around a cloned marimo array."""
+    return entries.clone_with_array(array) if isinstance(entries, _ListUI) else array
 
 
 def _build_list_ui(
@@ -154,12 +160,15 @@ def _build_list_ui(
             tooltip="Remove this item",
             on_click=lambda _, idx=i: remove_at(idx),
         )
-        row_elements = getattr(element, "_moops_row_elements", None)
-        item_parts = (
-            typing.cast(list[typing.Any], row_elements())
-            if callable(row_elements)
-            else [element]
-        )
+        if isinstance(element, CustomElement):
+            item_parts = element.row_elements()
+        else:
+            row_elements = getattr(element, "_moops_row_elements", None)
+            item_parts = (
+                typing.cast(list[typing.Any], row_elements())
+                if callable(row_elements)
+                else [element]
+            )
         rows.append(
             mo.hstack(
                 [

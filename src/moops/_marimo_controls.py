@@ -1,14 +1,22 @@
 """Helpers for reading values and structure from marimo UI control objects."""
 
+import abc
 import typing
 
 import marimo as mo
 
 
+class InputValueProvider(abc.ABC):
+    """A UI wrapper that exposes its backing input control value."""
+
+    @abc.abstractmethod
+    def input_value(self) -> typing.Any:
+        """Return the value shape consumed by the backing InputControl."""
+
+
 def ctrl_value(ctrl: typing.Any) -> typing.Any:
-    input_value = getattr(ctrl, "_moops_input_value", None)
-    if input_value is not None:
-        return input_value
+    if isinstance(ctrl, InputValueProvider):
+        return ctrl.input_value()
     if isinstance(ctrl, mo.ui.file_browser):
         multiple = getattr(ctrl, "_component_args", {}).get("multiple", True)
         if multiple:

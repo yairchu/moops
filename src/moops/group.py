@@ -32,7 +32,7 @@ from . import (
     _variant,
     interface,
 )
-from ._custom_element import CustomElement, CustomValueFn
+from ._custom_element import CustomComponentBehavior, CustomElement, CustomValueFn
 from ._dataclass import controls_for_dataclass as _dataclass_controls
 from ._run_button import RunButton, run_button
 from ._subgroup_registry import SubgroupRegistry
@@ -775,15 +775,29 @@ class Group:
         fall back to the fallback's live value (e.g. when nothing is selected).
         """
 
+        return self._custom(fallback, build, value=value)
+
+    def _custom(
+        self,
+        fallback: typing.Any,
+        build: typing.Callable[[typing.Any], typing.Any],
+        *,
+        value: CustomValueFn | None = None,
+        behavior: CustomComponentBehavior | None = None,
+    ) -> typing.Any:
+        """Create a custom control with internal composite behavior."""
         inner = self._input_map.get(fallback)
         if inner is None:
             raise ValueError("fallback must be a control created by this Group")
         custom_control = dataclasses.replace(
-            inner, custom_build=build, custom_value_fn=value
+            inner,
+            custom_build=build,
+            custom_value_fn=value,
+            custom_behavior=behavior,
         )
         fallback_value = fallback._value
         element = (
-            CustomElement(build(fallback_value), fallback, value)
+            CustomElement(build(fallback_value), fallback, value, behavior=behavior)
             if mo.running_in_notebook()
             else fallback
         )

@@ -8,6 +8,7 @@ import typing
 import marimo as mo
 from marimo._plugins.ui._core.ui_element import UIElement
 
+from . import _custom_element, _list_options, _marimo_controls
 from .group import Group
 
 ScalarType = type[str] | type[int] | type[float]
@@ -63,7 +64,7 @@ def _mapping_value(
     return result
 
 
-class Mapping(UIElement[typing.Any, typing.Any]):
+class Mapping(UIElement[typing.Any, typing.Any], _marimo_controls.InputValueProvider):
     """A dictionary-valued view over a list of KEY=VALUE entries."""
 
     def __init__(
@@ -103,8 +104,8 @@ class Mapping(UIElement[typing.Any, typing.Any]):
         del value
         raise RuntimeError("Setting the value of a UIElement is not allowed.")
 
-    @property
-    def _moops_input_value(self) -> list[str]:
+    def input_value(self) -> list[str]:
+        """Return the list-shaped value expected by the backing input control."""
         return list(self._entries.value)
 
     def _moops_reset_state(self, value: typing.Any) -> None:
@@ -124,8 +125,7 @@ class Mapping(UIElement[typing.Any, typing.Any]):
 
     def _clone(self) -> Mapping:
         component = self._component._clone()
-        clone_entries = getattr(self._entries, "_moops_clone_with_array", None)
-        entries = clone_entries(component) if callable(clone_entries) else component
+        entries = _list_options.clone_list_ui(self._entries, component)
         clone = object.__new__(Mapping)
         clone._entries = entries
         clone._list_ui = entries
@@ -214,31 +214,22 @@ def mapping(
                     label="Value",
                 )
             )
-            component = mo.ui.dictionary({"key": key_element, "value": value_element})
+            return mo.ui.dictionary({"key": key_element, "value": value_element})
 
-            def configure_component(target: typing.Any) -> None:
-                target._moops_row_elements = lambda: [
-                    target.elements["key"],
-                    target.elements["value"],
-                ]
+        def row_elements(component: typing.Any) -> list[typing.Any]:
+            return [component.elements["key"], component.elements["value"]]
 
-                def component_is_valid() -> bool:
-                    raw_key = getattr(target.elements["key"], "_value", None)
-                    raw_value = getattr(target.elements["value"], "_value", None)
-                    if raw_key is None or raw_value is None:
-                        return False
-                    try:
-                        _parse_scalar(raw_key, key, "key")
-                        _parse_scalar(raw_value, value, "value")
-                    except ValueError:
-                        return False
-                    return True
-
-                target._moops_should_forward_change = component_is_valid
-                target._moops_configure_clone = configure_component
-
-            configure_component(component)
-            return component
+        def component_is_valid(component: typing.Any) -> bool:
+            raw_key = getattr(component.elements["key"], "_value", None)
+            raw_value = getattr(component.elements["value"], "_value", None)
+            if raw_key is None or raw_value is None:
+                return False
+            try:
+                _parse_scalar(raw_key, key, "key")
+                _parse_scalar(raw_value, value, "value")
+            except ValueError:
+                return False
+            return True
 
         def entry_value(component: typing.Any, fallback: typing.Any) -> str:
             component_elements = getattr(component, "elements", None)
@@ -257,7 +248,15 @@ def mapping(
             except ValueError:
                 return str(fallback.value)
 
-        return item_group.custom(fallback, build, value=entry_value)
+        return item_group._custom(  # pyright: ignore[reportPrivateUsage]
+            fallback,
+            build,
+            value=entry_value,
+            behavior=_custom_element.CustomComponentBehavior(
+                change_sources=row_elements,
+                accepts_change=component_is_valid,
+            ),
+        )
 
     def entries_changed(entries: list[str]) -> None:
         if on_change is None:

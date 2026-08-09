@@ -1,5 +1,6 @@
 """A marimo UIElement whose value is derived from a fallback moops control."""
 
+import dataclasses
 import typing
 
 from marimo._plugins.ui._core.ui_element import UIElement
@@ -7,6 +8,19 @@ from marimo._plugins.ui._core.ui_element import UIElement
 from . import _ui_workarounds
 
 CustomValueFn = typing.Callable[[typing.Any, typing.Any], typing.Any]
+
+
+@dataclasses.dataclass(frozen=True)
+class CustomComponentBehavior:
+    """Optional integration behavior for a custom notebook component.
+
+    Composite controls use this adapter instead of installing ad-hoc attributes
+    on marimo elements. The functions receive the current component, including
+    a cloned component, so behavior survives view cloning without mutation.
+    """
+
+    change_sources: typing.Callable[[typing.Any], list[typing.Any]] | None = None
+    accepts_change: typing.Callable[[typing.Any], bool] | None = None
 
 
 def _default_value_fn(component: typing.Any, _fallback: typing.Any) -> typing.Any:
@@ -32,12 +46,14 @@ class CustomElement(UIElement[typing.Any, typing.Any]):
         component: typing.Any,
         fallback: typing.Any,
         value_fn: CustomValueFn | None = None,
+        behavior: CustomComponentBehavior | None = None,
     ) -> None:
         if not isinstance(component, UIElement):
             raise TypeError("custom controls must build a marimo UIElement")
         self._component: UIElement[typing.Any, typing.Any] = component
         self._fallback = fallback
         self._value_fn = value_fn or _default_value_fn
+        self._behavior = behavior or CustomComponentBehavior()
         # Deliberately skip super().__init__(): we reuse the wrapped component's
         # identity so marimo's reactive DAG treats this as the same element.
         # Calling super().__init__() would register a new element and ID.
@@ -50,12 +66,7 @@ class CustomElement(UIElement[typing.Any, typing.Any]):
         if not callable(fallback_on_change):
             return
 
-        row_elements = getattr(self._component, "_moops_row_elements", None)
-        sources: list[typing.Any] = (
-            typing.cast(list[typing.Any], row_elements())
-            if callable(row_elements)
-            else [self._component]
-        )
+        sources = self.row_elements()
         for source in sources:
             previous_on_change = getattr(source, "_on_change", None)
             if getattr(previous_on_change, "_moops_custom_bridge", False):
@@ -75,16 +86,23 @@ class CustomElement(UIElement[typing.Any, typing.Any]):
                 changed_source._value = new_value
                 if callable(previous):
                     previous(new_value)
-                should_forward = getattr(
-                    self._component, "_moops_should_forward_change", None
-                )
-                if callable(should_forward) and not should_forward():
+                accepts_change = self._behavior.accepts_change
+                if accepts_change is not None and not accepts_change(self._component):
                     return
                 fallback_on_change(self._value)
 
             forward_change._moops_custom_bridge = True  # type: ignore[attr-defined]
             forward_change._moops_previous_on_change = previous_on_change  # type: ignore[attr-defined]
             source._on_change = forward_change
+
+    def row_elements(self) -> list[typing.Any]:
+        """Return the component elements to lay out and observe for changes."""
+        change_sources = self._behavior.change_sources
+        return (
+            change_sources(self._component)
+            if change_sources is not None
+            else [self._component]
+        )
 
     @property
     def _value(self) -> typing.Any:
@@ -138,10 +156,9 @@ class CustomElement(UIElement[typing.Any, typing.Any]):
 
     def _clone(self) -> "CustomElement":
         component = self._component._clone()
-        configure_clone = getattr(self._component, "_moops_configure_clone", None)
-        if callable(configure_clone):
-            configure_clone(component)
-        clone = CustomElement(component, self._fallback, self._value_fn)
+        clone = CustomElement(
+            component, self._fallback, self._value_fn, behavior=self._behavior
+        )
         # Preserve the input-channel link the way marimo's deepcopy-based clone
         # would (it copies __dict__), so input_map.get() still resolves the
         # mirrored clone and keeps its InputControl alive.
