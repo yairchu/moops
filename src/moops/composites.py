@@ -79,7 +79,6 @@ class Mapping(UIElement[typing.Any, typing.Any]):
         self._component = getattr(entries, "_array", entries)
         self._id = self._component._id
         self._lens = self._component._lens
-        self._moops_input = entries._moops_input
         if hasattr(entries, "_add_btn"):
             self._add_btn = entries._add_btn
 
@@ -271,13 +270,16 @@ def mapping(
             return str(exc)
         return None
 
-    entries = group.list(
-        item,
-        option=option,
-        help_text=help_text,
-        label=label,
-        value=initial_entries,
-        on_change=entries_changed if on_change is not None else None,
-        _value_validator=validate_entries,
+    return typing.cast(
+        Mapping,
+        group.list(
+            item,
+            option=option,
+            help_text=help_text,
+            label=label,
+            value=initial_entries,
+            on_change=entries_changed if on_change is not None else None,
+            _value_validator=validate_entries,
+            _element_wrapper=lambda entries: Mapping(entries, key, value),
+        ),
     )
-    return Mapping(entries, key, value)

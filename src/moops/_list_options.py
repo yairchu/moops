@@ -781,10 +781,21 @@ class ListControl(InputControl):
     value_validator: typing.Callable[[list[typing.Any]], str | None] | None = (
         dataclasses.field(default=None, kw_only=True)
     )
+    element_wrapper: typing.Callable[[typing.Any], typing.Any] | None = (
+        dataclasses.field(default=None, kw_only=True)
+    )
 
     @property
     def _is_merged(self) -> bool:
         return self.option == self.item_control.option
+
+    def with_option(self, option: str) -> ListControl:
+        item_control = (
+            self.item_control.with_option(option)
+            if self._is_merged
+            else self.item_control
+        )
+        return dataclasses.replace(self, option=option, item_control=item_control)
 
     def flags(self) -> set[str]:
         if self._is_merged:
@@ -927,16 +938,15 @@ class ListControl(InputControl):
                 groups.append(formatted or self._format_default_item_value(v))
         return groups
 
+    def _format_query_item(self, value: typing.Any) -> str:
+        formatted = self.item_control.format_query_value(value)
+        if formatted is not None:
+            return formatted
+        return "" if value is None else _options.format_cli_value(value)
+
     def format_query_value(self, value: typing.Any) -> str | None:
         items = list(value)
-        return json.dumps(
-            [
-                formatted
-                if (formatted := self.item_control.format_query_value(v)) is not None
-                else _options.format_cli_value(v)
-                for v in items
-            ]
-        )
+        return json.dumps([self._format_query_item(v) for v in items])
 
     def parse_query_value(self, value: str) -> ParseResult | ParseError:
         try:
@@ -1012,13 +1022,15 @@ class ListControl(InputControl):
                 default_item=lambda: copy.deepcopy(self.item_control.default),
                 set_items=on_change,
             )
-            return _ListUI(
+            element: typing.Any = _ListUI(
                 array,
                 add_btn,
                 display=display,
                 value_getter=value_getter,
             )
-        return array
+        else:
+            element = array
+        return self.element_wrapper(element) if self.element_wrapper else element
 
     def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
         tokens: list[str] = []

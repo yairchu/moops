@@ -949,6 +949,7 @@ class Group:
         value: list[typing.Any] | None = None,
         on_change: typing.Callable[[list[typing.Any]], None] | None = None,
         _value_validator: typing.Callable[[list[typing.Any]], str | None] | None = None,
+        _element_wrapper: typing.Callable[[typing.Any], typing.Any] | None = None,
     ) -> typing.Any:
         """Create a list of repeated items with a shared anchor option.
 
@@ -1007,6 +1008,7 @@ class Group:
                 default=list(value) if value is not None else [],
                 item_control=item_input_ctrl,
                 value_validator=_value_validator,
+                element_wrapper=_element_wrapper,
             )
             return self._register_control(opt, list_input_ctrl, help_text, on_change)
 

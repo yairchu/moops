@@ -50,10 +50,10 @@ def test_mapping_preserves_dictionary_value_through_controls_from(
     )
     source_interface = source.interface(mapping)
 
-    target = Group(cli_args=["target.py"])
+    target = Group(cli_args=["target.py", "--source-item", "3=4.5"])
     mirrored = target.controls_from(source_interface, prefix="source")
 
-    assert mirrored.value == {"item": {1: 2.0}}
+    assert mirrored.value == {"item": {3: 4.5}}
 
 
 def test_mapping_edit_reruns_dependent_cell() -> None:
