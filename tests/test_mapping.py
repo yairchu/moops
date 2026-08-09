@@ -33,6 +33,27 @@ def test_mapping_can_be_nested_in_marimo_dictionary() -> None:
     assert container.value == {"mapping": {"a": "b"}}
 
 
+def test_nested_mapping_preserves_dynamic_list_controls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("moops._list_options.mo.running_in_notebook", lambda: True)
+    monkeypatch.setattr("moops.group.mo.running_in_notebook", lambda: True)
+    params: dict[str, str] = {}
+    monkeypatch.setattr("moops.group.mo.query_params", lambda: params)
+    mapping = composites.mapping(
+        Group(cli_args=["script.py"]),
+        option="--item",
+        help_text="Items",
+        default={"a": "b"},
+        on_change=lambda _: None,
+    )
+
+    container = mo.ui.dictionary({"mapping": mapping})
+    nested = container.elements["mapping"]
+
+    assert hasattr(nested, "_add_btn")
+
+
 def test_mapping_preserves_dictionary_value_through_controls_from(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
