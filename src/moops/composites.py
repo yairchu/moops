@@ -63,7 +63,7 @@ def _mapping_value(
     return result
 
 
-class Mapping(UIElement[typing.Any, dict[typing.Any, typing.Any]]):
+class Mapping(UIElement[typing.Any, typing.Any]):
     """A dictionary-valued view over a list of KEY=VALUE entries."""
 
     def __init__(
@@ -88,8 +88,16 @@ class Mapping(UIElement[typing.Any, dict[typing.Any, typing.Any]]):
         return _mapping_value(entries, self._key_type, self._value_type)
 
     @property
-    def value(self) -> dict[typing.Any, typing.Any]:
+    def _value(self) -> dict[typing.Any, typing.Any]:
         return _mapping_value(self._entries.value, self._key_type, self._value_type)
+
+    @_value.setter
+    def _value(self, value: typing.Any) -> None:
+        self._component._value = value
+
+    @property
+    def value(self) -> dict[typing.Any, typing.Any]:
+        return self._value
 
     @value.setter
     def value(self, value: dict[typing.Any, typing.Any]) -> None:
@@ -105,8 +113,38 @@ class Mapping(UIElement[typing.Any, dict[typing.Any, typing.Any]]):
         if callable(reset_state):
             reset_state(value)
 
+    def _update(self, value: typing.Any) -> None:
+        self._component._update(value)
+
+    def _on_update_completion(self) -> bool:
+        return self._component._on_update_completion()
+
+    def _register_as_view(self, parent: typing.Any, key: str) -> None:
+        super()._register_as_view(parent, key)
+        self._component._register_as_view(parent, key)
+
+    def _clone(self) -> Mapping:
+        component = self._component._clone()
+        clone = object.__new__(Mapping)
+        clone._entries = component
+        clone._list_ui = component
+        clone._key_type = self._key_type
+        clone._value_type = self._value_type
+        clone._component = component
+        clone._id = component._id
+        clone._lens = component._lens
+        clone._moops_input = self._moops_input
+        return clone
+
+    def __deepcopy__(self, memo: dict[int, typing.Any]) -> Mapping:
+        del memo
+        return self._clone()
+
     def _mime_(self) -> typing.Any:
         return self._entries._mime_()
+
+    def __getattr__(self, name: str) -> typing.Any:
+        return getattr(self._component, name)
 
 
 def mapping(
