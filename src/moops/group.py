@@ -606,7 +606,7 @@ class Group:
         selection_mode: typing.Literal["file", "directory", "all"]
         | typing.Sequence[typing.Literal["file", "directory"]] = "file",
         multiple: bool = True,
-        restrict_navigation: bool = False,
+        restrict_navigation: bool = True,
         value: str | pathlib.Path | typing.Sequence[str | pathlib.Path] | None = None,
         *,
         option: str | None = None,

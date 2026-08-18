@@ -14,6 +14,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `Group.list()`, with a stable, repeatable `KEY=VALUE` command-line option
   and separate typed key/value inputs in notebooks.
 
+### Changed
+
+- `Group.file_browser()` now restricts navigation above its initial path by
+  default, matching marimo 0.24.0. Pass `restrict_navigation=False` to retain
+  the previous behavior.
+
 ## [0.15.3] - 2026-08-04 - Validated run buttons
 
 ### Changed

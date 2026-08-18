@@ -905,6 +905,7 @@ def test_file_browser_explicit_initial_path_takes_precedence(
         initial_path=initial,
         value=selected,
         multiple=False,
+        restrict_navigation=False,
         option="--file",
         help_text="File to inspect",
     )
