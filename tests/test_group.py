@@ -885,11 +885,14 @@ def test_file_browser_multiple_accepts_repeated_cli_option(
             str(second),
         ]
     )
-    ctrl = g.file_browser(option="--file", help_text="Files to inspect")
+    ctrl = g.file_browser(
+        initial_path=tmp_path,
+        option="--file",
+        help_text="Files to inspect",
+    )
     g.interface(ctrl)
 
     assert [str(info.path) for info in ctrl.value] == [str(first), str(second)]
-    assert ctrl._initial_path == tmp_path  # type: ignore[reportPrivateUsage]
 
 
 def test_file_browser_explicit_initial_path_takes_precedence(
@@ -930,7 +933,11 @@ def test_file_browser_multiple_current_args_repeats_option(
             str(second),
         ]
     )
-    ctrl = g.file_browser(option="--file", help_text="Files to inspect")
+    ctrl = g.file_browser(
+        initial_path=tmp_path,
+        option="--file",
+        help_text="Files to inspect",
+    )
     iface = g.interface(ctrl)
 
     assert iface._current_args() == (  # type: ignore[attr-defined]

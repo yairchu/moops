@@ -9,6 +9,7 @@ def test_fold_uses_control_label_and_value_and_lazily_retains_control(
     selected = tmp_path / "input.html"
     selected.write_text("input")
     control = Group(cli_args=["script.py"]).file_browser(
+        initial_path=tmp_path,
         value=selected,
         multiple=False,
         option="--input",

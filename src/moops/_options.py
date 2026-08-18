@@ -5,7 +5,6 @@ import contextlib
 import dataclasses
 import json
 import math
-import os
 import pathlib
 import shlex
 import sys
@@ -439,25 +438,6 @@ def _file_browser_paths(value: typing.Any) -> list[str]:
     return [str(value)]
 
 
-def _file_browser_kwargs(
-    value: typing.Any, extra_kwargs: dict[str, typing.Any]
-) -> dict[str, typing.Any]:
-    kwargs = dict(extra_kwargs)
-    if kwargs.get("initial_path"):
-        return kwargs
-
-    paths = _file_browser_paths(value)
-    if not paths:
-        return kwargs
-
-    parents = [str(pathlib.Path(path).absolute().parent) for path in paths]
-    # Paths on different Windows drives have no common ancestor. Leave the
-    # initial path empty so marimo falls back to the working directory.
-    with contextlib.suppress(ValueError):
-        kwargs["initial_path"] = os.path.commonpath(parents)
-    return kwargs
-
-
 @dataclasses.dataclass
 class FileControl(TextControl):
     def create_marimo_element(
@@ -483,7 +463,7 @@ class FileControl(TextControl):
             label=label,
             multiple=False,
             on_change=_on_change,
-            **_file_browser_kwargs(paths, self.extra_kwargs),
+            **self.extra_kwargs,
         )
 
     def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
@@ -541,7 +521,7 @@ class MultiFileControl(ValueControl):
             label=label,
             multiple=True,
             on_change=_on_change,
-            **_file_browser_kwargs(paths, self.extra_kwargs),
+            **self.extra_kwargs,
         )
 
     def allows_repeated_values(self) -> bool:
