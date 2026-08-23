@@ -297,6 +297,43 @@ def test_range_slider_accepts_split_negative_start() -> None:
     assert ctrl.value == [-5.0, 10.0]
 
 
+@pytest.mark.parametrize("raw", ["[10]", "[-10]"])
+def test_matrix_cli_value_outside_bounds_is_a_validation_error(raw: str) -> None:
+    g = Group(cli_args=["script.py", "--matrix", raw])
+
+    ctrl = g.matrix(
+        [0],
+        min_value=-5,
+        max_value=5,
+        option="--matrix",
+        help_text="Matrix",
+    )
+
+    assert ctrl.value == [0]
+    assert "between -5 and 5" in g._state.validation_errors["--matrix"]  # type: ignore[reportPrivateUsage]
+
+
+@pytest.mark.parametrize("raw", ["[NaN]", "[Infinity]", "[-Infinity]"])
+def test_matrix_cli_rejects_non_finite_numbers(raw: str) -> None:
+    g = Group(cli_args=["script.py", "--matrix", raw])
+
+    ctrl = g.matrix([0], option="--matrix", help_text="Matrix")
+
+    assert ctrl.value == [0]
+    assert (
+        "expects a JSON matrix or vector"
+        in g._state.validation_errors[  # type: ignore[reportPrivateUsage]
+            "--matrix"
+        ]
+    )
+
+
+def test_matrix_runtime_type_hints_resolve() -> None:
+    hints = typing.get_type_hints(Group.matrix)
+
+    assert "value" in hints
+
+
 def test_validation_error_not_shown_for_unrendered_control(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
