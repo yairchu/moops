@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.15.5] - 2026-08-23 - Matrix controls
+
 ### Added
 
 - Add `Group.matrix()`, a marimo matrix/vector editor backed by a JSON command-line
