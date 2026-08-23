@@ -13,9 +13,7 @@ import warnings
 import marimo as mo
 import rich.console
 import rich.markdown
-
-if typing.TYPE_CHECKING:
-    from numpy.typing import ArrayLike
+from numpy.typing import ArrayLike
 
 from . import (
     _choice_options,
@@ -778,6 +776,14 @@ class Group:
         normalized: typing.Any = (
             raw_value.tolist() if hasattr(raw_value, "tolist") else raw_value
         )
+        raw_min: typing.Any = min_value
+        normalized_min: typing.Any = (
+            raw_min.tolist() if hasattr(raw_min, "tolist") else raw_min
+        )
+        raw_max: typing.Any = max_value
+        normalized_max: typing.Any = (
+            raw_max.tolist() if hasattr(raw_max, "tolist") else raw_max
+        )
         opt = self._make_opt(label=label, option=option)
         input_control = _options.MatrixControl(
             option=opt.option,
@@ -785,9 +791,11 @@ class Group:
             help_text=help_text,
             default=typing.cast(list[Numeric] | list[list[Numeric]], normalized),
             matrix_disabled=disabled,
+            min_value=normalized_min,
+            max_value=normalized_max,
             extra_kwargs={
-                "min_value": min_value,
-                "max_value": max_value,
+                "min_value": normalized_min,
+                "max_value": normalized_max,
                 "step": step,
                 "symmetric": symmetric,
                 "scientific": scientific,

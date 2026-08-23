@@ -799,6 +799,8 @@ class MatrixControl(ValueControl):
 
     default: list[Numeric] | list[list[Numeric]]
     matrix_disabled: typing.Any = False
+    min_value: typing.Any = None
+    max_value: typing.Any = None
 
     def create_marimo_element(
         self,
@@ -833,6 +835,10 @@ class MatrixControl(ValueControl):
             return ParseError(
                 f"Option {self.option} expects a JSON matrix or vector, got: {raw!r}"
             )
+        if bounds_error := _matrix_bounds_error(
+            value, min_value=self.min_value, max_value=self.max_value
+        ):
+            return ParseError(f"Option {self.option} {bounds_error}, got: {raw!r}")
         return ParseResult(value)
 
     def strategy(self) -> st.SearchStrategy:
@@ -1339,9 +1345,7 @@ def _is_numeric_matrix(value: typing.Any) -> bool:
     if not isinstance(value, list) or not value:
         return False
     items = typing.cast(list[typing.Any], value)
-    if all(
-        isinstance(item, (int, float)) and not isinstance(item, bool) for item in items
-    ):
+    if all(_is_finite_number(item) for item in items):
         return True
     if not all(isinstance(row, list) for row in items):
         return False
@@ -1350,13 +1354,76 @@ def _is_numeric_matrix(value: typing.Any) -> bool:
         return False
     columns = len(rows[0])
     return all(
-        len(row) == columns
-        and all(
-            isinstance(item, (int, float)) and not isinstance(item, bool)
-            for item in row
-        )
+        len(row) == columns and all(_is_finite_number(item) for item in row)
         for row in rows
     )
+
+
+def _is_finite_number(value: typing.Any) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+    )
+
+
+def _matrix_bounds_error(
+    value: list[Numeric] | list[list[Numeric]],
+    *,
+    min_value: typing.Any,
+    max_value: typing.Any,
+) -> str | None:
+    is_vector = bool(value) and not isinstance(value[0], list)
+    rows: list[list[Numeric]] = (
+        [[item] for item in typing.cast(list[Numeric], value)]
+        if is_vector
+        else typing.cast(list[list[Numeric]], value)
+    )
+    try:
+        minimums = _broadcast_matrix_bound(min_value, rows, is_vector)
+        maximums = _broadcast_matrix_bound(max_value, rows, is_vector)
+    except ValueError:
+        return "expects bounds compatible with the matrix shape"
+
+    for row_index, row in enumerate(rows):
+        for column_index, item in enumerate(row):
+            minimum = None if minimums is None else minimums[row_index][column_index]
+            maximum = None if maximums is None else maximums[row_index][column_index]
+            if minimum is not None and item < minimum:
+                if maximum is not None:
+                    return f"expects every value to be between {minimum} and {maximum}"
+                return f"expects every value to be at least {minimum}"
+            if maximum is not None and item > maximum:
+                if minimum is not None:
+                    return f"expects every value to be between {minimum} and {maximum}"
+                return f"expects every value to be at most {maximum}"
+    return None
+
+
+def _broadcast_matrix_bound(
+    bound: typing.Any,
+    rows: list[list[Numeric]],
+    is_vector: bool,
+) -> list[list[Numeric]] | None:
+    if bound is None:
+        return None
+    if not isinstance(bound, list):
+        return [[bound] * len(row) for row in rows]
+    raw_bound = typing.cast(list[typing.Any], bound)
+    nested: list[typing.Any] = (
+        [[item] for item in raw_bound] if is_vector else raw_bound
+    )
+    if len(nested) != len(rows):
+        raise ValueError
+    if any(not isinstance(row, list) for row in nested):
+        raise ValueError
+    result = typing.cast(list[list[Numeric]], nested)
+    if any(
+        len(bound_row) != len(value_row)
+        for bound_row, value_row in zip(result, rows, strict=True)
+    ):
+        raise ValueError
+    return result
 
 
 def _is_numeric_matrix_value(raw: str) -> bool:
