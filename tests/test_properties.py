@@ -212,6 +212,19 @@ def _multiselect_ctrl(default: list[int]) -> _options.InputControl:
     )
 
 
+def _matrix_ctrl() -> _options.InputControl:
+    return _control_from(
+        lambda g: g.matrix(
+            [[0, 0], [0, 0]],
+            min_value=-5,
+            max_value=5,
+            symmetric=True,
+            option="--opt",
+            help_text="h",
+        )
+    )
+
+
 # A meta strategy over control *types*: each branch yields an InputControl,
 # parameterized over the configuration knobs that change its query behavior
 # (bounds, none support, default). File controls are intentionally absent: they
@@ -241,6 +254,7 @@ _QUERY_CONTROL_STRATEGY: st.SearchStrategy[_options.InputControl] = st.one_of(
     ),
     st.builds(_dropdown_ctrl, st.booleans()),
     st.builds(_multiselect_ctrl, st.lists(st.sampled_from([1, 2, 3]), unique=True)),
+    st.just(_matrix_ctrl()),
 )
 
 
