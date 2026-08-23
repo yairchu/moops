@@ -13,7 +13,11 @@ import warnings
 import marimo as mo
 import rich.console
 import rich.markdown
-from numpy.typing import ArrayLike
+
+if typing.TYPE_CHECKING:
+    from numpy.typing import ArrayLike
+else:
+    ArrayLike = typing.Any
 
 from . import (
     _choice_options,
