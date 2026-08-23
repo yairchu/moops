@@ -328,6 +328,26 @@ def test_matrix_cli_rejects_non_finite_numbers(raw: str) -> None:
     )
 
 
+def test_matrix_cli_shape_incompatible_with_labels_is_a_validation_error() -> None:
+    g = Group(cli_args=["script.py", "--matrix", "[[1,2,3]]"])
+
+    ctrl = g.matrix(
+        [[1, 0], [0, 1]],
+        row_labels=["x", "y"],
+        column_labels=["x", "y"],
+        option="--matrix",
+        help_text="Matrix",
+    )
+
+    assert ctrl.value == [[1, 0], [0, 1]]
+    assert (
+        "expects the same shape as the default"
+        in g._state.validation_errors[  # type: ignore[reportPrivateUsage]
+            "--matrix"
+        ]
+    )
+
+
 def test_matrix_runtime_type_hints_resolve() -> None:
     hints = typing.get_type_hints(Group.matrix)
 
