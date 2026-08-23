@@ -794,6 +794,82 @@ class NumberControl(_NoneFlag, ValueControl):
 
 
 @dataclasses.dataclass
+class MatrixControl(ValueControl):
+    """A matrix whose CLI representation is a JSON array."""
+
+    default: list[Numeric] | list[list[Numeric]]
+    matrix_disabled: typing.Any = False
+
+    def create_marimo_element(
+        self,
+        value: typing.Any,
+        label: str,
+        *,
+        on_change: typing.Callable[[typing.Any], None] | None = None,
+        disabled: bool = False,
+    ) -> typing.Any:
+        element = mo.ui.matrix(
+            value=value,
+            label=label,
+            disabled=True if disabled else self.matrix_disabled,
+            **self.extra_kwargs,
+        )
+        # matrix does not currently expose on_change in its public constructor,
+        # but UIElement supports it and moops needs it for live query syncing.
+        element._on_change = on_change  # pyright: ignore[reportPrivateUsage]
+        return element
+
+    def parse(self, args: _parse.ParsedArgs) -> ParseResult | ParseError | None:
+        raw = args.value_for(self.option)
+        if raw is None:
+            return None
+        try:
+            value: typing.Any = json.loads(raw)
+        except json.JSONDecodeError:
+            return ParseError(
+                f"Option {self.option} expects a JSON matrix or vector, got: {raw!r}"
+            )
+        if not _is_numeric_matrix(value):
+            return ParseError(
+                f"Option {self.option} expects a JSON matrix or vector, got: {raw!r}"
+            )
+        return ParseResult(value)
+
+    def strategy(self) -> st.SearchStrategy:
+        from hypothesis import strategies as st
+
+        numbers = st.integers() | st.floats(allow_nan=False, allow_infinity=False)
+        vectors = st.lists(numbers, min_size=1)
+        matrices = st.integers(min_value=1, max_value=5).flatmap(
+            lambda columns: st.lists(
+                st.lists(numbers, min_size=columns, max_size=columns), min_size=1
+            )
+        )
+        return vectors | matrices
+
+    def format_help_lines(self) -> list[str]:
+        return [self._help_line(show_default=True)]
+
+    def format_value(self, value: typing.Any) -> list[str]:
+        if value == self.default:
+            return []
+        return [option_value_token(self.option, _format_matrix(value))]
+
+    def format_query_value(self, value: typing.Any) -> str | None:
+        return None if value == self.default else _format_matrix(value)
+
+    def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
+        d = self.default if effective_default is _UNSET else effective_default
+        while True:
+            response = input(f"{self.help_text} [{_format_matrix(d)}]: ").strip()
+            if not response:
+                return []
+            if _is_numeric_matrix_value(response):
+                return [self.option, response]
+            print("Please enter a JSON matrix or vector.")
+
+
+@dataclasses.dataclass
 class RangeControl(ValueControl):
     default: list[Numeric] | None
     start: Numeric | None = None
@@ -1257,6 +1333,42 @@ def _parse_number(option: str, value: str) -> ParseResult | ParseError:
     except ValueError:
         return ParseError(f"Option {option} expects a number, got: {value!r}")
     return ParseResult(int(num) if math.isfinite(num) and num == int(num) else num)
+
+
+def _is_numeric_matrix(value: typing.Any) -> bool:
+    if not isinstance(value, list) or not value:
+        return False
+    items = typing.cast(list[typing.Any], value)
+    if all(
+        isinstance(item, (int, float)) and not isinstance(item, bool) for item in items
+    ):
+        return True
+    if not all(isinstance(row, list) for row in items):
+        return False
+    rows = typing.cast(list[list[typing.Any]], items)
+    if any(not row for row in rows):
+        return False
+    columns = len(rows[0])
+    return all(
+        len(row) == columns
+        and all(
+            isinstance(item, (int, float)) and not isinstance(item, bool)
+            for item in row
+        )
+        for row in rows
+    )
+
+
+def _is_numeric_matrix_value(raw: str) -> bool:
+    try:
+        value: typing.Any = json.loads(raw)
+    except json.JSONDecodeError:
+        return False
+    return _is_numeric_matrix(value)
+
+
+def _format_matrix(value: typing.Any) -> str:
+    return json.dumps(value, separators=(",", ":"))
 
 
 def _range_default(

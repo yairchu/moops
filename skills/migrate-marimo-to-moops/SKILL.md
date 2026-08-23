@@ -69,6 +69,7 @@ Use the closest `Group` method:
 - `mo.ui.checkbox` -> `args.checkbox`
 - `mo.ui.dropdown` -> `args.dropdown`
 - `mo.ui.multiselect` -> `args.multiselect`
+- `mo.ui.matrix` -> `args.matrix`
 - `mo.ui.file` -> `args.file`
 - `mo.ui.file_browser` -> `args.file_browser`
 - `mo.ui.run_button` -> `interface.run_button`

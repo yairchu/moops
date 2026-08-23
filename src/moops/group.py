@@ -14,6 +14,9 @@ import marimo as mo
 import rich.console
 import rich.markdown
 
+if typing.TYPE_CHECKING:
+    from numpy.typing import ArrayLike
+
 from . import (
     _choice_options,
     _control_mirroring,
@@ -742,6 +745,57 @@ class Group:
             value=value,
             step=step,
             extra_kwargs=kwargs,
+        )
+        return self._register_control(opt, input_control, help_text, on_change)
+
+    def matrix(
+        self,
+        value: list[list[Numeric]] | list[Numeric] | ArrayLike,
+        *,
+        min_value: (
+            Numeric | list[list[Numeric]] | list[Numeric] | ArrayLike | None
+        ) = None,
+        max_value: (
+            Numeric | list[list[Numeric]] | list[Numeric] | ArrayLike | None
+        ) = None,
+        step: Numeric | list[list[Numeric]] | list[Numeric] | ArrayLike = 1.0,
+        disabled: bool | list[list[bool]] | list[bool] | ArrayLike = False,
+        symmetric: bool = False,
+        scientific: bool = False,
+        precision: int | None = None,
+        row_labels: list[str] | None = None,
+        column_labels: list[str] | None = None,
+        debounce: bool = False,
+        label: str | None = None,
+        option: str | None = None,
+        help_text: str,
+        on_change: typing.Callable[[list[list[Numeric]] | list[Numeric]], None]
+        | None = None,
+    ) -> mo.ui.matrix:
+        """Create a matrix or vector editor that maps to a JSON CLI option."""
+
+        raw_value: typing.Any = value
+        normalized: typing.Any = (
+            raw_value.tolist() if hasattr(raw_value, "tolist") else raw_value
+        )
+        opt = self._make_opt(label=label, option=option)
+        input_control = _options.MatrixControl(
+            option=opt.option,
+            metavar="JSON",
+            help_text=help_text,
+            default=typing.cast(list[Numeric] | list[list[Numeric]], normalized),
+            matrix_disabled=disabled,
+            extra_kwargs={
+                "min_value": min_value,
+                "max_value": max_value,
+                "step": step,
+                "symmetric": symmetric,
+                "scientific": scientific,
+                "precision": precision,
+                "row_labels": row_labels,
+                "column_labels": column_labels,
+                "debounce": debounce,
+            },
         )
         return self._register_control(opt, input_control, help_text, on_change)
 
