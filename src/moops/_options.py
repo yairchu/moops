@@ -801,6 +801,7 @@ class MatrixControl(ValueControl):
     matrix_disabled: typing.Any = False
     min_value: typing.Any = None
     max_value: typing.Any = None
+    symmetric: bool = False
 
     def create_marimo_element(
         self,
@@ -844,19 +845,62 @@ class MatrixControl(ValueControl):
             value, min_value=self.min_value, max_value=self.max_value
         ):
             return ParseError(f"Option {self.option} {bounds_error}, got: {raw!r}")
+        if self.symmetric and not _is_symmetric_matrix(value):
+            return ParseError(
+                f"Option {self.option} expects a symmetric matrix, got: {raw!r}"
+            )
         return ParseResult(value)
 
     def strategy(self) -> st.SearchStrategy:
         from hypothesis import strategies as st
 
-        numbers = st.integers() | st.floats(allow_nan=False, allow_infinity=False)
-        vectors = st.lists(numbers, min_size=1)
-        matrices = st.integers(min_value=1, max_value=5).flatmap(
-            lambda columns: st.lists(
-                st.lists(numbers, min_size=columns, max_size=columns), min_size=1
-            )
+        is_vector = not isinstance(self.default[0], list)
+        rows: list[list[Numeric]] = (
+            [[item] for item in typing.cast(list[Numeric], self.default)]
+            if is_vector
+            else typing.cast(list[list[Numeric]], self.default)
         )
-        return vectors | matrices
+        minimums = _broadcast_matrix_bound(self.min_value, rows, is_vector)
+        maximums = _broadcast_matrix_bound(self.max_value, rows, is_vector)
+
+        def number_at(row: int, column: int) -> st.SearchStrategy[float]:
+            minimum = None if minimums is None else minimums[row][column]
+            maximum = None if maximums is None else maximums[row][column]
+            if self.symmetric and row != column:
+                mirror_min = None if minimums is None else minimums[column][row]
+                mirror_max = None if maximums is None else maximums[column][row]
+                if mirror_min is not None:
+                    minimum = (
+                        mirror_min if minimum is None else max(minimum, mirror_min)
+                    )
+                if mirror_max is not None:
+                    maximum = (
+                        mirror_max if maximum is None else min(maximum, mirror_max)
+                    )
+            return st.floats(
+                min_value=minimum,
+                max_value=maximum,
+                allow_nan=False,
+                allow_infinity=False,
+            )
+
+        @st.composite
+        def values(draw: st.DrawFn) -> list[Numeric] | list[list[Numeric]]:
+            result: list[list[Numeric]] = []
+            for row_index, row in enumerate(rows):
+                result_row: list[Numeric] = []
+                for column_index, _item in enumerate(row):
+                    if self.symmetric and column_index < row_index:
+                        item = result[column_index][row_index]
+                    else:
+                        item = draw(number_at(row_index, column_index))
+                    result_row.append(item)
+                result.append(result_row)
+            if is_vector:
+                return [row[0] for row in result]
+            return result
+
+        return values()
 
     def format_help_lines(self) -> list[str]:
         return [self._help_line(show_default=True)]
@@ -1379,6 +1423,17 @@ def _matrix_shape(
         return ("vector", len(value))
     rows = typing.cast(list[list[Numeric]], value)
     return ("matrix", len(rows), len(rows[0]))
+
+
+def _is_symmetric_matrix(value: list[Numeric] | list[list[Numeric]]) -> bool:
+    if not isinstance(value[0], list):
+        return False
+    rows = typing.cast(list[list[Numeric]], value)
+    return len(rows) == len(rows[0]) and all(
+        rows[row][column] == rows[column][row]
+        for row in range(len(rows))
+        for column in range(row + 1, len(rows))
+    )
 
 
 def _matrix_bounds_error(

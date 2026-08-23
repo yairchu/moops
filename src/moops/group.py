@@ -797,6 +797,7 @@ class Group:
             matrix_disabled=disabled,
             min_value=normalized_min,
             max_value=normalized_max,
+            symmetric=symmetric,
             extra_kwargs={
                 "min_value": normalized_min,
                 "max_value": normalized_max,

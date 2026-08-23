@@ -1,7 +1,7 @@
 # /// script
 # dependencies = [
 #     "marimo>=0.24.0",
-#     "moops>=0.15.4",
+#     "moops",
 # ]
 # ///
 
