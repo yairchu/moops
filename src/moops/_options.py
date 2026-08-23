@@ -835,6 +835,11 @@ class MatrixControl(ValueControl):
             return ParseError(
                 f"Option {self.option} expects a JSON matrix or vector, got: {raw!r}"
             )
+        if _matrix_shape(value) != _matrix_shape(self.default):
+            return ParseError(
+                f"Option {self.option} expects the same shape as the default, "
+                f"got: {raw!r}"
+            )
         if bounds_error := _matrix_bounds_error(
             value, min_value=self.min_value, max_value=self.max_value
         ):
@@ -1365,6 +1370,15 @@ def _is_finite_number(value: typing.Any) -> bool:
         and not isinstance(value, bool)
         and math.isfinite(value)
     )
+
+
+def _matrix_shape(
+    value: list[Numeric] | list[list[Numeric]],
+) -> tuple[typing.Literal["vector"], int] | tuple[typing.Literal["matrix"], int, int]:
+    if not isinstance(value[0], list):
+        return ("vector", len(value))
+    rows = typing.cast(list[list[Numeric]], value)
+    return ("matrix", len(rows), len(rows[0]))
 
 
 def _matrix_bounds_error(
