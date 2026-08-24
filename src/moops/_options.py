@@ -908,15 +908,15 @@ class MatrixControl(ValueControl):
     def format_value(self, value: typing.Any) -> list[str]:
         if value == self.default:
             return []
-        return [option_value_token(self.option, _format_matrix(value))]
+        return [option_value_token(self.option, format_matrix(value))]
 
     def format_query_value(self, value: typing.Any) -> str | None:
-        return None if value == self.default else _format_matrix(value)
+        return None if value == self.default else format_matrix(value)
 
     def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
         d = self.default if effective_default is _UNSET else effective_default
         while True:
-            response = input(f"{self.help_text} [{_format_matrix(d)}]: ").strip()
+            response = input(f"{self.help_text} [{format_matrix(d)}]: ").strip()
             if not response:
                 return []
             if _is_numeric_matrix_value(response):
@@ -1503,8 +1503,53 @@ def _is_numeric_matrix_value(raw: str) -> bool:
     return _is_numeric_matrix(value)
 
 
-def _format_matrix(value: typing.Any) -> str:
+def format_matrix(value: typing.Any) -> str:
     return json.dumps(value, separators=(",", ":"))
+
+
+def format_matrix_display(
+    value: typing.Any,
+    *,
+    scientific: bool = False,
+    precision: int | None = None,
+) -> str:
+    """Format a matrix as valid JSON with aligned numeric columns."""
+    if not value:
+        return json.dumps(value)
+    if not isinstance(value[0], list):
+        return (
+            "[\n  "
+            + ",\n  ".join(
+                _format_matrix_display_item(item, scientific, precision)
+                for item in value
+            )
+            + "\n]"
+        )
+    rows = [
+        [_format_matrix_display_item(item, scientific, precision) for item in row]
+        for row in value
+    ]
+    if not rows or any(len(row) != len(rows[0]) for row in rows):
+        return json.dumps(value, indent=2)
+    widths = [max(len(row[column]) for row in rows) for column in range(len(rows[0]))]
+    rendered_rows = [
+        "  ["
+        + ", ".join(item.rjust(width) for item, width in zip(row, widths, strict=True))
+        + "]"
+        for row in rows
+    ]
+    return "[\n" + ",\n".join(rendered_rows) + "\n]"
+
+
+def _format_matrix_display_item(
+    value: typing.Any, scientific: bool, precision: int | None
+) -> str:
+    if isinstance(value, float):
+        if scientific:
+            return format(value, f".{precision if precision is not None else 6}e")
+        if precision is not None:
+            return format(value, f".{precision}f")
+    return json.dumps(value)
 
 
 def _range_default(

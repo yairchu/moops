@@ -443,6 +443,44 @@ class Group:
         print()
         return None
 
+    def matrix_display(
+        self,
+        value: list[list[Numeric]] | list[Numeric] | ArrayLike,
+        *,
+        scientific: bool = False,
+        precision: int | None = None,
+        row_labels: list[str] | None = None,
+        column_labels: list[str] | None = None,
+        label: str = "",
+    ) -> mo.ui.matrix | None:
+        """Display a read-only matrix in notebooks or as JSON on the CLI."""
+
+        if self.is_interface_query or self.output_mode is None:
+            return None
+        raw_value: typing.Any = value
+        normalized: typing.Any = (
+            raw_value.tolist() if hasattr(raw_value, "tolist") else raw_value
+        )
+        if self.output_mode is OutputMode.NOTEBOOK:
+            return mo.ui.matrix(
+                normalized,
+                disabled=True,
+                scientific=scientific,
+                precision=precision,
+                row_labels=row_labels,
+                column_labels=column_labels,
+                label=label,
+            )
+        if label:
+            print(f"{label}:")
+        print(
+            _options.format_matrix_display(
+                normalized, scientific=scientific, precision=precision
+            )
+        )
+        print()
+        return None
+
     def progress_bar(
         self,
         collection: typing.Collection[S]

@@ -70,6 +70,17 @@ def _(args, transform):
 
     Determinant: `{determinant:.2f}`
     """)
+    return (transformed,)
+
+
+@app.cell
+def _(args, transformed):
+    args.matrix_display(
+        transformed,
+        row_labels=["x", "y"],
+        label="Transformed point",
+        precision=2,
+    )
     return
 
 
