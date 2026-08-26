@@ -28,10 +28,13 @@ programmatic inputs.
 
    ```python
    interface = args.interface(input_text, style)
+   interface
    ```
 
    It may reference controls defined in later cells; marimo's DAG resolves
-   execution order.
+   execution order. Keep `interface` as the cell's last expression to display
+   the CLI callout and help. This does not display the controls themselves;
+   preserve or add separate notebook outputs for them.
 6. Replace user-triggered `mo.ui.run_button` controls with
    `interface.run_button`. Keep them in a separate cell downstream of the
    interface so CLI arguments are validated before gated computation begins.
@@ -92,6 +95,28 @@ recreating moops wrappers.
   behavior. Use existing examples/checks first.
 - Do not rewrite notebook logic, formatting, plotting, or data processing unless
   needed for the migration.
+
+## Register and Display Input Controls
+
+Every converted input control has two independent requirements:
+
+1. Pass it to `args.interface(...)` so it is available as a CLI argument and in
+   CLI help.
+2. Display it in the notebook as a cell's last expression or nested in a
+   displayed object such as `mo.vstack`, markdown interpolation, or
+   `mo.accordion`.
+
+`args.interface(...)` registers controls with moops but does not display them as
+interactive notebook controls. A control that is registered but never displayed
+is inert in the notebook, so its `.value` stays at its default.
+
+- Assign an element to a global variable and read `.value` in a different cell;
+  the defining cell does not observe its own updates.
+- Wrap elements created dynamically in loops or comprehensions in `mo.ui.array`
+  or `mo.ui.dictionary` so marimo can track them reactively.
+- Preserve the notebook's existing control display when replacing `mo.ui.*`
+  constructors with `args.*` wrappers; passing the controls to the interface is
+  additional, not a replacement for displaying them.
 
 ## Validation
 
