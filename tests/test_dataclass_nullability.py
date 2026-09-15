@@ -21,23 +21,12 @@ PixelResponse = enum.Enum(
     ],
     ids=["literal", "enum", "int", "float"],
 )
-@pytest.mark.parametrize(
-    ("optional", "override", "allows_none"),
-    [
-        (False, None, False),
-        (True, None, True),
-        (False, True, True),
-        (True, False, False),
-    ],
-    ids=["required", "optional", "opt-in", "opt-out"],
-)
+@pytest.mark.parametrize("optional", [False, True], ids=["required", "optional"])
 def test_dataclass_nullability_controls_no_flag(
     annotation: typing.Any,
     default: typing.Any,
     metadata_key: str,
     optional: bool,
-    override: bool | None,
-    allows_none: bool,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     config_cls = dataclasses.make_dataclass(
@@ -46,10 +35,7 @@ def test_dataclass_nullability_controls_no_flag(
             (
                 "response",
                 annotation | None if optional else annotation,
-                dataclasses.field(
-                    default=default,
-                    metadata={} if override is None else {metadata_key: override},
-                ),
+                default,
             )
         ],
     )
@@ -58,14 +44,14 @@ def test_dataclass_nullability_controls_no_flag(
     control = config.elements["response"]
     input_control = group._input_map.get(control)  # type: ignore[reportPrivateUsage]
     assert input_control is not None
-    assert ("--no-response" in input_control.flags()) is allows_none
+    assert ("--no-response" in input_control.flags()) is optional
     if metadata_key == "allow_select_none":
-        assert control._component_args["allow-select-none"] is allows_none  # type: ignore[reportPrivateUsage]
+        assert control._component_args["allow-select-none"] is optional  # type: ignore[reportPrivateUsage]
     assert config.value["response"] == default
 
     group = Group(cli_args=["script.py", "--no-response"])
     config = group.dataclass(config_cls)
-    if allows_none:
+    if optional:
         group.interface(*config.elements.values())
         assert config.value["response"] is None
     else:
@@ -73,6 +59,44 @@ def test_dataclass_nullability_controls_no_flag(
             group.interface(*config.elements.values())
         assert exc_info.value.code != 0
         assert "Unexpected argument: --no-response" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    ("annotation", "default", "metadata_key"),
+    [
+        (typing.Literal["box", "triangle"], "box", "allow_select_none"),
+        (int, 2, "allow_none"),
+    ],
+    ids=["choice", "number"],
+)
+@pytest.mark.parametrize("optional", [False, True], ids=["required", "optional"])
+@pytest.mark.parametrize("override", [False, True], ids=["deny-none", "allow-none"])
+def test_dataclass_rejects_nullability_metadata(
+    annotation: typing.Any,
+    default: typing.Any,
+    metadata_key: str,
+    optional: bool,
+    override: bool,
+) -> None:
+    # Reject redundant metadata as well as metadata contradicting the type.
+    config_cls = dataclasses.make_dataclass(
+        "Config",
+        [
+            (
+                "response",
+                annotation | None if optional else annotation,
+                dataclasses.field(default=default, metadata={metadata_key: override}),
+            )
+        ],
+    )
+    group = Group(cli_args=["script.py"])
+    with pytest.raises(TypeError) as exc_info:
+        group.dataclass(config_cls)
+    message = str(exc_info.value)
+    assert "response" in message
+    assert metadata_key in message
+    assert "None" in message
+    assert "type" in message.lower() or "annotation" in message.lower()
 
 
 @pytest.mark.parametrize("optional", [False, True])
