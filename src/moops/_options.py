@@ -1516,7 +1516,7 @@ def format_matrix_display(
     """Format a matrix as valid JSON with aligned numeric columns."""
     if not value:
         return json.dumps(value)
-    if not isinstance(value[0], list):
+    if not isinstance(value[0], list | tuple):
         return (
             "[\n  "
             + ",\n  ".join(
