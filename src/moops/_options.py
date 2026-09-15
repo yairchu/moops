@@ -1530,7 +1530,7 @@ def format_matrix_display(
         for row in value
     ]
     if not rows or any(len(row) != len(rows[0]) for row in rows):
-        return json.dumps(value, indent=2)
+        return json.dumps(value, indent=2, allow_nan=False)
     widths = [max(len(row[column]) for row in rows) for column in range(len(rows[0]))]
     rendered_rows = [
         "  ["
@@ -1544,13 +1544,15 @@ def format_matrix_display(
 def _format_matrix_display_item(
     value: typing.Any, scientific: bool, precision: int | None
 ) -> str:
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError(f"Matrix display JSON requires finite values; got {value!r}")
     # bool is an int subclass, but a matrix of flags should stay true/false.
     if isinstance(value, int | float) and not isinstance(value, bool):
         if scientific:
             return format(value, f".{precision if precision is not None else 6}e")
         if precision is not None:
             return format(value, f".{precision}f")
-    return json.dumps(value)
+    return json.dumps(value, allow_nan=False)
 
 
 def _range_default(

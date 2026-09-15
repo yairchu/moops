@@ -457,7 +457,9 @@ class Group:
 
         On the CLI the value is printed as JSON, with the columns of a 2-D
         matrix right-aligned; ``row_labels`` and ``column_labels`` are
-        notebook-only. Mirrors :meth:`table`: returns ``None`` during interface
+        notebook-only. Non-finite values raise ``ValueError`` on the CLI
+        because JSON cannot represent them.
+        Mirrors :meth:`table`: returns ``None`` during interface
         queries, when output is silenced, or on the CLI.
         """
 
@@ -477,13 +479,12 @@ class Group:
                 column_labels=column_labels,
                 label=label,
             )
+        rendered = _options.format_matrix_display(
+            normalized, scientific=scientific, precision=precision
+        )
         if label:
             print(f"{label}:")
-        print(
-            _options.format_matrix_display(
-                normalized, scientific=scientific, precision=precision
-            )
-        )
+        print(rendered)
         print()
         return None
 
