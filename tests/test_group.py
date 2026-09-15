@@ -378,6 +378,29 @@ def test_matrix_display_precision_applies_to_integers(
     assert capsys.readouterr().out == "[\n  [ 1.50, 2.00],\n  [30.00, 4.00]\n]\n\n"
 
 
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
+@pytest.mark.parametrize(
+    ("scientific", "precision"), [(False, None), (False, 2), (True, None)]
+)
+def test_matrix_display_rejects_nonfinite_json(
+    value: float,
+    scientific: bool,
+    precision: int | None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # Computed matrices can contain NaN/infinity; formatting must not emit
+    # invalid JSON tokens such as nan/inf (or nonstandard NaN/Infinity).
+    g = Group(cli_args=["script.py"])
+    with pytest.raises(ValueError, match="finite"):
+        g.matrix_display(
+            [[1.0, value]],
+            scientific=scientific,
+            precision=precision,
+            label="Result",
+        )
+    assert capsys.readouterr().out == ""
+
+
 def test_matrix_runtime_type_hints_resolve() -> None:
     hints = typing.get_type_hints(Group.matrix)
 
