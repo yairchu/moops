@@ -177,3 +177,29 @@ def test_dataclass_literal_with_none_member_warns(
         config = group.dataclass(config_cls)
     group.interface(*config.elements.values())
     assert config.value["response"] is None
+
+
+@pytest.mark.parametrize(
+    ("annotation", "default", "control"),
+    [(bool, True, "switch"), (str, "hi", "text")],
+    ids=["switch", "text"],
+)
+def test_dataclass_nullability_metadata_error_names_control(
+    annotation: typing.Any, default: typing.Any, control: str
+) -> None:
+    # These widgets have no empty state, so advising a change to the field type
+    # would misdirect: adding None to the annotation would not help.
+    config_cls = dataclasses.make_dataclass(
+        "Config",
+        [
+            (
+                "response",
+                annotation,
+                dataclasses.field(default=default, metadata={"allow_none": True}),
+            )
+        ],
+    )
+    group = Group(cli_args=["script.py"])
+    with pytest.raises(TypeError) as exc_info:
+        group.dataclass(config_cls)
+    assert f"its {control} control cannot hold None" in str(exc_info.value)

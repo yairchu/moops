@@ -48,12 +48,6 @@ def _control_for_field(
     annotation: object,
     default: typing.Any,
 ) -> typing.Any:
-    for key in ("allow_select_none", "allow_none"):
-        if key in field.metadata:
-            raise TypeError(
-                f"Dataclass field {field.name!r} does not support {key!r} metadata; "
-                "express nullability in the field type by adding or removing None"
-            )
     label = str(field.metadata.get("label", field.name.replace("_", " ")))
     help_text = str(
         field.metadata.get(
@@ -72,6 +66,7 @@ def _control_for_field(
         raise TypeError(
             f"Cannot infer a moops control for dataclass field {field.name!r}"
         )
+    _reject_nullability_metadata(field, typ)
     if typ is bool:
         return group.switch(value=default, label=label, help_text=help_text, **kwargs)
     if typ is str:
@@ -95,6 +90,32 @@ def _control_for_field(
             **kwargs,
         )
     raise TypeError(f"Cannot infer a moops control for dataclass field {field.name!r}")
+
+
+def _reject_nullability_metadata(
+    field: dataclasses.Field[typing.Any], typ: object
+) -> None:
+    """Reject metadata that tries to set nullability; the field type decides it.
+
+    Only number and dropdown controls can hold ``None``, so for the others
+    pointing at the field type would misdirect: marimo's switch and text
+    widgets have no empty state to express. A ``typ`` of ``None`` means no
+    control could be inferred at all, which the caller reports instead.
+    """
+    if typ is None:
+        return
+    for key in ("allow_select_none", "allow_none"):
+        if key not in field.metadata:
+            continue
+        if typ is int or typ is float or isinstance(typ, tuple | dict):
+            advice = "express nullability in the field type by adding or removing None"
+        else:
+            control = "switch" if typ is bool else "text"
+            advice = f"its {control} control cannot hold None"
+        raise TypeError(
+            f"Dataclass field {field.name!r} does not support {key!r} metadata; "
+            f"{advice}"
+        )
 
 
 def _allows_none(annotation: object) -> bool:
