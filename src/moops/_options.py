@@ -1544,7 +1544,8 @@ def format_matrix_display(
 def _format_matrix_display_item(
     value: typing.Any, scientific: bool, precision: int | None
 ) -> str:
-    if isinstance(value, float):
+    # bool is an int subclass, but a matrix of flags should stay true/false.
+    if isinstance(value, int | float) and not isinstance(value, bool):
         if scientific:
             return format(value, f".{precision if precision is not None else 6}e")
         if precision is not None:
