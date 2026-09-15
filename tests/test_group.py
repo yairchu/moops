@@ -367,6 +367,17 @@ def test_matrix_cli_nonsymmetric_value_is_a_validation_error() -> None:
     )
 
 
+def test_matrix_display_precision_applies_to_integers(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # The notebook widget renders every cell at the requested precision, so a
+    # mixed int/float matrix must not come out half-formatted on the CLI.
+    g = Group(cli_args=["script.py"])
+    g.matrix_display([[1.5, 2], [30, 4]], precision=2)
+
+    assert capsys.readouterr().out == "[\n  [ 1.50, 2.00],\n  [30.00, 4.00]\n]\n\n"
+
+
 def test_matrix_runtime_type_hints_resolve() -> None:
     hints = typing.get_type_hints(Group.matrix)
 
