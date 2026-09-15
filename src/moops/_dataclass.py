@@ -48,6 +48,12 @@ def _control_for_field(
     annotation: object,
     default: typing.Any,
 ) -> typing.Any:
+    for key in ("allow_select_none", "allow_none"):
+        if key in field.metadata:
+            raise TypeError(
+                f"Dataclass field {field.name!r} does not support {key!r} metadata; "
+                "express nullability in the field type by adding or removing None"
+            )
     label = str(field.metadata.get("label", field.name.replace("_", " ")))
     help_text = str(
         field.metadata.get(
@@ -62,10 +68,6 @@ def _control_for_field(
     }
     typ = _simple_type(annotation, default)
     allow_none = _allows_none(annotation)
-    if isinstance(typ, tuple | dict):
-        allow_none = field.metadata.get("allow_select_none", allow_none)
-    elif typ is int or typ is float:
-        allow_none = field.metadata.get("allow_none", allow_none)
     if default is None and (typ is bool or not allow_none):
         raise TypeError(
             f"Cannot infer a moops control for dataclass field {field.name!r}"
