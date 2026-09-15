@@ -985,6 +985,15 @@ class Group:
             raise ValueError("Dropdown options cannot be empty")
         opt = self._make_opt(label=label, option=option)
         dropdown_opts = _choice_options.option_values(options)
+        cli_opts = _choice_options.option_cli_keys(dropdown_opts)
+        if allow_select_none and "none" in cli_opts:
+            warnings.warn(
+                f"Dropdown {opt.option} can be cleared to None and also offers a "
+                f"{cli_opts['none']!r} choice, so {opt.option} none and an empty "
+                "selection are easy to confuse. Rename the choice, or pass "
+                "allow_select_none=False when the value is not nullable.",
+                stacklevel=2,
+            )
         value = (
             _choice_options.option_key(dropdown_opts, value)
             if value is not None
@@ -999,7 +1008,7 @@ class Group:
         input_control = _options.DropdownControl(
             option=opt.option,
             dropdown_opts=dropdown_opts,
-            cli_opts=_choice_options.option_cli_keys(dropdown_opts),
+            cli_opts=cli_opts,
             supports_none=allow_select_none,
             default=value,
             help_text=help_text,

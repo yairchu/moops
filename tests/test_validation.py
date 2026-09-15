@@ -116,3 +116,29 @@ def test_variant_rejects_inactive_branch_options() -> None:
         )
 
     assert exc_info.value.code != 0
+
+
+def test_dropdown_warns_when_none_choice_collides_with_empty_selection() -> None:
+    # "--response none" selects the 'none' string while an empty selection
+    # means None, and the help text for the two reads almost identically.
+    g = Group(cli_args=["script.py"])
+    with pytest.warns(UserWarning, match="easy to confuse"):
+        g.dropdown(
+            ["none", "box"],
+            value="box",
+            label="Response",
+            help_text="Pixel response",
+        )
+
+
+def test_dropdown_none_choice_is_unambiguous_when_not_nullable() -> None:
+    g = Group(cli_args=["script.py"])
+    ctrl = g.dropdown(
+        ["none", "box"],
+        value="box",
+        allow_select_none=False,
+        label="Response",
+        help_text="Pixel response",
+    )
+    g.interface(ctrl)
+    assert ctrl.value == "box"

@@ -22,6 +22,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `allow_select_none` and `allow_none` metadata; express nullability by adding or
   removing `None` in the field type.
   Optional fields retain their existing behavior.
+- `Group.dropdown()` now warns when it allows an empty selection and also
+  offers a `none` choice, since `--option none` and clearing the selection are
+  easily confused.
 
 ## [0.15.5] - 2026-08-23 - Matrix controls
 

@@ -7,14 +7,14 @@ import pytest
 from moops import Group
 
 PixelResponse = enum.Enum(
-    "PixelResponse", {"NONE": "none", "BOX": "box", "TRIANGLE": "triangle"}
+    "PixelResponse", {"AUTO": "auto", "BOX": "box", "TRIANGLE": "triangle"}
 )
 
 
 @pytest.mark.parametrize(
     ("annotation", "default", "metadata_key"),
     [
-        (typing.Literal["none", "box", "triangle"], "triangle", "allow_select_none"),
+        (typing.Literal["auto", "box", "triangle"], "triangle", "allow_select_none"),
         (PixelResponse, PixelResponse.TRIANGLE, "allow_select_none"),
         (int, 2, "allow_none"),
         (float, 2.5, "allow_none"),
@@ -103,7 +103,7 @@ def test_dataclass_rejects_nullability_metadata(
 def test_dataclass_nullability_choice_widget_and_help(
     optional: bool, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    annotation = typing.Literal["none", "box", "triangle"]
+    annotation = typing.Literal["auto", "box", "triangle"]
     config_cls = dataclasses.make_dataclass(
         "Config",
         [("response", annotation | None if optional else annotation, "triangle")],
@@ -117,7 +117,7 @@ def test_dataclass_nullability_choice_widget_and_help(
         group.interface(control)
     assert exc_info.value.code == 0
     output = capsys.readouterr().out
-    assert "--response {none|box|triangle}" in output
+    assert "--response {auto|box|triangle}" in output
     assert ("--no-response" in output) is optional
 
 
@@ -148,22 +148,32 @@ def test_dataclass_nullability_optional_none_default_is_preserved(
     assert config.value["response"] is None
 
 
-@pytest.mark.parametrize(
-    ("annotation", "default", "cli_args"),
-    [
-        (typing.Literal["box", None], None, []),
-        (typing.Literal["box", None], "box", ["--no-response"]),
-        (typing.Annotated[int | None, "Target word count"], 2, ["--no-response"]),
-    ],
-    ids=["literal-none-default", "literal-clear", "annotated-clear"],
-)
-def test_dataclass_nullability_nested_none(
-    annotation: typing.Any, default: typing.Any, cli_args: list[str]
-) -> None:
+def test_dataclass_nullability_annotated_clear() -> None:
     config_cls = dataclasses.make_dataclass(
-        "Config", [("response", annotation, default)]
+        "Config",
+        [("response", typing.Annotated[int | None, "Target word count"], 2)],
+    )
+    group = Group(cli_args=["script.py", "--no-response"])
+    config = group.dataclass(config_cls)
+    group.interface(*config.elements.values())
+    assert config.value["response"] is None
+
+
+@pytest.mark.parametrize(
+    ("default", "cli_args"),
+    [(None, []), ("box", ["--no-response"]), ("box", ["--response", "none"])],
+    ids=["none-default", "clear-flag", "none-choice"],
+)
+def test_dataclass_literal_with_none_member_warns(
+    default: typing.Any, cli_args: list[str]
+) -> None:
+    # A Literal that spells out None offers a 'none' choice *and* a cleared
+    # state; both resolve to None, so the dropdown warns about the pair.
+    config_cls = dataclasses.make_dataclass(
+        "Config", [("response", typing.Literal["box", None], default)]
     )
     group = Group(cli_args=["script.py", *cli_args])
-    config = group.dataclass(config_cls)
+    with pytest.warns(UserWarning, match="easy to confuse"):
+        config = group.dataclass(config_cls)
     group.interface(*config.elements.values())
     assert config.value["response"] is None
