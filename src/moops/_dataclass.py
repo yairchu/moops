@@ -61,10 +61,7 @@ def _control_for_field(
         if key in field.metadata
     }
     typ = _simple_type(annotation, default)
-    allow_none = typing.get_origin(annotation) in {
-        typing.Union,
-        types.UnionType,
-    } and type(None) in typing.get_args(annotation)
+    allow_none = _allows_none(annotation)
     if isinstance(typ, tuple | dict):
         allow_none = field.metadata.get("allow_select_none", allow_none)
     elif typ is int or typ is float:
@@ -98,13 +95,26 @@ def _control_for_field(
     raise TypeError(f"Cannot infer a moops control for dataclass field {field.name!r}")
 
 
+def _allows_none(annotation: object) -> bool:
+    origin = typing.get_origin(annotation)
+    args = typing.get_args(annotation)
+    if origin is typing.Annotated:
+        return _allows_none(args[0])
+    if origin in {typing.Union, types.UnionType}:
+        return any(_allows_none(arg) for arg in args)
+    if origin is typing.Literal:
+        return any(arg is None for arg in args)
+    return annotation is type(None)
+
+
 def _simple_type(annotation: object, default: typing.Any) -> object:
     origin = typing.get_origin(annotation)
+    if origin is typing.Annotated:
+        return _simple_type(typing.get_args(annotation)[0], default)
     if origin in {typing.Union, types.UnionType}:
         choices = [arg for arg in typing.get_args(annotation) if arg is not type(None)]
         if len(choices) == 1:
-            annotation = choices[0]
-            origin = typing.get_origin(annotation)
+            return _simple_type(choices[0], default)
     if origin is typing.Literal:
         return typing.get_args(annotation)
     if isinstance(annotation, type) and issubclass(annotation, enum.Enum):
