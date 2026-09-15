@@ -12,11 +12,23 @@ app = marimo.App(width="medium")
 
 with app.setup:
     import dataclasses
+    from typing import Literal
 
 
 @app.cell(hide_code=True)
 def _(args):
-    args.md("# Dataclass config", notebook_only=True)
+    args.md(
+        """
+        # Dataclass config
+
+        Field types determine whether controls allow an empty value.
+        `list_style` and `report_year` are required values; `audience` and
+        `word_budget` include `None` in their types and can be cleared.
+        Try `--no-audience --no-word-budget` on the CLI, or inspect `--help`
+        to see which fields offer a `--no-...` flag.
+        """,
+        notebook_only=True,
+    )
     return
 
 
@@ -45,6 +57,13 @@ def _():
 @dataclasses.dataclass(frozen=True)
 class ReportConfig:
     title: str = "Quarterly review"
+    list_style: Literal["bullets", "numbered"] = "bullets"
+    audience: Literal["internal", "external"] | None = "internal"
+    report_year: int = 2026
+    word_budget: int | None = dataclasses.field(
+        default=1200,
+        metadata={"help_text": "Target word count; clear for no limit"},
+    )
     sections: int = dataclasses.field(
         default=3,
         metadata={
@@ -79,9 +98,19 @@ def _(report_config):
 @app.cell
 def _(args, config, section_labels):
     summary = "with summary" if config.include_summary else "without summary"
+    audience = "general audience" if config.audience is None else config.audience
+    budget = (
+        "No word limit"
+        if config.word_budget is None
+        else f"Target: {config.word_budget} words"
+    )
+    section_lines = [
+        f"{i}. {section}" if config.list_style == "numbered" else f"- {section}"
+        for i, section in enumerate(section_labels, start=1)
+    ]
     args.md(
-        f"**{config.title}** ({summary})\n\n"
-        + "\n".join(f"- {section}" for section in section_labels)
+        f"**{config.title} — {config.report_year}** ({summary})\n\n"
+        f"Audience: {audience}. {budget}.\n\n" + "\n".join(section_lines)
     )
     return
 
