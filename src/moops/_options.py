@@ -908,15 +908,15 @@ class MatrixControl(ValueControl):
     def format_value(self, value: typing.Any) -> list[str]:
         if value == self.default:
             return []
-        return [option_value_token(self.option, format_matrix(value))]
+        return [option_value_token(self.option, _format_matrix(value))]
 
     def format_query_value(self, value: typing.Any) -> str | None:
-        return None if value == self.default else format_matrix(value)
+        return None if value == self.default else _format_matrix(value)
 
     def prompt_interactive(self, effective_default: typing.Any = _UNSET) -> list[str]:
         d = self.default if effective_default is _UNSET else effective_default
         while True:
-            response = input(f"{self.help_text} [{format_matrix(d)}]: ").strip()
+            response = input(f"{self.help_text} [{_format_matrix(d)}]: ").strip()
             if not response:
                 return []
             if _is_numeric_matrix_value(response):
@@ -1503,7 +1503,7 @@ def _is_numeric_matrix_value(raw: str) -> bool:
     return _is_numeric_matrix(value)
 
 
-def format_matrix(value: typing.Any) -> str:
+def _format_matrix(value: typing.Any) -> str:
     return json.dumps(value, separators=(",", ":"))
 
 
