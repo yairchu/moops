@@ -378,6 +378,25 @@ def test_matrix_display_precision_applies_to_integers(
     assert capsys.readouterr().out == "[\n  [ 1.50, 2.00],\n  [30.00, 4.00]\n]\n\n"
 
 
+@pytest.mark.parametrize(
+    ("scientific", "expected"),
+    [
+        (False, "[\n  [ 1.23, 2.35],\n  [30.46, 4.57]\n]\n\n"),
+        (True, "[\n  [1.23e+00, 2.35e+00],\n  [3.05e+01, 4.57e+00]\n]\n\n"),
+    ],
+)
+def test_matrix_display_formats_tuple_rows(
+    scientific: bool, expected: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Rows produced by zip are tuples, which the notebook matrix accepts.
+    # The CLI must format their cells rather than serialize each row wholesale.
+    value = list(zip([1.2345, 30.4567], [2.3456, 4.5678], strict=True))
+    g = Group(cli_args=["script.py"])
+    g.matrix_display(value, precision=2, scientific=scientific)
+
+    assert capsys.readouterr().out == expected
+
+
 @pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
 @pytest.mark.parametrize(
     ("scientific", "precision"), [(False, None), (False, 2), (True, None)]
