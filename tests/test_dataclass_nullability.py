@@ -122,3 +122,24 @@ def test_dataclass_nullability_optional_none_default_is_preserved(
     config = group.dataclass(config_cls)
     group.interface(*config.elements.values())
     assert config.value["response"] is None
+
+
+@pytest.mark.parametrize(
+    ("annotation", "default", "cli_args"),
+    [
+        (typing.Literal["box", None], None, []),
+        (typing.Literal["box", None], "box", ["--no-response"]),
+        (typing.Annotated[int | None, "Target word count"], 2, ["--no-response"]),
+    ],
+    ids=["literal-none-default", "literal-clear", "annotated-clear"],
+)
+def test_dataclass_nullability_nested_none(
+    annotation: typing.Any, default: typing.Any, cli_args: list[str]
+) -> None:
+    config_cls = dataclasses.make_dataclass(
+        "Config", [("response", annotation, default)]
+    )
+    group = Group(cli_args=["script.py", *cli_args])
+    config = group.dataclass(config_cls)
+    group.interface(*config.elements.values())
+    assert config.value["response"] is None
