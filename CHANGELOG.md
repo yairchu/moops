@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.15.6] - 2026-09-15 - Matrix displays and dataclass nullability
+
 ### Added
 
 - Add `Group.matrix_display()`, which renders a read-only matrix in notebooks
