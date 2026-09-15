@@ -453,7 +453,13 @@ class Group:
         column_labels: list[str] | None = None,
         label: str = "",
     ) -> mo.ui.matrix | None:
-        """Display a read-only matrix in notebooks or as JSON on the CLI."""
+        """Display a read-only matrix in notebooks or as JSON on the CLI.
+
+        On the CLI the value is printed as JSON, with the columns of a 2-D
+        matrix right-aligned; ``row_labels`` and ``column_labels`` are
+        notebook-only. Mirrors :meth:`table`: returns ``None`` during interface
+        queries, when output is silenced, or on the CLI.
+        """
 
         if self.is_interface_query or self.output_mode is None:
             return None
