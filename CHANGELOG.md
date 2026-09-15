@@ -13,6 +13,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Add `Group.matrix_display()`, which renders a read-only matrix in notebooks
   and prints an aligned JSON representation on the CLI.
 
+### Changed
+
+- Dataclass-generated `Literal` and `Enum` dropdowns and unbounded number
+  controls now offer `--no-...` only when the field annotation includes `None`.
+  Non-optional dropdowns no longer offer a blank selection, and non-optional
+  choice and number fields reject `None` defaults. Override the annotation with
+  field metadata: `allow_select_none` for choices or `allow_none` for numbers.
+  Optional fields retain their existing behavior.
+
 ## [0.15.5] - 2026-08-23 - Matrix controls
 
 ### Added

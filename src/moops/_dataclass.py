@@ -61,20 +61,39 @@ def _control_for_field(
         if key in field.metadata
     }
     typ = _simple_type(annotation, default)
+    allow_none = typing.get_origin(annotation) in {
+        typing.Union,
+        types.UnionType,
+    } and type(None) in typing.get_args(annotation)
+    if isinstance(typ, tuple | dict):
+        allow_none = field.metadata.get("allow_select_none", allow_none)
+    elif typ is int or typ is float:
+        allow_none = field.metadata.get("allow_none", allow_none)
+    if default is None and (typ is bool or not allow_none):
+        raise TypeError(
+            f"Cannot infer a moops control for dataclass field {field.name!r}"
+        )
     if typ is bool:
-        if default is None:
-            raise TypeError(
-                f"Cannot infer a moops control for dataclass field {field.name!r}"
-            )
         return group.switch(value=default, label=label, help_text=help_text, **kwargs)
     if typ is str:
         return group.text(value=default, label=label, help_text=help_text, **kwargs)
     if typ is int or typ is float:
-        value = typing.cast(Numeric, default)
-        return group.number(value=value, label=label, help_text=help_text, **kwargs)
+        value = typing.cast(Numeric | None, default)
+        return group.number(
+            value=value,
+            allow_none=allow_none,
+            label=label,
+            help_text=help_text,
+            **kwargs,
+        )
     if isinstance(typ, tuple | dict):
         return group.dropdown(
-            typ, value=default, label=label, help_text=help_text, **kwargs
+            typ,
+            value=default,
+            allow_select_none=allow_none,
+            label=label,
+            help_text=help_text,
+            **kwargs,
         )
     raise TypeError(f"Cannot infer a moops control for dataclass field {field.name!r}")
 
