@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Live control edits now update the notebook URL only after the control settles
+  for 0.3 seconds, instead of on every change. Dragging a slider no longer adds a
+  browser history entry per step (which flooded the Back button and triggered
+  the browser's `history.pushState()` rate-limit warning); each pause becomes a
+  single entry. Unchanged values are no longer re-written to the URL.
+
 ## [0.15.6] - 2026-09-15 - Matrix displays and dataclass nullability
 
 ### Added
