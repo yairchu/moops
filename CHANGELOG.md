@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.15.7] - 2026-09-23 - Debounced URL updates
+
 ### Fixed
 
 - Live control edits now update the notebook URL only after the control settles
