@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-09-24 - Remove workarounds for issues resolved in marimo
+
 ### Changed
 
 - Require marimo 0.25.0 or newer and rely on its native support for running
