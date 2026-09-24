@@ -33,8 +33,8 @@ def test_graphics_supported_enables_worker_thread_figures(
     """Plotting gated on ``graphics_supported`` must work in worker threads.
 
     GUI backends (notably macOS's) refuse to create figures outside the main
-    thread, so apps offloaded by ``run_in_thread_if_in_async`` (e.g. step
-    notebooks run by a pipeline notebook) crash when they plot. A ``True``
+    thread, so async notebooks offloaded by marimo to worker threads can
+    crash when they plot. A ``True``
     ``graphics_supported`` on the CLI means figures only get rasterized, so it
     switches to a non-GUI backend.
     """

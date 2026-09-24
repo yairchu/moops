@@ -1,4 +1,3 @@
-import asyncio
 import typing
 
 import marimo as mo
@@ -101,16 +100,13 @@ async def embed(
     When ``args`` is the only overridden definition, the embedded notebook's
     interface also shows a CLI command that reproduces the embed's current
     setup standalone.
-
-    This also works around marimo nested embed failures in script mode,
-    see https://github.com/marimo-team/marimo/issues/9572
     """
     keep = _normalize_keep(keep)
     _record_extra_overrides(defs)
     if mo.running_in_notebook():
         _raise_if_same_cell_app(app)
         return await app.embed(defs=defs)
-    return await asyncio.to_thread(_embed_in_script, app, defs or {}, keep)
+    return _embed_in_script(app, defs or {}, keep)
 
 
 def _record_extra_overrides(defs: dict[str, typing.Any] | None) -> None:

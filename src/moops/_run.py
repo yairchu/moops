@@ -1,7 +1,7 @@
 import types
 import typing
 
-from . import group, workarounds
+from . import group
 from .interface import Interface
 
 
@@ -47,7 +47,7 @@ def interface_of_app(
     query_args._is_interface_query = True
     run_defs = {**(defs or {}), "args": args}
     try:
-        _, result_defs = workarounds.run_in_thread_if_in_async(app.run, defs=run_defs)
+        _, result_defs = app.run(defs=run_defs)
     finally:
         query_args._is_interface_query = was_interface_query
     return typing.cast(Interface, result_defs["interface"])
@@ -75,7 +75,7 @@ def run(
     """
     args = group.Group.with_overrides(kwargs)
     args.output_mode = output_mode
-    _, defs = workarounds.run_in_thread_if_in_async(module.app.run, defs={"args": args})
+    _, defs = module.app.run(defs={"args": args})
     if "result" not in defs:
         raise RuntimeError(
             f"moops.run() expected {module.__name__} to expose a variable named "

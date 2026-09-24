@@ -87,9 +87,7 @@ def _(moops, optimization_step, xs):
     for _x in xs.value:
         _child = moops.Group.with_overrides({"x": _x})
         _child.output_mode = moops.OutputMode.NOTEBOOK
-        _, _defs = moops.workarounds.run_in_thread_if_in_async(
-            optimization_step.app.run, defs={"args": _child}
-        )
+        _, _defs = optimization_step.app.run(defs={"args": _child})
         results.append(_defs["result"])
         reports.append(_defs["report"])
     return reports, results

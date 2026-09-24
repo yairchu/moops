@@ -1,6 +1,6 @@
 from importlib.metadata import version
 
-from . import composites, ui, workarounds
+from . import composites, ui
 from ._embed import Passthrough, embed, variant_embed
 from ._run import interface_of, run
 from ._run_button import run_button
@@ -24,5 +24,4 @@ __all__ = [
     "run_button",
     "ui",
     "variant_embed",
-    "workarounds",
 ]

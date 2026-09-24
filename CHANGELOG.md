@@ -8,6 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Require marimo 0.25.0 or newer and rely on its native support for running
+  async notebooks inside an existing event loop. Script-mode embeds, `run()`,
+  and `interface_of()` no longer add a moops worker thread.
+
+### Removed
+
+- Remove `moops.workarounds.run_in_thread_if_in_async` and the `workarounds`
+  module. Call `app.run(defs=...)` directly when running marimo notebooks.
+
 ## [0.15.7] - 2026-09-23 - Debounced URL updates
 
 ### Fixed
