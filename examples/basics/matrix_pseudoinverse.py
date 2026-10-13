@@ -1,6 +1,6 @@
 # /// script
 # dependencies = [
-#     "marimo>=0.24.0",
+#     "marimo>=0.25.0",
 #     "moops",
 #     "numpy",
 # ]

@@ -1,6 +1,6 @@
 # /// script
 # dependencies = [
-#     "marimo>=0.23.1",
+#     "marimo>=0.25.0",
 #     "moops>=0.8.0",
 #     "numpy>=1.26",
 #     "xarray>=2024.1",
