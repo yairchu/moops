@@ -21,6 +21,9 @@ bug before the fix, run the focused test that shows the failure instead of
 
 ## Commits
 
+Use Conventional Commit titles, such as `fix(dropdown): match marimo defaults`
+or `test(dropdown): reproduce nullable default mismatch`.
+
 When committing changes made with AI assistant help, add the appropriate
 co-author trailer for the assistant involved.
 
