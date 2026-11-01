@@ -14,6 +14,7 @@ import marimo as mo
 from . import (
     _choice_options,
     _input_map,
+    _interface_display,
     _list_options,
     _marimo_controls,
     _naming,
@@ -61,6 +62,7 @@ class Interface:
     is_interface_query: bool = False
 
     def __post_init__(self) -> None:
+        _interface_display.install_script_output_validation()
         seen_ids: set[int] = set()
         for ctrl in self._flatten():
             if id(ctrl) in seen_ids:
@@ -497,6 +499,7 @@ class Interface:
             sys.exit(1 if issues else 0)
 
     def _mime_(self) -> tuple[str, str]:
+        _interface_display.validate_display(self)
         if self.option_prefix:
             return self._subgroup_summary()._mime_()  # type: ignore
         return self._root_panel()._mime_()  # type: ignore

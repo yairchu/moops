@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Script runs and `moops.run()` now reject displaying an `Interface` in the
+  cell that creates its controls, matching the marimo kernel. The error explains
+  how to move the `interface` display to another cell.
+
 ## [0.16.0] - 2026-09-24 - Remove workarounds for issues resolved in marimo
 
 ### Changed
