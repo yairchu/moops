@@ -42,7 +42,6 @@ def _(moops):
         value="x",
         option="--first",
         help_text="First variant",
-        allow_select_none=False,
     )
     alpha = source.variant("alpha", first, short_options=True)
     alpha_x = alpha["x"].number(
@@ -61,7 +60,6 @@ def _(moops):
         value="x",
         option="--second",
         help_text="Second variant",
-        allow_select_none=False,
     )
     beta = source.variant("beta", second)
     beta_x = beta["x"].number(

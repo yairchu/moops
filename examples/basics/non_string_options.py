@@ -44,7 +44,6 @@ def _(args):
         value=2,
         label="Count",
         help_text="Numeric dropdown option",
-        allow_select_none=False,
     )
     count_dropdown
     return (count_dropdown,)

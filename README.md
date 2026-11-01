@@ -76,7 +76,6 @@ style = args.dropdown(
     ["snake_case", "camel_case"],
     value="snake_case",
     help_text="Output style",
-    allow_select_none=False,
 )
 ```
 
@@ -98,7 +97,6 @@ source = args.dropdown(
     value="heuristic",
     option="--source",
     help_text="Seed source",
-    allow_select_none=False,
 )
 seed = args.variant("seed", source)
 

@@ -48,7 +48,6 @@ def _(args):
         value="car",
         option="--mode",
         help_text="How to travel",
-        allow_select_none=False,
     )
     mode
     return (mode,)
