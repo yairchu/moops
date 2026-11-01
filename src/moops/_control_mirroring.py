@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import dataclasses
+import pathlib
 import typing
 
 import marimo as mo
@@ -43,7 +44,12 @@ def controls_from(
         _reattach_interface_to_clone(original, result.elements[key])
     # Use the live clones (result.elements) rather than the originals so
     # that cur_values() reads up-to-date widget values.
-    mirrored_iface = child.interface(*result.elements.values())
+    mirrored_iface = child._create_interface(  # pyright: ignore[reportPrivateUsage]
+        tuple(result.elements.values()),
+        pathlib.Path(__file__),
+        user_created=False,
+        stacklevel=2,
+    )
     result._moops_interface = mirrored_iface  # type: ignore[attr-defined]
     return result
 

@@ -72,7 +72,11 @@ def _(moops):
         option="--value",
         help_text="Beta value",
     )
+    return alpha, alpha_x, alpha_y, beta, beta_x, beta_y, first, second, source
 
+
+@app.cell
+def _(alpha, alpha_x, alpha_y, beta, beta_x, beta_y, first, second, source):
     source_interface = source.interface(
         first,
         alpha["x"].interface(alpha_x),

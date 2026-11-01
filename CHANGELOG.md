@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Creating an `Interface` in a cell that creates any of its controls is now an
+  error. marimo does not rerun a control's own cell when the control changes,
+  so such an interface showed stale values in its CLI line. Move the
+  `args.interface(...)` call to a cell of its own. This supersedes the 0.17.0
+  check, which only rejected displaying the interface in that cell.
+
 ## [0.17.0] - 2026-11-01 - Match marimo dropdown and display rules
 
 ### Fixed

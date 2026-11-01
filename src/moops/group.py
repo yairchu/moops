@@ -23,6 +23,7 @@ from . import (
     _choice_options,
     _control_mirroring,
     _input_map,
+    _interface_cell,
     _list_controls,
     _list_options,
     _markdown,
@@ -270,6 +271,23 @@ class Group:
             caller_path = pathlib.Path(frame.f_back.f_code.co_filename)
         finally:
             del frame
+        return self._create_interface(
+            controls, caller_path, user_created=True, stacklevel=3
+        )
+
+    def _create_interface(
+        self,
+        controls: tuple[typing.Any, ...],
+        caller_path: pathlib.Path,
+        *,
+        user_created: bool,
+        stacklevel: int,
+    ) -> interface.Interface:
+        """Build an Interface for ``controls`` as if created from ``caller_path``.
+
+        Only user-created interfaces must live outside their controls' cells:
+        moops' internal mirrors are rebuilt along with their controls.
+        """
         try:
             notebook_file = caller_path.resolve().relative_to(
                 pathlib.Path.cwd().resolve()
@@ -294,6 +312,8 @@ class Group:
             embedded_extra_overrides=self._embedded_extra_overrides,
             is_interface_query=self.is_interface_query,
         )
+        if user_created:
+            _interface_cell.validate_creation_cell(iface)
         missing_options = iface.missing_options()
         if missing_options:
             gc.collect()
@@ -307,7 +327,7 @@ class Group:
             warnings.warn(
                 f"Controls registered with this Group "
                 f"but not passed to interface(): {', '.join(missing_options)}",
-                stacklevel=2,
+                stacklevel=stacklevel,
             )
         if not self.option and not mo.running_in_notebook():
             iface.validate_or_exit(self._state)

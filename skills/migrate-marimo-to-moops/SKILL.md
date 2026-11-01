@@ -32,9 +32,12 @@ programmatic inputs.
    ```
 
    It may reference controls defined in later cells; marimo's DAG resolves
-   execution order. Keep `interface` as the cell's last expression to display
-   the CLI callout and help. This does not display the controls themselves;
-   preserve or add separate notebook outputs for them.
+   execution order. It must not share a cell with any of its controls: marimo
+   does not rerun a control's own cell when the control changes, so moops
+   rejects that layout rather than show stale CLI values. Keep `interface` as
+   the cell's last expression to display the CLI callout and help. This does
+   not display the controls themselves; preserve or add separate notebook
+   outputs for them.
 6. Replace user-triggered `mo.ui.run_button` controls with
    `interface.run_button`. Keep them in a separate cell downstream of the
    interface so CLI arguments are validated before gated computation begins.
