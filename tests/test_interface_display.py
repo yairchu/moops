@@ -4,7 +4,6 @@ import pathlib
 import subprocess
 import sys
 import types
-import typing
 
 import pytest
 from marimo._ast.app import InternalApp
@@ -21,16 +20,51 @@ from marimo._session.model import SessionMode
 
 import moops
 
+# marimo never reruns a control's defining cell when the control changes, so
+# an Interface created there keeps showing the control's stale value.
+SAME_CELL_ERROR = "Cannot create an Interface in a cell that creates its controls"
+
+_CONTROLS_CELL = """
+@app.cell
+def _(args):
+    x = args.slider(0.0, 1.0, 0.1, value=0.5, option="--x", help_text="X")
+    return (x,)
+"""
+
+_INTERFACE_CELL = """
+@app.cell
+def _(args, x):
+    interface = args.interface(x)
+    interface
+    return (interface,)
+"""
+
+_SAME_CELL = """
+@app.cell
+def _(args):
+    x = args.slider(0.0, 1.0, 0.1, value=0.5, option="--x", help_text="X")
+    interface = args.interface(x)
+    return (interface, x)
+
+@app.cell
+def _(interface):
+    interface
+    return
+"""
+
 
 def _notebook(
     tmp_path: pathlib.Path,
     *,
-    separate_display: bool = False,
+    same_cell: bool,
     asynchronous: bool = False,
 ) -> types.ModuleType:
-    path = tmp_path / "same_cell.py"
-    path.write_text(
-        """import marimo
+    """Write and import a notebook whose interface is created with or apart
+    from its control."""
+    body = _SAME_CELL if same_cell else _CONTROLS_CELL + _INTERFACE_CELL
+    if asynchronous:
+        body = body.replace("def _(args):", "async def _(args):")
+    source = f"""import marimo
 
 app = marimo.App()
 
@@ -43,14 +77,7 @@ def _():
 def _(moops):
     args = moops.Group()
     return (args,)
-
-@app.cell
-def _(args):
-    x = args.slider(0.0, 1.0, 0.1, value=0.5, option="--x", help_text="X")
-    interface = args.interface(x)
-    interface
-    return (interface, x)
-
+{body}
 @app.cell
 def _(x):
     result = x.value
@@ -59,21 +86,9 @@ def _(x):
 if __name__ == "__main__":
     app.run()
 """
-    )
-    source = path.read_text()
-    if separate_display:
-        source = source.replace("    interface\n", "")
-        source += """
-
-@app.cell
-def _(interface):
-    interface
-    return
-"""
-    if asynchronous:
-        source = source.replace("def _(args):", "async def _(args):")
+    path = tmp_path / "notebook.py"
     path.write_text(source)
-    spec = importlib.util.spec_from_file_location("same_cell", path)
+    spec = importlib.util.spec_from_file_location("notebook", path)
     assert spec is not None
     assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -82,23 +97,19 @@ def _(interface):
 
 
 @pytest.mark.parametrize("asynchronous", [False, True])
-def test_run_rejects_interface_displayed_with_its_controls(
+def test_run_rejects_interface_created_with_its_controls(
     tmp_path: pathlib.Path, asynchronous: bool
 ) -> None:
-    module = _notebook(tmp_path, asynchronous=asynchronous)
+    module = _notebook(tmp_path, same_cell=True, asynchronous=asynchronous)
 
-    with pytest.raises(
-        RuntimeError,
-        match="display `interface` from a cell other than "
-        "the one creating its controls",
-    ):
+    with pytest.raises(RuntimeError, match=SAME_CELL_ERROR):
         moops.run(module)
 
 
-def test_script_rejects_interface_displayed_with_its_controls(
+def test_script_rejects_interface_created_with_its_controls(
     tmp_path: pathlib.Path,
 ) -> None:
-    module = _notebook(tmp_path)
+    module = _notebook(tmp_path, same_cell=True)
     assert module.__file__ is not None
     completed = subprocess.run(
         [sys.executable, module.__file__],
@@ -108,35 +119,32 @@ def test_script_rejects_interface_displayed_with_its_controls(
         timeout=20,
     )
     assert completed.returncode != 0
-    assert (
-        "display `interface` from a cell other than the one creating its controls"
-        in completed.stderr
-    )
+    assert SAME_CELL_ERROR in completed.stderr
 
 
-def test_creating_interface_with_controls_is_valid_when_display_is_separate(
+def test_interface_in_its_own_cell_may_display_itself(
     tmp_path: pathlib.Path,
 ) -> None:
-    # Only display reads values: building the Interface in the controls' cell
-    # must remain valid, even though the script runner never renders it.
-    module = _notebook(tmp_path, separate_display=True)
+    module = _notebook(tmp_path, same_cell=False)
     assert moops.run(module) == 0.5
 
 
-def test_run_from_event_loop_rejects_same_cell_display(
+def test_run_from_event_loop_rejects_same_cell_creation(
     tmp_path: pathlib.Path,
 ) -> None:
-    module = _notebook(tmp_path, asynchronous=True)
+    module = _notebook(tmp_path, same_cell=True, asynchronous=True)
 
     async def run() -> None:
         moops.run(module)
 
-    with pytest.raises(RuntimeError, match="display `interface` from a cell other"):
+    with pytest.raises(RuntimeError, match=SAME_CELL_ERROR):
         asyncio.run(run())
 
 
-def test_kernel_render_names_interface_display_fix(tmp_path: pathlib.Path) -> None:
-    module = _notebook(tmp_path)
+def test_kernel_rejects_interface_created_with_its_controls(
+    tmp_path: pathlib.Path,
+) -> None:
+    module = _notebook(tmp_path, same_cell=True)
     internal_app = InternalApp(module.app)
     streams = KernelStreams(stream=NoopStream(), stdout=None, stderr=None, stdin=None)
     kernel = Kernel(
@@ -159,16 +167,7 @@ def test_kernel_render_names_interface_display_fix(tmp_path: pathlib.Path) -> No
         with ctx.with_cell_id(cell_id):
             args = moops.Group(cli_args=["script.py"])
             x = args.slider(0.0, 1.0, 0.1, value=0.5, option="--x", help_text="X")
-            interface = args.interface(x)
-            # Confirm this is the native marimo rule before checking moops'
-            # rendering error in the same real kernel context.
-            with pytest.raises(
-                RuntimeError, match="Accessing the value of a UIElement"
-            ):
-                _ = x.value
-            with pytest.raises(
-                RuntimeError, match="display `interface` from a cell other"
-            ):
-                typing.cast(typing.Any, interface)._mime_()
+            with pytest.raises(RuntimeError, match=SAME_CELL_ERROR):
+                args.interface(x)
     finally:
         teardown_context()
