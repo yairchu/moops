@@ -256,6 +256,21 @@ def test_equals_flag_not_consumed_as_prefix_for_next_arg(
     assert "unexpected" in capsys.readouterr().out
 
 
+def test_dropdown_initial_value_disallows_clearing_by_default() -> None:
+    g = Group(cli_args=["script.py"])
+    ctrl = g.dropdown(
+        ["snake_case", "camel_case"],
+        value="camel_case",
+        label="Style",
+        help_text="Text style",
+    )
+    native = mo.ui.dropdown(["snake_case", "camel_case"], value="camel_case")
+
+    assert ctrl.value == native.value
+    assert ctrl._component_args["allow-select-none"] is False  # type: ignore[attr-defined]
+    assert "--no-style" not in g.interface(ctrl).help()
+
+
 def test_dropdown_no_flag_selects_none() -> None:
     g = Group(cli_args=["script.py", "--no-style"])
     ctrl = g.dropdown(
