@@ -19,7 +19,13 @@ def _text_item(grp: Group) -> typing.Any:
 
 
 def _dropdown_item(grp: Group) -> typing.Any:
-    return grp.dropdown(["a", "b", "c"], value="a", option="--tag", help_text="Tag")
+    return grp.dropdown(
+        ["a", "b", "c"],
+        value="a",
+        allow_select_none=True,
+        option="--tag",
+        help_text="Tag",
+    )
 
 
 def _multiselect_item(grp: Group) -> typing.Any:

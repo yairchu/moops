@@ -203,7 +203,13 @@ def test_dropdown_no_flag_shown_as_mutex_in_usage(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     g = Group(cli_args=["script.py", "--help"])
-    ctrl = g.dropdown(["a", "b"], value="a", label="Style", help_text="The style")
+    ctrl = g.dropdown(
+        ["a", "b"],
+        value="a",
+        allow_select_none=True,
+        label="Style",
+        help_text="The style",
+    )
     with pytest.raises(SystemExit):
         g.interface(ctrl)
     usage_line = capsys.readouterr().out.splitlines()[0]

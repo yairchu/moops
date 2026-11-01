@@ -1084,14 +1084,18 @@ def test_list_empty_value_overrides_non_empty_default_in_query() -> None:
 def test_list_merged_dropdown_item_accepts_no_flag() -> None:
     """Merged lists must parse the item control's auxiliary flags too.
 
-    A dropdown item with a non-None default formats a None item as --no-style;
-    the same argument should be accepted when pasted back into the CLI.
+    A nullable dropdown item with a non-None default formats a None item as
+    --no-style; the same argument should be accepted when pasted back into the CLI.
     """
     source = Group(cli_args=["script.py"])
     source_ctrl = source.list(
         option="--style",
         item=lambda grp: grp.dropdown(
-            ["a", "b"], value="a", option="--style", help_text="Style"
+            ["a", "b"],
+            value="a",
+            allow_select_none=True,
+            option="--style",
+            help_text="Style",
         ),
         help_text="Styles",
         value=[None],
@@ -1102,7 +1106,11 @@ def test_list_merged_dropdown_item_accepts_no_flag() -> None:
     target_ctrl = target.list(
         option="--style",
         item=lambda grp: grp.dropdown(
-            ["a", "b"], value="a", option="--style", help_text="Style"
+            ["a", "b"],
+            value="a",
+            allow_select_none=True,
+            option="--style",
+            help_text="Style",
         ),
         help_text="Styles",
         value=[],

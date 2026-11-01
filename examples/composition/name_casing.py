@@ -70,6 +70,7 @@ def _(args, name_casings):
     mode_dropdown = args.dropdown(
         name_casings,
         value="camel_case",
+        allow_select_none=True,
         label="Style",
         help_text="Text style",
     )

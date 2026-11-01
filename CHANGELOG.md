@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Dropdowns with an initial value now disallow clearing by default, matching
+  marimo. Pass `allow_select_none=True` to permit clearing and the corresponding
+  `--no-...` CLI flag. Dropdowns without an initial value still allow `None`.
 - Script runs and `moops.run()` now reject displaying an `Interface` in the
   cell that creates its controls, matching the marimo kernel. The error explains
   how to move the `interface` display to another cell.

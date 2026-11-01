@@ -978,9 +978,7 @@ class Group:
         """Create a dropdown UI element that maps to a CLI option."""
 
         if allow_select_none is None:
-            # Preserve marimo's public signature while normalizing its default
-            # for moops' CLI/query behavior.
-            allow_select_none = True
+            allow_select_none = value is None
 
         if len(options) == 0:
             raise ValueError("Dropdown options cannot be empty")

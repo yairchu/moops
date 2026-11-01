@@ -29,6 +29,7 @@ def test_dropdown_no_flag_and_value_is_error(capsys: pytest.CaptureFixture[str])
     ctrl = g.dropdown(
         ["snake_case", "camel_case"],
         value="camel_case",
+        allow_select_none=True,
         label="Style",
         help_text="Text style",
     )
@@ -126,6 +127,7 @@ def test_dropdown_warns_when_none_choice_collides_with_empty_selection() -> None
         g.dropdown(
             ["none", "box"],
             value="box",
+            allow_select_none=True,
             label="Response",
             help_text="Pixel response",
         )

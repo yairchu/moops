@@ -276,6 +276,7 @@ def test_dropdown_no_flag_selects_none() -> None:
     ctrl = g.dropdown(
         ["snake_case", "camel_case"],
         value="camel_case",
+        allow_select_none=True,
         label="Style",
         help_text="Text style",
     )
