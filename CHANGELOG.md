@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.17.1] - 2026-11-01 - Validate interface creation cells
+
 ### Fixed
 
 - Creating an `Interface` in a cell that creates any of its controls is now an
